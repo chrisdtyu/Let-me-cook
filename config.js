@@ -1,6 +1,6 @@
 let config = {
   host: 'localhost',
-  user: '',
+  user: 's2gouris',
   port: '3306',
   password: 'MSCI245-student',
   database: ''
