@@ -1,8 +1,12 @@
-use practice;
+use alhogiu;
 
 /* drop table script:
 DROP TABLE IF EXISTS user_restrictions;
 DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS recipe_ingredients;
+DROP TABLE IF EXISTS recipe;
+DROP TABLE IF EXISTS ingredient_restrictions;
+DROP TABLE IF EXISTS ingredients;
 DROP TABLE IF EXISTS dietary_restrictions;
 */
 
@@ -28,10 +32,42 @@ CREATE TABLE user_restrictions(
   FOREIGN KEY (dietary_id) REFERENCES dietary_restrictions(dietary_id)
 );
 
+CREATE TABLE ingredients(
+  ingredient_id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(50) NOT NULL,
+  type VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE ingredient_restrictions(
+  ingredient_id INT NOT NULL,
+  dietary_id INT NOT NULL,
+  FOREIGN KEY (ingredient_id) REFERENCES ingredients(ingredient_id),
+  FOREIGN KEY (dietary_id) REFERENCES dietary_restrictions(dietary_id)
+);
+
+CREATE TABLE recipes(
+  recipe_id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(50) NOT NULL,
+  type VARCHAR(50) NOT NULL,
+  prep_time INT NOT NULL,
+  instructions VARCHAR(2000)
+);
+
+CREATE TABLE recipe_ingredients(
+  recipe_id INT NOT NULL,
+  ingredient_id INT NOT NULL,
+  quantity FLOAT NOT NULL,
+  required BOOLEAN NOT NULL,
+  FOREIGN KEY (recipe_id) REFERENCES recipes(recipe_id),
+  FOREIGN KEY (ingredient_id) REFERENCES ingredients(ingredient_id)
+);
+
 /*insert data script:*/
-INSERT INTO `practice`.`users`
+INSERT INTO `alhogiu`.`users`
 (`first_name`,`last_name`,`email`,`password`)
 VALUES
 ('Ana','Hogiu','alhogiu@uwaterloo.ca','letmecookyay!');
+
+
 
 /*modify data script:*/
