@@ -1,5 +1,4 @@
 import React from 'react';
-import { Typography } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import { styled } from '@mui/material/styles';
 import LetmecookAppBar from '../AppBar';
@@ -9,15 +8,16 @@ const MainGridContainer = styled(Grid)(({ theme }) => ({
     margin: theme.spacing(4),
   }));
 
-const Home = () => {
+const Search = () => {
     return(
         <>
-            <LetmecookAppBar page = "Home"/>
+            <LetmecookAppBar page = "Search"/>
             <Box
                 sx={{
                     maxWidth: '100%',
                     margin: '0px',
                     padding: '2rem',
+                    backgroundImage: `url('/theatre-background.jpg')`,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
                     width: '100vw',
@@ -28,10 +28,10 @@ const Home = () => {
                     textAlign: 'center'
                 }}
             >
-                Let Me Cook Home Page
+                Search Page
             </Box>
         </>
     )
 }
 
-export default Home;
+export default Search;
