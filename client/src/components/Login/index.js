@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Grid from '@mui/material/Grid';
 import { styled } from '@mui/material/styles';
 import LetmecookAppBar from '../AppBar';
@@ -9,6 +9,20 @@ const MainGridContainer = styled(Grid)(({ theme }) => ({
   }));
 
 const Login = () => {
+
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
+
+    const handleLogin = () => {
+        if (password.length < 8) {
+            setErrorMessage('Password must be at least 8 characters long.');
+        } else {
+            setErrorMessage('');
+            // save the password, create an API 
+        }
+    };
+
     return(
         <>
             <LetmecookAppBar page = "Login"/>
