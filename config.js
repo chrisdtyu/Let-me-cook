@@ -3,7 +3,7 @@ let config = {
   user: 'alhogiu',
   port: '3306',
   password: 'MSCI245-student',
-  database: 'practice'
+  database: 'alhogiu'
 };
  
 export default config;

@@ -47,24 +47,49 @@ app.post('/api/createUser', (req, res) => {
 	let connection = mysql.createConnection(config);
 	let formData = req.body;
 
-	
 	let sql = `INSERT INTO users
 	(first_name,last_name,email,password)
 	VALUES
 	(?,?,?,?);`;
-	console.log(sql);
 	let data = [formData.first_name,formData.last_name,formData.email,formData.password];
-	console.log(data);
+	console.log(sql, data);
 
 	connection.query(sql, data, (error, results, fields) => {
-		console.log("hello world!", error, results, fields);
 		if (error) {
-			return console.error(error.message);
+			console.error(error.message);
+			let string = JSON.stringify(error);
+			res.statusCode = 500;
+			res.send({ express: string });
+			return;
 		}
 		console.log(results);
 		let string = JSON.stringify(results);
-		console.log(string);
-		//let obj = JSON.parse(string);
+		res.send({ express: string });
+	});
+	connection.end();
+});
+
+app.post('/api/getUser', (req, res) => {
+
+	let connection = mysql.createConnection(config);
+	let formData = req.body;
+
+	let sql = `SELECT user_id,first_name,last_name,email,password 
+	FROM users
+	WHERE email = ?;`;
+	let data = [formData.email];
+	console.log(sql, data);
+
+	connection.query(sql, data, (error, results, fields) => {
+		if (error) {
+			console.error(error.message);
+			let string = JSON.stringify(error);
+			res.statusCode = 500;
+			res.send({ express: string });
+			return;
+		}
+		console.log(results);
+		let string = JSON.stringify(results);
 		res.send({ express: string });
 	});
 	connection.end();
