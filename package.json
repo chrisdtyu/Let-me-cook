@@ -5,7 +5,9 @@
   "scripts": {
     "client": "cd client && yarn start",
     "server": "nodemon server.js",
-    "dev": "concurrently --kill-others-on-fail \"yarn server\" \"yarn client\""
+    "dev": "concurrently --kill-others-on-fail \"yarn server\" \"yarn client\"",
+    "connect-server": "ssh -L 3306:localhost:3306 alhogiu@mse-msci-245.uwaterloo.ca",
+    "convert": "node ./data-mealdb/convert.js"
   },
   "dependencies": {
     "dotenv": "^16.0.3",
