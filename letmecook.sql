@@ -45,18 +45,23 @@ CREATE TABLE ingredient_restrictions(
   FOREIGN KEY (dietary_id) REFERENCES dietary_restrictions(dietary_id)
 );
 
-CREATE TABLE recipes(
-  recipe_id INT PRIMARY KEY AUTO_INCREMENT,
-  name VARCHAR(50) NOT NULL,
-  type VARCHAR(50) NOT NULL,
-  prep_time INT NOT NULL,
-  instructions VARCHAR(2000)
+CREATE TABLE `recipes` (
+  `recipe_id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `category` varchar(50),
+  `type` varchar(50),
+  `instructions` varchar(5000) DEFAULT NULL,
+  `image` varchar(66),
+  `video` varchar(50),
+  `prep_time` int NOT NULL,
+  PRIMARY KEY (`recipe_id`)
 );
 
 CREATE TABLE recipe_ingredients(
   recipe_id INT NOT NULL,
   ingredient_id INT NOT NULL,
   quantity FLOAT NOT NULL,
+  quantity_type varchar(50),
   required BOOLEAN NOT NULL,
   FOREIGN KEY (recipe_id) REFERENCES recipes(recipe_id),
   FOREIGN KEY (ingredient_id) REFERENCES ingredients(ingredient_id)
