@@ -71,3 +71,44 @@ VALUES
 
 
 /*modify data script:*/
+
+
+-- Users Table add health goals and weekly budget
+ALTER TABLE users 
+ADD COLUMN health_goals TEXT,
+ADD COLUMN weekly_budget DECIMAL(10,2);
+
+-- Dietary Preferences Table 
+CREATE TABLE dietary_preferences (
+    preference_id INT AUTO_INCREMENT PRIMARY KEY,
+    preference_name VARCHAR(255) UNIQUE
+);
+
+-- User Preferences Table
+CREATE TABLE user_preferences (
+    user_id INT,
+    preference_id INT,
+    FOREIGN KEY (user_id) REFERENCES users(user_id),
+    FOREIGN KEY (preference_id) REFERENCES dietary_preferences(preference_id),
+    PRIMARY KEY (user_id, preference_id)
+);
+
+-- User Ingredients Table (Stores always available ingredients and dietary restrictions)
+CREATE TABLE user_ingredients (
+    user_id INT,
+    ingredient_id INT,
+    is_dietary_restriction BOOLEAN,  -- TRUE if dietary restriction, FALSE if always available
+    FOREIGN KEY (user_id) REFERENCES users(user_id),
+    FOREIGN KEY (ingredient_id) REFERENCES ingredients(ingredient_id),
+    PRIMARY KEY (user_id, ingredient_id)
+);
+
+-- Adding dietary_preferences options
+INSERT INTO dietary_preferences (preference_name) VALUES
+('Vegetarian'), 
+('Vegan'), 
+('Gluten-Free'), 
+('Dairy-Free'), 
+('High-Protein'), 
+('Low-Carb'), 
+('None');
