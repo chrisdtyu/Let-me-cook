@@ -112,9 +112,7 @@ app.post('/api/getUser', (req, res) => {
 });
 
 
-// ---------------------------------------------------------------------
 // Get dietary preferences
-// ---------------------------------------------------------------------
 app.get('/api/getDietaryPreferences', (req, res) => {
     const sql = "SELECT preference_id, preference_name FROM dietary_preferences";
     connection.query(sql, (error, results) => {
@@ -125,9 +123,7 @@ app.get('/api/getDietaryPreferences', (req, res) => {
     });
 });
 
-// ---------------------------------------------------------------------
-// Search dietary preferences (if you still need it)
-// ---------------------------------------------------------------------
+// Search dietary preferences
 app.get('/api/searchDietaryPreferences', (req, res) => {
     const searchQuery = req.query.q;
     const sql = "SELECT * FROM dietary_preferences WHERE preference_name LIKE ?";
@@ -141,9 +137,7 @@ app.get('/api/searchDietaryPreferences', (req, res) => {
     });
 });
 
-// ---------------------------------------------------------------------
 // Get dietary restrictions
-// ---------------------------------------------------------------------
 app.get('/api/getDietaryRestrictions', (req, res) => {
     const sql = "SELECT dietary_id, dietary_name FROM dietary_restrictions";
     connection.query(sql, (error, results) => {
@@ -154,9 +148,7 @@ app.get('/api/getDietaryRestrictions', (req, res) => {
     });
 });
 
-// ---------------------------------------------------------------------
 // Get ingredients for the "always available" prompt
-// ---------------------------------------------------------------------
 app.get('/api/getIngredients', (req, res) => {
     const sql = "SELECT ingredient_id, name, type FROM ingredients";
     connection.query(sql, (error, results) => {
@@ -167,13 +159,7 @@ app.get('/api/getIngredients', (req, res) => {
     });
 });
 
-/*
-   Save Profile:
-     - Inserts a new user in `users`.
-     - Insert dietary preferences in `user_preferences`.
-     - Insert dietary restrictions in `user_restrictions`.
-     - Insert always-available ingredients in `user_ingredients` (with is_dietary_restriction = 0).
-*/
+//Save Profile:
 app.post('/api/saveProfile', (req, res) => {
     const {
         firstName, lastName, email, password,
@@ -194,9 +180,7 @@ app.post('/api/saveProfile', (req, res) => {
         }
         const userId = result.insertId;
 
-        // ----------------------------------------------------------
         // Insert dietary preferences (user_preferences)
-        // ----------------------------------------------------------
         if (dietaryPreferences && dietaryPreferences.length > 0) {
             let preferenceQuery = `
                 INSERT INTO user_preferences (user_id, preference_id)
@@ -210,9 +194,7 @@ app.post('/api/saveProfile', (req, res) => {
             });
         }
 
-        // ----------------------------------------------------------
         // Insert dietary restrictions (user_restrictions)
-        // ----------------------------------------------------------
         if (dietaryRestrictions && dietaryRestrictions.length > 0) {
             let restrictionQuery = `
                 INSERT INTO user_restrictions (user_id, dietary_id)
@@ -226,12 +208,8 @@ app.post('/api/saveProfile', (req, res) => {
             });
         }
 
-        // ----------------------------------------------------------
         // Insert always-available ingredients (user_ingredients)
-        // ----------------------------------------------------------
         if (alwaysAvailable && alwaysAvailable.length > 0) {
-            // Suppose user_ingredients is: user_id, ingredient_id, is_dietary_restriction
-            // We'll set is_dietary_restriction=0 here, meaning "just available," not a restriction.
             let ingredientsQuery = `
                 INSERT INTO user_ingredients (user_id, ingredient_id, is_dietary_restriction)
                 VALUES ?

@@ -16,20 +16,19 @@ const Profile = () => {
     lastName: "",
     email: "",
     password: "",
-    dietaryPreferences: [],   // Will store preference IDs
-    dietaryRestrictions: [],  // Will store array of { dietary_id, dietary_name }
-    alwaysAvailable: [],      // Will store array of { ingredient_id, name }
+    dietaryPreferences: [],   
+    dietaryRestrictions: [],  
+    alwaysAvailable: [],      
     healthGoals: "",
     weeklyBudget: "",
   });
 
-  // We will fetch our list options for each dropdown:
-  const [dietaryPreferencesList, setDietaryPreferencesList] = useState([]);  // { preference_id, preference_name }
-  const [dietaryRestrictionsList, setDietaryRestrictionsList] = useState([]); // { dietary_id, dietary_name }
-  const [ingredientsList, setIngredientsList] = useState([]);                 // { ingredient_id, name }
+  // Fetch list options for each dropdown:
+  const [dietaryPreferencesList, setDietaryPreferencesList] = useState([]);  
+  const [dietaryRestrictionsList, setDietaryRestrictionsList] = useState([]); 
+  const [ingredientsList, setIngredientsList] = useState([]);                
 
   useEffect(() => {
-    // 1) Get the dietary preferences
     fetch('http://localhost:5000/api/getDietaryPreferences')
       .then(res => res.json())
       .then(data => {
@@ -37,7 +36,6 @@ const Profile = () => {
       })
       .catch(error => console.error("Error fetching dietary preferences:", error));
 
-    // 2) Get the dietary restrictions
     fetch('http://localhost:5000/api/getDietaryRestrictions')
       .then(res => res.json())
       .then(data => {
@@ -45,7 +43,6 @@ const Profile = () => {
       })
       .catch(error => console.error("Error fetching dietary restrictions:", error));
 
-    // 3) Get the ingredients for always available
     fetch('http://localhost:5000/api/getIngredients')
       .then(res => res.json())
       .then(data => {
@@ -55,7 +52,6 @@ const Profile = () => {
 
   }, []);
 
-  // Helper to update profile state for multi-select fields
   const handleMultiSelectChange = (event, newValue, field) => {
     setProfile((prev) => ({
       ...prev,
@@ -137,16 +133,13 @@ const Profile = () => {
                 <Autocomplete
                   multiple
                   options={dietaryPreferencesList}
-                  // The list is { preference_id, preference_name }
                   getOptionLabel={(option) => option.preference_name}
-                  // We'll store just the IDs in profile.dietaryPreferences
                   value={
                     dietaryPreferencesList.filter(p =>
                       profile.dietaryPreferences.includes(p.preference_id)
                     )
                   }
                   onChange={(event, newValue) => {
-                    // newValue = array of the full objects { preference_id, preference_name }
                     const newIDs = newValue.map(obj => obj.preference_id);
                     handleMultiSelectChange(event, newIDs, "dietaryPreferences");
                   }}
@@ -163,9 +156,7 @@ const Profile = () => {
                 <Autocomplete
                   multiple
                   options={dietaryRestrictionsList}
-                  // The list is { dietary_id, dietary_name }
                   getOptionLabel={(option) => option.dietary_name}
-                  // We'll store the full objects in profile.dietaryRestrictions
                   value={profile.dietaryRestrictions}
                   onChange={(event, newValue) => {
                     handleMultiSelectChange(event, newValue, "dietaryRestrictions");
@@ -183,9 +174,7 @@ const Profile = () => {
                 <Autocomplete
                   multiple
                   options={ingredientsList}
-                  // The list is { ingredient_id, name }
                   getOptionLabel={(option) => option.name}
-                  // We'll store the full objects in profile.alwaysAvailable
                   value={profile.alwaysAvailable}
                   onChange={(event, newValue) => {
                     handleMultiSelectChange(event, newValue, "alwaysAvailable");
