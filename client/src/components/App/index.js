@@ -8,6 +8,7 @@ import Home from '../Home';
 import Search from '../Search';
 import Login from '../Login';
 import Profile from '../Profile';
+import Recipe from '../Recipe';
 
 
 const App = () => {
@@ -18,9 +19,11 @@ const App = () => {
           <Routes>
             <Route path = '/' element = {<Home />} />
             <Route path = '/Search' element = {<Search />} />
+            <Route path = '/Recipe/:id' element = {<Recipe />} />
             {/* <Route path = '/Review' element = {<Review />} />  */}
             <Route path = '/Login' element = {<Login />} />
             <Route path = '/Profile' element = {<Profile />} />
+
           </Routes>
         </Router>
         <CssBaseline />

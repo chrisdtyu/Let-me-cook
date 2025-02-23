@@ -111,6 +111,82 @@ app.post('/api/getUser', (req, res) => {
 	connection.end();
 });
 
+// get recipe list API
+app.get('/api/getRecipes', (req, res) => {
+
+    let connection = mysql.createConnection(config);
+    let sql = `SELECT recipe_id, name, prep_time FROM recipes`;
+	let data = [];
+
+    connection.query(sql, data, (error, results, fields) => {
+        if (error) {
+            console.error("Database Error:", error);
+            return res.status(500).json({ error: "Database query failed" });
+        }
+		if(results && results.length > 0) {
+        	res.json(results);
+		} else {
+            return res.status(404).json({ error: "Data not found" });
+		}
+    });
+    
+    connection.end();
+});
+
+// get specific recipe API
+app.get('/api/getRecipe', (req, res) => {
+    const recipeId = req.query.id;
+
+    if (!recipeId) {
+        return res.status(400).json({ error: "Missing recipe ID" });
+    }
+
+    let connection = mysql.createConnection(config);
+    let sql = `SELECT * FROM recipes WHERE recipe_id = ?`;
+	let data = [recipeId];
+
+    connection.query(sql, data, (error, results, fields) => {
+        if (error) {
+            console.error("Database Error:", error);
+            return res.status(500).json({ error: "Database query failed" });
+        }
+		if(results && results.length > 0) {
+        	res.json(results[0]);
+		} else {
+            return res.status(404).json({ error: "Data not found" });
+		}
+    });
+    
+    connection.end();
+});
+
+// get recipe ingredints and quantities API
+app.get('/api/getRecipeIngredients', (req, res) => {
+
+	let connection = mysql.createConnection(config);
+	let recipeId = req.query.id;
+	
+	let sql = `select i.ingredient_id, i.name, i.type, ri.quantity, ri.quantity_type
+		from recipe_ingredients ri
+		inner join ingredients i 
+			on ri.ingredient_id = i.ingredient_id
+		where recipe_id = ?;`;
+		
+	let data = [recipeId];
+
+	connection.query(sql, data, (error, results) => {
+		if (error) {
+			console.error(error.message);
+			return res.status(500).send("Database error");
+		}
+		if(results && results.length > 0) {
+        	res.json(results);
+		} else {
+            return res.status(404).json({ error: "Data not found" });
+		}	
+	});
+	connection.end();
+});
 
 // API Routes for Profile
 app.get('/api/getDietaryPreferences', (req, res) => {
