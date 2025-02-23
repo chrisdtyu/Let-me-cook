@@ -42,57 +42,54 @@ app.post('/api/loadUserSettings', (req, res) => {
 
 // create user API
 
-app.post('/api/createUser', (req, res) => {
+app.post('/api/createUser', async (req, res) => {
+    let connection = mysql.createConnection(config);
+    let { firebase_uid, personalname, email, password } = req.body;
 
-	let connection = mysql.createConnection(config);
-	let formData = req.body;
+    try {
+        const hashedPassword = await bcrypt.hash(password, 10); // Hash password
 
-	let sql = `INSERT INTO users
-	(first_name,last_name,email,password)
-	VALUES
-	(?,?,?,?);`;
-	let data = [formData.first_name,formData.last_name,formData.email,formData.password];
-	console.log(sql, data);
+        let sql = `INSERT INTO users (firebase_uid, personalname, email, password) VALUES (?, ?, ?, ?)`;
+        let data = [firebase_uid, personalname, email, hashedPassword];
 
-	connection.query(sql, data, (error, results, fields) => {
-		if (error) {
-			console.error(error.message);
-			let string = JSON.stringify(error);
-			res.statusCode = 500;
-			res.send({ express: string });
-			return;
-		}
-		console.log(results);
-		let string = JSON.stringify(results);
-		res.send({ express: string });
-	});
-	connection.end();
+        connection.query(sql, data, (error, results) => {
+            if (error) {
+                console.error(error.message);
+                res.status(500).send({ express: JSON.stringify(error) });
+                return;
+            }
+            res.send({ express: JSON.stringify(results) });
+        });
+    } catch (error) {
+        console.error(error.message);
+        res.status(500).send({ express: "Error processing request" });
+    } finally {
+        connection.end();
+    }
 });
 
+
 app.post('/api/getUser', (req, res) => {
+    let connection = mysql.createConnection(config);
+    let { firebase_uid} = req.body;
 
-	let connection = mysql.createConnection(config);
-	let formData = req.body;
+    let sql = `SELECT user_id, personalname, email, password FROM users WHERE firebase_uid = ?`;
+    connection.query(sql, [firebase_uid], async (error, results) => {
+        if (error) {
+            console.error(error.message);
+            res.status(500).send({ express: JSON.stringify(error) });
+            return;
+        }
 
-	let sql = `SELECT user_id,first_name,last_name,email,password 
-	FROM users
-	WHERE email = ?;`;
-	let data = [formData.email];
-	console.log(sql, data);
+        if (results.length > 0) {
+            const user = results[0];
+            res.send({ express: JSON.stringify({ user_id: user.user_id, personalname: user.personalname, email: user.email }) });
+        } else {
+            res.status(404).send({ express: "User not found" });
+        }
+    });
 
-	connection.query(sql, data, (error, results, fields) => {
-		if (error) {
-			console.error(error.message);
-			let string = JSON.stringify(error);
-			res.statusCode = 500;
-			res.send({ express: string });
-			return;
-		}
-		console.log(results);
-		let string = JSON.stringify(results);
-		res.send({ express: string });
-	});
-	connection.end();
+    connection.end();
 });
 
 
