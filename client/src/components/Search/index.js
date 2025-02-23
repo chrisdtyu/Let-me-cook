@@ -36,7 +36,7 @@ const Search = () => {
         fetchIngredients();
     }, []);
 
-    // ✅ Add ingredient manually when user types and presses "Add"
+    //Add ingredient manually when user types and presses "Add"
     const handleManualAdd = () => {
         if (manualIngredient.trim() !== "" && !selectedIngredients.includes(manualIngredient)) {
             setSelectedIngredients([...selectedIngredients, manualIngredient]);
@@ -44,12 +44,12 @@ const Search = () => {
         }
     };
 
-    // ✅ Handle ingredient selection from dropdown
+    //Handle ingredient selection from dropdown
     const handleIngredientChange = (event, newValue) => {
         setSelectedIngredients(newValue);
     };
 
-    // ✅ Function to fetch recommended recipes
+    //Function to fetch recommended recipes
     const handleSearch = async () => {
         if (selectedIngredients.length === 0) {
             setError("Please select or type at least one ingredient.");
@@ -80,7 +80,7 @@ const Search = () => {
             }}>
                 <Typography variant="h4" sx={{ marginBottom: 2 }}>Find a Recipe</Typography>
 
-                {/* ✅ Box 1: Manual Input for Custom Ingredients */}
+                {/*Box 1: Manual Input for Custom Ingredients */}
                 <Box sx={{ display: "flex", gap: 2, alignItems: "center", marginBottom: 2 }}>
                     <TextField
                         label="Enter an ingredient"
@@ -94,7 +94,7 @@ const Search = () => {
                     </Button>
                 </Box>
 
-                {/* ✅ Box 2: Select from Preset Ingredients */}
+                {/* Box 2: Select from Preset Ingredients */}
                 <Autocomplete
                     multiple
                     options={allIngredients} // Predefined ingredient list
