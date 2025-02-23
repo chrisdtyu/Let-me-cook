@@ -287,10 +287,10 @@ app.post('/api/saveProfile', (req, res) => {
         // Insert always-available ingredients (user_ingredients)
         if (alwaysAvailable && alwaysAvailable.length > 0) {
             let ingredientsQuery = `
-                INSERT INTO user_ingredients (user_id, ingredient_id, is_dietary_restriction)
+                INSERT INTO user_ingredients (user_id, ingredient_id)
                 VALUES ?
             `;
-            let ingredientsValues = alwaysAvailable.map(item => [userId, item.ingredient_id, 0]);
+            let ingredientsValues = alwaysAvailable.map(item => [userId, item.ingredient_id]);
             connection.query(ingredientsQuery, [ingredientsValues], (errIng) => {
                 if (errIng) {
                     console.error("Error saving always-available ingredients:", errIng);
