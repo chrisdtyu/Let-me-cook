@@ -188,71 +188,139 @@ app.get('/api/getRecipeIngredients', (req, res) => {
 	connection.end();
 });
 
-// API Routes for Profile
+// ---------------------------------------------------------------------
+// Get dietary preferences
+// ---------------------------------------------------------------------
 app.get('/api/getDietaryPreferences', (req, res) => {
-    let sql = "SELECT preference_id, preference_name FROM dietary_preferences";
+    const sql = "SELECT preference_id, preference_name FROM dietary_preferences";
     connection.query(sql, (error, results) => {
         if (error) {
-            res.status(500).json({ error: "Database error" });
-            return;
+            return res.status(500).json({ error: "Database error" });
         }
         res.json(results);
     });
 });
 
+// ---------------------------------------------------------------------
+// Search dietary preferences (if you still need it)
+// ---------------------------------------------------------------------
 app.get('/api/searchDietaryPreferences', (req, res) => {
     const searchQuery = req.query.q;
-    let sql = "SELECT * FROM dietary_preferences WHERE preference_name LIKE ?";
-    let data = [`%${searchQuery}%`];
+    const sql = "SELECT * FROM dietary_preferences WHERE preference_name LIKE ?";
+    const data = [`%${searchQuery}%`];
+
     connection.query(sql, data, (error, results) => {
         if (error) {
-            res.status(500).json({ error: "Database error" });
-            return;
+            return res.status(500).json({ error: "Database error" });
         }
         res.json(results);
     });
 });
 
-app.get('/api/getIngredients', (req, res) => {
-    let sql = "SELECT ingredient_id, name FROM ingredients";
+// ---------------------------------------------------------------------
+// Get dietary restrictions
+// ---------------------------------------------------------------------
+app.get('/api/getDietaryRestrictions', (req, res) => {
+    const sql = "SELECT dietary_id, dietary_name FROM dietary_restrictions";
     connection.query(sql, (error, results) => {
         if (error) {
-            res.status(500).json({ error: "Database error" });
-            return;
+            return res.status(500).json({ error: "Database error" });
         }
         res.json(results);
     });
 });
 
+// ---------------------------------------------------------------------
+// Get ingredients for the "always available" prompt
+// ---------------------------------------------------------------------
+app.get('/api/getIngredients', (req, res) => {
+    const sql = "SELECT ingredient_id, name, type FROM ingredients";
+    connection.query(sql, (error, results) => {
+        if (error) {
+            return res.status(500).json({ error: "Database error" });
+        }
+        res.json(results);
+    });
+});
+
+/*
+   Save Profile:
+     - Inserts a new user in `users`.
+     - Insert dietary preferences in `user_preferences`.
+     - Insert dietary restrictions in `user_restrictions`.
+     - Insert always-available ingredients in `user_ingredients` (with is_dietary_restriction = 0).
+*/
 app.post('/api/saveProfile', (req, res) => {
-    const { firstName, lastName, email, password, dietaryPreferences, dietaryRestrictions, alwaysAvailable, healthGoals, weeklyBudget } = req.body;
-    let userQuery = "INSERT INTO users (first_name, last_name, email, password, health_goals, weekly_budget) VALUES (?, ?, ?, ?, ?, ?)";
-    let userData = [firstName, lastName, email, password, healthGoals, weeklyBudget];
+    const {
+        firstName, lastName, email, password,
+        dietaryPreferences, dietaryRestrictions,
+        alwaysAvailable, healthGoals, weeklyBudget
+    } = req.body;
+
+    const userQuery = `
+        INSERT INTO users (first_name, last_name, email, password, health_goals, weekly_budget)
+        VALUES (?, ?, ?, ?, ?, ?)
+    `;
+    const userData = [firstName, lastName, email, password, healthGoals, weeklyBudget];
 
     connection.query(userQuery, userData, (err, result) => {
         if (err) {
-            res.status(500).json({ error: "Database error" });
-            return;
+            console.error("Error inserting user:", err);
+            return res.status(500).json({ error: "Database error inserting user" });
         }
         const userId = result.insertId;
 
-        if (dietaryPreferences.length > 0) {
-            let preferenceQuery = "INSERT INTO user_preferences (user_id, preference_id) VALUES ?";
-            let preferenceValues = dietaryPreferences.map(pref => [userId, pref]);
-            connection.query(preferenceQuery, [preferenceValues], (err) => {
-                if (err) console.error("Error saving dietary preferences:", err);
+        // ----------------------------------------------------------
+        // Insert dietary preferences (user_preferences)
+        // ----------------------------------------------------------
+        if (dietaryPreferences && dietaryPreferences.length > 0) {
+            let preferenceQuery = `
+                INSERT INTO user_preferences (user_id, preference_id)
+                VALUES ?
+            `;
+            let preferenceValues = dietaryPreferences.map(prefId => [userId, prefId]);
+            connection.query(preferenceQuery, [preferenceValues], (errPref) => {
+                if (errPref) {
+                    console.error("Error saving dietary preferences:", errPref);
+                }
             });
         }
 
-        if (dietaryRestrictions.length > 0) {
-            let restrictionQuery = "INSERT INTO user_ingredients (user_id, ingredient_id, is_dietary_restriction) VALUES ?";
-            let restrictionValues = dietaryRestrictions.map(restr => [userId, restr, true]);
-            connection.query(restrictionQuery, [restrictionValues], (err) => {
-                if (err) console.error("Error saving dietary restrictions:", err);
+        // ----------------------------------------------------------
+        // Insert dietary restrictions (user_restrictions)
+        // ----------------------------------------------------------
+        if (dietaryRestrictions && dietaryRestrictions.length > 0) {
+            let restrictionQuery = `
+                INSERT INTO user_restrictions (user_id, dietary_id)
+                VALUES ?
+            `;
+            let restrictionValues = dietaryRestrictions.map(item => [userId, item.dietary_id]);
+            connection.query(restrictionQuery, [restrictionValues], (errRes) => {
+                if (errRes) {
+                    console.error("Error saving dietary restrictions:", errRes);
+                }
             });
         }
 
-        res.json({ message: "Profile saved successfully!" });
+        // ----------------------------------------------------------
+        // Insert always-available ingredients (user_ingredients)
+        // ----------------------------------------------------------
+        if (alwaysAvailable && alwaysAvailable.length > 0) {
+            // Suppose user_ingredients is: user_id, ingredient_id, is_dietary_restriction
+            // We'll set is_dietary_restriction=0 here, meaning "just available," not a restriction.
+            let ingredientsQuery = `
+                INSERT INTO user_ingredients (user_id, ingredient_id, is_dietary_restriction)
+                VALUES ?
+            `;
+            let ingredientsValues = alwaysAvailable.map(item => [userId, item.ingredient_id, 0]);
+            connection.query(ingredientsQuery, [ingredientsValues], (errIng) => {
+                if (errIng) {
+                    console.error("Error saving always-available ingredients:", errIng);
+                }
+            });
+        }
+
+        return res.json({ message: "Profile saved successfully!" });
     });
 });
 
