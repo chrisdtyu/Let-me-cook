@@ -34,6 +34,7 @@ const RecipeView = ({getRecipe, recipe, ingredients}) => {
         <Typography variant="h6">Time: {recipe.prep_time} mins</Typography>
 
         <Typography variant="h5" sx={{ mt: 2 }}><b>Ingredients:</b></Typography>
+        <Typography variant="h10" sx={{ mt: 2 }}>required = *</Typography>
         <ul>
           {ingredients.map((ing) => (
             <li key={ing.ingredient_id}>
