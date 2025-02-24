@@ -67,6 +67,13 @@ CREATE TABLE recipe_ingredients(
   FOREIGN KEY (ingredient_id) REFERENCES ingredients(ingredient_id)
 );
 
+CREATE TABLE `substitutes` (
+  `substitute_id` int NOT NULL,
+  `substitute_name` varchar(50) NOT NULL,
+  `ingredient_id`  int NOT NULL,
+  `cost` float NOT NULL
+);	
+
 /*insert data script:*/
 INSERT INTO `alhogiu`.`users`
 (`first_name`,`last_name`,`email`,`password`)

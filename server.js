@@ -235,6 +235,31 @@ app.get('/api/getIngredients', (req, res) => {
     });
 });
 
+// Get CuisineType
+app.get('/api/getCuisines', (req, res) => {
+    const sql = "SELECT DISTINCT type FROM recipes ORDER BY type";
+    connection.query(sql, (error, results) => {
+        if (error) {
+            return res.status(500).json({ error: "Database error" });
+        }
+		console.log(results);
+		let response = results.map((row) => row.type);
+        res.json(response);
+    });
+});
+
+// Get Category of Food
+app.get('/api/getCategories', (req, res) => {
+    const sql = "SELECT DISTINCT category FROM recipes ORDER BY category";
+    connection.query(sql, (error, results) => {
+        if (error) {
+            return res.status(500).json({ error: "Database error" });
+        }
+        res.json(results);
+    });
+});
+
+
 //Save Profile:
 app.post('/api/saveProfile', (req, res) => {
     const {
@@ -304,9 +329,9 @@ app.post('/api/saveProfile', (req, res) => {
 
 app.post('/api/recommendRecipes', (req, res) => {
     let connection = mysql.createConnection(config);
-    let { ingredients, userId, budgetMode } = req.body;
+    let { ingredients, cuisines, userId, budgetMode } = req.body;
 
-    console.log("🔍 Incoming Request:", req.body);
+    console.log("🔍 Incoming Request:", {ingredients, cuisines, userId, budgetMode});
 
     if (!ingredients || ingredients.length === 0) {
         console.log("No ingredients provided!");
@@ -379,19 +404,8 @@ app.post('/api/recommendRecipes', (req, res) => {
     });
 });
 
-app.get('/api/getIngredients', (req, res) => {
-    let connection = mysql.createConnection(config);
-    let sql = "SELECT name FROM ingredients";
 
-    connection.query(sql, (error, results) => {
-        if (error) {
-            return res.status(500).json({ error: "Database error" });
-        }
-        res.json(results.map(row => row.name));
-    });
 
-    connection.end();
-});
 
 
 
