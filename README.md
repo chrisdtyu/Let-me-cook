@@ -35,21 +35,7 @@ To set up the project locally, follow these steps:
    yarn install
    ```
 
-3. **Set up Firebase??? (idk maybe we can just give them access)**:
-   - Create a Firebase project at [Firebase Console](https://console.firebase.google.com/).
-   - Add a web app to your Firebase project to obtain your Firebase configuration.
-   - Create a `.env` file in the root directory and add your Firebase configuration:
-     ```
-     REACT_APP_FIREBASE_API_KEY=your_api_key
-     REACT_APP_FIREBASE_AUTH_DOMAIN=your_auth_domain
-     REACT_APP_FIREBASE_PROJECT_ID=your_project_id
-     REACT_APP_FIREBASE_STORAGE_BUCKET=your_storage_bucket
-     REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
-     REACT_APP_FIREBASE_APP_ID=your_app_id
-     REACT_APP_FIREBASE_MEASUREMENT_ID=your_measurement_id
-     ```
-
-4. **Start the development server**:
+3. **Start the development server**:
    ```bash
    yarn dev
    ```
@@ -66,19 +52,12 @@ To set up the project locally, follow these steps:
 
 ## Sample Data
 
-To test the application, you can use the following sample data:
+To explore the app's features, you can test the search functionality by entering any ingredient or keyword. 
 
-- **User Login**:
-  ```json
-  
-  ```
+For login testing, you can either **sign up for a new account** or use the following sample credentials:
 
-- **Profile**:
-  ```json
-  
-  ```
-  
-- **Search**:
-  ```json
-  
-  ```
+- **Email:** `sampleemail@uwaterloo.ca`  
+- **Password:** `SamplePassword123@`  
+
+After logging in, you will be redirected to the **profile page**, where you can customize your student profile and save it to the database.
+
