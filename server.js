@@ -166,7 +166,7 @@ app.get('/api/getRecipeIngredients', (req, res) => {
 	let connection = mysql.createConnection(config);
 	let recipeId = req.query.id;
 	
-	let sql = `select i.ingredient_id, i.name, i.type, ri.quantity, ri.quantity_type
+	let sql = `select i.ingredient_id, i.name, i.type, ri.quantity, ri.quantity_type, ri.required
 		from recipe_ingredients ri
 		inner join ingredients i 
 			on ri.ingredient_id = i.ingredient_id
@@ -332,9 +332,9 @@ app.post('/api/saveProfile', (req, res) => {
 
 app.post('/api/recommendRecipes', (req, res) => {
     let connection = mysql.createConnection(config);
-    let { ingredients, cuisines, categories, userId, budgetMode } = req.body;
+    let { ingredients, cuisines, categories, userId, budgetMode, maxTime } = req.body;
 
-    console.log("🔍 Incoming Request:", {ingredients, cuisines, categories, userId, budgetMode});
+    console.log("Incoming Request:", {ingredients, cuisines, categories, userId, budgetMode, maxTime});
 
 	if (!Array.isArray(categories)) {
         console.error('Categories is not an array:', categories);
@@ -359,6 +359,10 @@ app.post('/api/recommendRecipes', (req, res) => {
 		where = `WHERE r.category in (${categories_placeholders})`;
 	}
 
+	if (maxTime) {
+        where += where ? ` AND r.prep_time <= ?` : `WHERE r.prep_time <= ?`;
+    }
+
     let query = `
         SELECT r.recipe_id, r.name, r.type, r.category, r.prep_time, r.instructions, 
                GROUP_CONCAT(i.name) AS recipe_ingredients, 
@@ -373,7 +377,9 @@ app.post('/api/recommendRecipes', (req, res) => {
         LIMIT 10;
     `;
 	let data = [...ingredients, ...cuisines, ...categories];
-
+	if (maxTime) {
+		data.push(maxTime);
+	}
     console.log("Executing SQL:", query);
     console.log("With values:", data);
 

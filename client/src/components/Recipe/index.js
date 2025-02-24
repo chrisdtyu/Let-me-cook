@@ -5,11 +5,16 @@ import RecipeView from './RecipeView';
 const Recipe = () => {
     const getRecipe = React.useCallback(async (recipe_id) => {
         try {
-            // get recipe information
+            // Get recipe information
             const recipe = await Api.callApiGetRecipe(recipe_id);
             setRecipe(recipe);
-            // get recipe ingredients
-            const ingredients = await Api.callApiGetRecipeIngredients(recipe_id);
+            // Get recipe ingredients
+            let ingredients = await Api.callApiGetRecipeIngredients(recipe_id);
+            // Append "*" to required ingredients
+            ingredients = ingredients.map(ingredient => ({
+                ...ingredient,
+                name: ingredient.required === 1 ? `${ingredient.name} *` : ingredient.name
+            }));
             setIngredients(ingredients);
         } catch (error) {
             console.error("Error fetching recipe:", error);

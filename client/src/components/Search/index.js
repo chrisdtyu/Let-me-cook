@@ -21,6 +21,7 @@ const Search = () => {
     const [selectedCuisines, setSelectedCuisines] = useState([]);
     const [allCategories, setAllCategories] = useState([]);
     const [selectedCategories, setSelectedCategories] = useState([]);
+    const [maxTime, setMaxTime] = useState('');
     const [manualIngredient, setManualIngredient] = useState("");
     const [recipes, setRecipes] = useState([]);
     const [budgetMode, setBudgetMode] = useState(false);
@@ -86,7 +87,8 @@ const Search = () => {
         setLoading(true);
 
         try {
-            const recommendedRecipes = await Api.callApiRecommendRecipes(selectedIngredients, selectedCuisines, selectedCategories, budgetMode);
+            const maxTimeInt = maxTime ? parseInt(maxTime, 10) : null;
+            const recommendedRecipes = await Api.callApiRecommendRecipes(selectedIngredients, selectedCuisines, selectedCategories, budgetMode, maxTimeInt);
             setRecipes(recommendedRecipes || []);
         } catch (error) {
             console.error("Error fetching recommended recipes:", error);
@@ -169,6 +171,15 @@ const Search = () => {
                     sx={{ width: 400, marginBottom: 2 }}
                 />
 
+                <TextField
+                    label="Max Time (minutes)"
+                    variant="outlined"
+                    type="number"
+                    value={maxTime}
+                    onChange={(e) => setMaxTime(e.target.value)}
+                    sx={{ width: 400, marginBottom: 2 }}
+                />
+                
                 {/* Budget Mode Toggle */}
                 <Button
                     variant="contained"
@@ -199,7 +210,7 @@ const Search = () => {
                                 <Typography variant="h6"><Link onClick={() => navigate('/Recipe/'+recipe.recipe_id)}>{recipe.name}</Link></Typography>
                                 <Typography variant="body2"><strong>Type:</strong> {recipe.type}</Typography>
                                 <Typography variant="body2"><strong>Category:</strong> {recipe.category}</Typography>
-                                <Typography variant="body2"><strong>Prep Time:</strong> {recipe.prep_time} mins</Typography>
+                                <Typography variant="body2"><strong>Time:</strong> {recipe.prep_time} mins</Typography>
                                 <Typography variant="body2"><strong>Instructions:</strong> click on link to see intructions </Typography>
                                 {recipe.image && (
                                     <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
