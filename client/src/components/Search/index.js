@@ -19,6 +19,8 @@ const Search = () => {
     const [selectedIngredients, setSelectedIngredients] = useState([]);
     const [allCuisines, setAllCuisines] = useState([]);
     const [selectedCuisines, setSelectedCuisines] = useState([]);
+    const [allCategories, setAllCategories] = useState([]);
+    const [selectedCategories, setSelectedCategories] = useState([]);
     const [manualIngredient, setManualIngredient] = useState("");
     const [recipes, setRecipes] = useState([]);
     const [budgetMode, setBudgetMode] = useState(false);
@@ -46,8 +48,18 @@ const Search = () => {
                 setError("Failed to load cuisines.");
             }
         };
+        const fetchCategories = async () => {
+            try {
+                const categories = await Api.getCategories();
+                setAllCategories(categories);
+            } catch (err) {
+                console.error("Error fetching Categories:", err);
+                setError("Failed to load Categories.");
+            }
+        };
         fetchIngredients();
         fetchCuisines();
+        fetchCategories();
     }, []);
 
     //Add ingredient manually when user types and presses "Add"
@@ -74,7 +86,7 @@ const Search = () => {
         setLoading(true);
 
         try {
-            const recommendedRecipes = await Api.callApiRecommendRecipes(selectedIngredients, selectedCuisines, budgetMode);
+            const recommendedRecipes = await Api.callApiRecommendRecipes(selectedIngredients, selectedCuisines, selectedCategories, budgetMode);
             setRecipes(recommendedRecipes || []);
         } catch (error) {
             console.error("Error fetching recommended recipes:", error);
@@ -90,6 +102,9 @@ const Search = () => {
     const handleMultiSelectChange = (event, newValue, field) => {
         if (field == 'cuisines') {
             setSelectedCuisines(newValue);
+        }
+        if (field == 'categories') {
+            setSelectedCategories(newValue);
         }
     };
 
@@ -128,6 +143,7 @@ const Search = () => {
                     renderInput={(params) => <TextField {...params} label="Select Ingredients" variant="outlined" />}
                     sx={{ width: 400, marginBottom: 2 }}
                 />
+                <Typography variant="body2"><strong>Filters:</strong></Typography>
                 <Autocomplete
                     multiple
                     options={allCuisines}
@@ -137,6 +153,18 @@ const Search = () => {
                     }}
                     renderInput={(params) => (
                         <TextField {...params} label="Cuisines" />
+                    )}
+                    sx={{ width: 400, marginBottom: 2 }}
+                />
+                <Autocomplete
+                    multiple
+                    options={allCategories}
+                    value={selectedCategories}
+                    onChange={(event, newValue) => {
+                        handleMultiSelectChange(event, newValue, "categories");
+                    }}
+                    renderInput={(params) => (
+                        <TextField {...params} label="Categories" />
                     )}
                     sx={{ width: 400, marginBottom: 2 }}
                 />
@@ -170,9 +198,14 @@ const Search = () => {
                             <Box key={recipe.recipe_id} sx={{ border: '1px solid #ccc', padding: 2, marginBottom: 2, borderRadius: '8px', backgroundColor: '#fff' }}>
                                 <Typography variant="h6"><Link onClick={() => navigate('/Recipe/'+recipe.recipe_id)}>{recipe.name}</Link></Typography>
                                 <Typography variant="body2"><strong>Type:</strong> {recipe.type}</Typography>
+                                <Typography variant="body2"><strong>Category:</strong> {recipe.category}</Typography>
                                 <Typography variant="body2"><strong>Prep Time:</strong> {recipe.prep_time} mins</Typography>
-                                <Typography variant="body2"><strong>Instructions:</strong> {recipe.instructions}</Typography>
-
+                                <Typography variant="body2"><strong>Instructions:</strong> click on link to see intructions </Typography>
+                                {recipe.image && (
+                                    <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+                                    <img src={recipe.image} alt="Recipe" style={{ width: '50%', borderRadius: 8 }} />
+                                    </Box>
+                                )}
                                 {recipe.missingIngredients?.length > 0 && (
                                     <>
                                         <Typography variant="body2" sx={{ color: "red", marginTop: 1 }}>
