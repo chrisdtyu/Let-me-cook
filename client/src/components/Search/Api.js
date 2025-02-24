@@ -10,12 +10,12 @@ const Api = {
         }
     },
 
-    callApiRecommendRecipes: async (ingredients, cuisines, budgetMode) => {
+    callApiRecommendRecipes: async (ingredients, cuisines, categories, budgetMode) => {
         try {
             const response = await fetch('/api/recommendRecipes', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ingredients, cuisines, budgetMode })
+                body: JSON.stringify({ ingredients, cuisines, categories, budgetMode })
             });
             if (!response.ok) throw new Error(`API Error: ${response.status} - ${response.statusText}`);
             return await response.json();
@@ -52,7 +52,23 @@ const Api = {
 
             return await response.json();
         } catch (err) {
-            console.error("Error fetching ingredients:", err);
+            console.error("Error fetching cuisines:", err);
+            return [];
+        }
+    },
+
+    getCategories: async () => {
+        try {
+            const response = await fetch('/api/getCategories');
+
+            if (response.status === 403) {
+                throw new Error("API Forbidden (403): Check CORS or permissions");
+            }
+            if (!response.ok) throw new Error(`API Error: ${response.status} - ${response.statusText}`);
+
+            return await response.json();
+        } catch (err) {
+            console.error("Error fetching categories:", err);
             return [];
         }
     },

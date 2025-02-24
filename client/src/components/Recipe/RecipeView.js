@@ -18,7 +18,7 @@ const RecipeView = ({getRecipe, recipe, ingredients}) => {
 
     React.useEffect(() => {
         getRecipe(id);
-    }, [getRecipe]); 
+    }, [id, getRecipe]);    
 
     return(
         <>

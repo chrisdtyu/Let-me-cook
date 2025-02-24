@@ -105,11 +105,10 @@ CREATE TABLE user_preferences (
     PRIMARY KEY (user_id, preference_id)
 );
 
--- User Ingredients Table (Stores always available ingredients and dietary restrictions)
+-- User Ingredients Table 
 CREATE TABLE user_ingredients (
     user_id INT,
     ingredient_id INT,
-    is_dietary_restriction BOOLEAN,  -- TRUE if dietary restriction, FALSE if always available
     FOREIGN KEY (user_id) REFERENCES users(user_id),
     FOREIGN KEY (ingredient_id) REFERENCES ingredients(ingredient_id),
     PRIMARY KEY (user_id, ingredient_id)

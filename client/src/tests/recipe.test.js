@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import RecipeView from '../components/Recipe/RecipeView';
 import { MemoryRouter } from 'react-router-dom';  // Import MemoryRouter
 import '@testing-library/jest-dom'
+import React from 'react';
 
 describe('RecipeLoading', () => {
     it('loads recipe chosen on first load', () => {

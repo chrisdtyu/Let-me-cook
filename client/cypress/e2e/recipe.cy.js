@@ -7,7 +7,7 @@ describe('Show Recipe details', () => {
             "type": "British",
             "instructions": "this is a test",
             "image": "https://www.themealdb.com/images/media/meals/wxywrq1468235067.jpg",
-            "video": "https://www.youtube.com/watch?v=rp8Slv4INLk",
+            "video": "https://www.youtube.com/embed/zXbzY7p0h-4",
             "prep_time": 55
           });
         cy.visit('http://localhost:3000/Recipe/1');
