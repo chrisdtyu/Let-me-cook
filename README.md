@@ -35,7 +35,7 @@ To set up the project locally, follow these steps:
    yarn install
    ```
 
-3. **Set up Firebase**:
+3. **Set up Firebase??? (idk maybe we can just give them access)**:
    - Create a Firebase project at [Firebase Console](https://console.firebase.google.com/).
    - Add a web app to your Firebase project to obtain your Firebase configuration.
    - Create a `.env` file in the root directory and add your Firebase configuration:
