@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import response from 'express';
+import bcrypt from 'bcrypt';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -59,25 +60,27 @@ app.post('/api/loadUserSettings', (req, res) => {
 // create user API
 
 app.post('/api/createUser', async (req, res) => {
-    let connection = mysql.createConnection(config);
-    let { firebase_uid, personalname, email, password } = req.body;
-
+	// console.log({message: "createUser"});
+	let connection = mysql.createConnection(config);
+	let { firebase_uid, personalName, email, password } = req.body;
+	
     try {
         const hashedPassword = await bcrypt.hash(password, 10); // Hash password
 
-        let sql = `INSERT INTO users (firebase_uid, personalname, email, password) VALUES (?, ?, ?, ?)`;
-        let data = [firebase_uid, personalname, email, hashedPassword];
-
+        let sql = `INSERT INTO users (firebase_uid, first_name, last_name, email, password) VALUES (?, ?, ?, ?, ?)`;
+        let data = [firebase_uid, personalName, personalName, email, hashedPassword];
+		// console.log({message: "createUser-data:", sql, data});
         connection.query(sql, data, (error, results) => {
+			// console.log({message: "createUser-result:", error, results});
             if (error) {
-                console.error(error.message);
+                console.error(error);
                 res.status(500).send({ express: JSON.stringify(error) });
                 return;
             }
             res.send({ express: JSON.stringify(results) });
         });
     } catch (error) {
-        console.error(error.message);
+        console.error(error);
         res.status(500).send({ express: "Error processing request" });
     } finally {
         connection.end();
@@ -89,7 +92,7 @@ app.post('/api/getUser', (req, res) => {
     let connection = mysql.createConnection(config);
     let { firebase_uid} = req.body;
 
-    let sql = `SELECT user_id, personalname, email, password FROM users WHERE firebase_uid = ?`;
+    let sql = `SELECT user_id, first_name, last_name, email, password FROM users WHERE firebase_uid = ?`;
     connection.query(sql, [firebase_uid], async (error, results) => {
         if (error) {
             console.error(error.message);
@@ -99,7 +102,7 @@ app.post('/api/getUser', (req, res) => {
 
         if (results.length > 0) {
             const user = results[0];
-            res.send({ express: JSON.stringify({ user_id: user.user_id, personalname: user.personalname, email: user.email }) });
+            res.send({ express: JSON.stringify({ user_id: user.user_id, personalName: user.personalName, email: user.email }) });
         } else {
             res.status(404).send({ express: "User not found" });
         }
