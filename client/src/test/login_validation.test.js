@@ -1,1 +1,0 @@
-// password minimum requirements it passes the test you can't have password
