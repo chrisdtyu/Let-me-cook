@@ -10,24 +10,29 @@ import Login from '../Login';
 import Profile from '../Profile';
 import Recipe from '../Recipe';
 
+const theme = createTheme({
+  palette: {
+    mode: 'light', // You can change this to 'dark' if needed
+    primary: {
+      main: '#1976d2',
+    },
+  },
+});
 
 const App = () => {
-
   return (
-    <div>
-        <Router>
-          <Routes>
-            <Route path = '/' element = {<Home />} />
-            <Route path = '/Search' element = {<Search />} />
-            <Route path = '/Recipe/:id' element = {<Recipe />} />
-            {/* <Route path = '/Review' element = {<Review />} />  */}
-            <Route path = '/Login' element = {<Login />} />
-            <Route path = '/Profile' element = {<Profile />} />
-
-          </Routes>
-        </Router>
-        <CssBaseline />
-    </div>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Router>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/search" element={<Search />} />
+          <Route path="/recipe/:id" element={<Recipe />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/profile" element={<Profile />} />
+        </Routes>
+      </Router>
+    </ThemeProvider>
   );
 }
 

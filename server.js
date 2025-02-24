@@ -115,7 +115,7 @@ app.post('/api/getUser', (req, res) => {
 app.get('/api/getRecipes', (req, res) => {
 
     let connection = mysql.createConnection(config);
-    let sql = `SELECT recipe_id, name, prep_time FROM recipes`;
+    let sql = `SELECT recipe_id, name, image, prep_time FROM recipes`;
 	let data = [];
 
     connection.query(sql, data, (error, results, fields) => {
@@ -255,7 +255,9 @@ app.get('/api/getCategories', (req, res) => {
         if (error) {
             return res.status(500).json({ error: "Database error" });
         }
-        res.json(results);
+		console.log(results);
+		let response = results.map((row) => row.category);
+        res.json(response);
     });
 });
 
@@ -272,6 +274,7 @@ app.post('/api/saveProfile', (req, res) => {
         INSERT INTO users (first_name, last_name, email, password, health_goals, weekly_budget)
         VALUES (?, ?, ?, ?, ?, ?)
     `;
+	
     const userData = [firstName, lastName, email, password, healthGoals, weeklyBudget];
 
     connection.query(userQuery, userData, (err, result) => {
@@ -329,9 +332,14 @@ app.post('/api/saveProfile', (req, res) => {
 
 app.post('/api/recommendRecipes', (req, res) => {
     let connection = mysql.createConnection(config);
-    let { ingredients, cuisines, userId, budgetMode } = req.body;
+    let { ingredients, cuisines, categories, userId, budgetMode } = req.body;
 
-    console.log("🔍 Incoming Request:", {ingredients, cuisines, userId, budgetMode});
+    console.log("🔍 Incoming Request:", {ingredients, cuisines, categories, userId, budgetMode});
+
+	if (!Array.isArray(categories)) {
+        console.error('Categories is not an array:', categories);
+        return res.status(400).json({ error: 'Categories should be an array' });
+    }
 
     if (!ingredients || ingredients.length === 0) {
         console.log("No ingredients provided!");
@@ -340,14 +348,19 @@ app.post('/api/recommendRecipes', (req, res) => {
 
     let ingredients_placeholders = ingredients.map(() => '?').join(',');
 	let cuisine_placeholders = cuisines.map(() => '?').join(',');
+	let categories_placeholders = categories.map(() => '?').join(',');
 	
 	let where = '';
-	if (cuisine_placeholders.length > 0 ){
+	if (cuisine_placeholders.length > 0 && categories_placeholders.length > 0) {
+		where = `WHERE r.type in (${cuisine_placeholders}) AND r.category in (${categories_placeholders})`;
+	} else if (cuisine_placeholders.length > 0) {
 		where = `WHERE r.type in (${cuisine_placeholders})`;
-	} 
+	} else if (categories_placeholders.length > 0) {
+		where = `WHERE r.category in (${categories_placeholders})`;
+	}
 
     let query = `
-        SELECT r.recipe_id, r.name, r.type, r.prep_time, r.instructions, 
+        SELECT r.recipe_id, r.name, r.type, r.category, r.prep_time, r.instructions, 
                GROUP_CONCAT(i.name) AS recipe_ingredients, 
                COUNT(ri.ingredient_id) AS total_ingredients,
                SUM(CASE WHEN i.name NOT IN (${ingredients_placeholders}) THEN 1 ELSE 0 END) AS missing_ingredients
@@ -359,7 +372,7 @@ app.post('/api/recommendRecipes', (req, res) => {
         ORDER BY missing_ingredients ASC, total_ingredients DESC
         LIMIT 10;
     `;
-	let data = [...ingredients, ...cuisines];
+	let data = [...ingredients, ...cuisines, ...categories];
 
     console.log("Executing SQL:", query);
     console.log("With values:", data);
