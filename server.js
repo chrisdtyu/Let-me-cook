@@ -338,25 +338,33 @@ app.post('/api/recommendRecipes', (req, res) => {
         return res.status(400).json({ error: 'Please provide available ingredients' });
     }
 
-    let placeholders = ingredients.map(() => '?').join(',');
+    let ingredients_placeholders = ingredients.map(() => '?').join(',');
+	let cuisine_placeholders = cuisines.map(() => '?').join(',');
+	
+	let where = '';
+	if (cuisine_placeholders.length > 0 ){
+		where = `WHERE r.type in (${cuisine_placeholders})`;
+	} 
 
     let query = `
         SELECT r.recipe_id, r.name, r.type, r.prep_time, r.instructions, 
                GROUP_CONCAT(i.name) AS recipe_ingredients, 
                COUNT(ri.ingredient_id) AS total_ingredients,
-               SUM(CASE WHEN i.name NOT IN (${placeholders}) THEN 1 ELSE 0 END) AS missing_ingredients
+               SUM(CASE WHEN i.name NOT IN (${ingredients_placeholders}) THEN 1 ELSE 0 END) AS missing_ingredients
         FROM recipes r
         JOIN recipe_ingredients ri ON r.recipe_id = ri.recipe_id
         JOIN ingredients i ON ri.ingredient_id = i.ingredient_id
-        GROUP BY r.recipe_id
+        ${where} 
+		GROUP BY r.recipe_id
         ORDER BY missing_ingredients ASC, total_ingredients DESC
         LIMIT 10;
     `;
+	let data = [...ingredients, ...cuisines];
 
     console.log("Executing SQL:", query);
-    console.log("With values:", ingredients);
+    console.log("With values:", data);
 
-    connection.query(query, ingredients, (err, recipes) => {
+    connection.query(query, data, (err, recipes) => {
         if (err) {
             console.error('Error fetching recipes:', err);
             return res.status(500).json({ error: 'Database query failed' });
@@ -374,7 +382,7 @@ app.post('/api/recommendRecipes', (req, res) => {
             JOIN ingredients i ON ri.ingredient_id = i.ingredient_id
             LEFT JOIN substitutes s ON i.ingredient_id = s.ingredient_id
             WHERE ri.recipe_id IN (${recipeIDs.map(() => '?').join(',')})
-            AND i.name NOT IN (${placeholders});
+            AND i.name NOT IN (${ingredients_placeholders});
         `;
 
         console.log("Fetching missing ingredients:", missingQuery);
