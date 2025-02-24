@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import LetmecookAppBar from '../AppBar';
 import Api from './Api';
 import Box from '@mui/material/Box';
+import Link from '@mui/material/Link';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
@@ -16,6 +17,8 @@ const Search = () => {
     // State for ingredients and recipes
     const [allIngredients, setAllIngredients] = useState([]);
     const [selectedIngredients, setSelectedIngredients] = useState([]);
+    const [allCuisines, setAllCuisines] = useState([]);
+    const [selectedCuisines, setSelectedCuisines] = useState([]);
     const [manualIngredient, setManualIngredient] = useState("");
     const [recipes, setRecipes] = useState([]);
     const [budgetMode, setBudgetMode] = useState(false);
@@ -26,14 +29,25 @@ const Search = () => {
     useEffect(() => {
         const fetchIngredients = async () => {
             try {
-                const ingredients = await Api.getIngredients();
+                const data = await Api.getIngredients();
+                const ingredients = data.map((i) => i.name);
                 setAllIngredients(ingredients);
             } catch (err) {
                 console.error("Error fetching ingredients:", err);
                 setError("Failed to load ingredients.");
             }
         };
+        const fetchCuisines = async () => {
+            try {
+                const cuisines = await Api.getCuisines();
+                setAllCuisines(cuisines);
+            } catch (err) {
+                console.error("Error fetching cuisines:", err);
+                setError("Failed to load cuisines.");
+            }
+        };
         fetchIngredients();
+        fetchCuisines();
     }, []);
 
     //Add ingredient manually when user types and presses "Add"
@@ -60,7 +74,7 @@ const Search = () => {
         setLoading(true);
 
         try {
-            const recommendedRecipes = await Api.callApiRecommendRecipes(selectedIngredients, budgetMode);
+            const recommendedRecipes = await Api.callApiRecommendRecipes(selectedIngredients, selectedCuisines, budgetMode);
             setRecipes(recommendedRecipes || []);
         } catch (error) {
             console.error("Error fetching recommended recipes:", error);
@@ -68,6 +82,14 @@ const Search = () => {
             setError("Failed to fetch recipe recommendations.");
         } finally {
             setLoading(false);
+        }
+    };
+
+
+    //Handle Multi Select
+    const handleMultiSelectChange = (event, newValue, field) => {
+        if (field == 'cuisines') {
+            setSelectedCuisines(newValue);
         }
     };
 
@@ -106,6 +128,18 @@ const Search = () => {
                     renderInput={(params) => <TextField {...params} label="Select Ingredients" variant="outlined" />}
                     sx={{ width: 400, marginBottom: 2 }}
                 />
+                <Autocomplete
+                    multiple
+                    options={allCuisines}
+                    value={selectedCuisines}
+                    onChange={(event, newValue) => {
+                        handleMultiSelectChange(event, newValue, "cuisines");
+                    }}
+                    renderInput={(params) => (
+                        <TextField {...params} label="Cuisines" />
+                    )}
+                    sx={{ width: 400, marginBottom: 2 }}
+                />
 
                 {/* Budget Mode Toggle */}
                 <Button
@@ -134,7 +168,7 @@ const Search = () => {
                     ) : (
                         recipes.map(recipe => (
                             <Box key={recipe.recipe_id} sx={{ border: '1px solid #ccc', padding: 2, marginBottom: 2, borderRadius: '8px', backgroundColor: '#fff' }}>
-                                <Typography variant="h6">{recipe.name}</Typography>
+                                <Typography variant="h6"><Link onClick={() => navigate('/Recipe/'+recipe.recipe_id)}>{recipe.name}</Link></Typography>
                                 <Typography variant="body2"><strong>Type:</strong> {recipe.type}</Typography>
                                 <Typography variant="body2"><strong>Prep Time:</strong> {recipe.prep_time} mins</Typography>
                                 <Typography variant="body2"><strong>Instructions:</strong> {recipe.instructions}</Typography>

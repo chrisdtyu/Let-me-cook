@@ -235,6 +235,31 @@ app.get('/api/getIngredients', (req, res) => {
     });
 });
 
+// Get CuisineType
+app.get('/api/getCuisines', (req, res) => {
+    const sql = "SELECT DISTINCT type FROM recipes ORDER BY type";
+    connection.query(sql, (error, results) => {
+        if (error) {
+            return res.status(500).json({ error: "Database error" });
+        }
+		console.log(results);
+		let response = results.map((row) => row.type);
+        res.json(response);
+    });
+});
+
+// Get Category of Food
+app.get('/api/getCategories', (req, res) => {
+    const sql = "SELECT DISTINCT category FROM recipes ORDER BY category";
+    connection.query(sql, (error, results) => {
+        if (error) {
+            return res.status(500).json({ error: "Database error" });
+        }
+        res.json(results);
+    });
+});
+
+
 //Save Profile:
 app.post('/api/saveProfile', (req, res) => {
     const {
@@ -304,34 +329,42 @@ app.post('/api/saveProfile', (req, res) => {
 
 app.post('/api/recommendRecipes', (req, res) => {
     let connection = mysql.createConnection(config);
-    let { ingredients, userId, budgetMode } = req.body;
+    let { ingredients, cuisines, userId, budgetMode } = req.body;
 
-    console.log("🔍 Incoming Request:", req.body);
+    console.log("🔍 Incoming Request:", {ingredients, cuisines, userId, budgetMode});
 
     if (!ingredients || ingredients.length === 0) {
         console.log("No ingredients provided!");
         return res.status(400).json({ error: 'Please provide available ingredients' });
     }
 
-    let placeholders = ingredients.map(() => '?').join(',');
+    let ingredients_placeholders = ingredients.map(() => '?').join(',');
+	let cuisine_placeholders = cuisines.map(() => '?').join(',');
+	
+	let where = '';
+	if (cuisine_placeholders.length > 0 ){
+		where = `WHERE r.type in (${cuisine_placeholders})`;
+	} 
 
     let query = `
         SELECT r.recipe_id, r.name, r.type, r.prep_time, r.instructions, 
                GROUP_CONCAT(i.name) AS recipe_ingredients, 
                COUNT(ri.ingredient_id) AS total_ingredients,
-               SUM(CASE WHEN i.name NOT IN (${placeholders}) THEN 1 ELSE 0 END) AS missing_ingredients
+               SUM(CASE WHEN i.name NOT IN (${ingredients_placeholders}) THEN 1 ELSE 0 END) AS missing_ingredients
         FROM recipes r
         JOIN recipe_ingredients ri ON r.recipe_id = ri.recipe_id
         JOIN ingredients i ON ri.ingredient_id = i.ingredient_id
-        GROUP BY r.recipe_id
+        ${where} 
+		GROUP BY r.recipe_id
         ORDER BY missing_ingredients ASC, total_ingredients DESC
         LIMIT 10;
     `;
+	let data = [...ingredients, ...cuisines];
 
     console.log("Executing SQL:", query);
-    console.log("With values:", ingredients);
+    console.log("With values:", data);
 
-    connection.query(query, ingredients, (err, recipes) => {
+    connection.query(query, data, (err, recipes) => {
         if (err) {
             console.error('Error fetching recipes:', err);
             return res.status(500).json({ error: 'Database query failed' });
@@ -349,7 +382,7 @@ app.post('/api/recommendRecipes', (req, res) => {
             JOIN ingredients i ON ri.ingredient_id = i.ingredient_id
             LEFT JOIN substitutes s ON i.ingredient_id = s.ingredient_id
             WHERE ri.recipe_id IN (${recipeIDs.map(() => '?').join(',')})
-            AND i.name NOT IN (${placeholders});
+            AND i.name NOT IN (${ingredients_placeholders});
         `;
 
         console.log("Fetching missing ingredients:", missingQuery);
@@ -379,19 +412,8 @@ app.post('/api/recommendRecipes', (req, res) => {
     });
 });
 
-app.get('/api/getIngredients', (req, res) => {
-    let connection = mysql.createConnection(config);
-    let sql = "SELECT name FROM ingredients";
 
-    connection.query(sql, (error, results) => {
-        if (error) {
-            return res.status(500).json({ error: "Database error" });
-        }
-        res.json(results.map(row => row.name));
-    });
 
-    connection.end();
-});
 
 
 
