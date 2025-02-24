@@ -13,3 +13,4 @@ describe("App rendering", () => {
       expect(screen.getByText(/home/i)).toBeInTheDocument();
     });
   });
+  
