@@ -3,7 +3,7 @@ import Api from './Api';
 import RecipeView from './RecipeView';
 
 const Recipe = () => {
-    const getRecipe = async (recipe_id) => {
+    const getRecipe = React.useCallback(async (recipe_id) => {
         try {
             // get recipe information
             const recipe = await Api.callApiGetRecipe(recipe_id);
@@ -14,7 +14,7 @@ const Recipe = () => {
         } catch (error) {
             console.error("Error fetching recipe:", error);
         }
-    };
+    }, []);
 
     const [recipe, setRecipe] = React.useState({});
     const [ingredients, setIngredients] = React.useState([]);
