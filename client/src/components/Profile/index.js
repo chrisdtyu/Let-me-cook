@@ -5,100 +5,138 @@ import {
 import { Autocomplete } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import LetmecookAppBar from '../AppBar';
+import { useNavigate } from 'react-router-dom';
 
 const MainGridContainer = styled(Grid)(({ theme }) => ({
   margin: theme.spacing(4),
 }));
 
 const Profile = () => {
+  const navigate = useNavigate();
+
   const [profile, setProfile] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    password: "",
-    dietaryPreferences: [],   
-    dietaryRestrictions: [],  
-    alwaysAvailable: [],      
-    healthGoals: "",
-    weeklyBudget: "",
+    firebase_uid: '',
+    firstName: '',
+    lastName: '',
+    email: '',
+    dietaryPreferences: [],
+    dietaryRestrictions: [],
+    alwaysAvailable: [],
+    healthGoals: '',
+    weeklyBudget: '',
   });
 
-  // Fetch list options for each dropdown:
-  const [dietaryPreferencesList, setDietaryPreferencesList] = useState([]);  
-  const [dietaryRestrictionsList, setDietaryRestrictionsList] = useState([]); 
-  const [ingredientsList, setIngredientsList] = useState([]);                
+  const [dietaryPreferencesList, setDietaryPreferencesList] = useState([]);
+  const [dietaryRestrictionsList, setDietaryRestrictionsList] = useState([]);
+  const [ingredientsList, setIngredientsList] = useState([]);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/getDietaryPreferences')
-      .then(res => res.json())
-      .then(data => {
-        setDietaryPreferencesList(data);
-      })
-      .catch(error => console.error("Error fetching dietary preferences:", error));
+    // check if user is logged in
+    const firebaseUid = localStorage.getItem('firebase_uid');
+    if (!firebaseUid) {
+      alert('You must log in first!');
+      navigate('/Login');
+      return;
+    }
 
-    fetch('http://localhost:5000/api/getDietaryRestrictions')
-      .then(res => res.json())
-      .then(data => {
-        setDietaryRestrictionsList(data); 
+    // fetch user
+    fetch('/api/getUser', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ firebase_uid: firebaseUid }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to fetch user');
+        return res.json();
       })
-      .catch(error => console.error("Error fetching dietary restrictions:", error));
-
-    fetch('http://localhost:5000/api/getIngredients')
-      .then(res => res.json())
-      .then(data => {
-        setIngredientsList(data);
+      .then((data) => {
+        let parsed;
+        if (data.express) {
+          parsed = JSON.parse(data.express);
+        } else if (data.user) {
+          parsed = data.user;
+        } else {
+          parsed = data;
+        }
+        setProfile((prev) => ({
+          ...prev,
+          firebase_uid: firebaseUid,
+          firstName: parsed.first_name || '',
+          lastName: parsed.last_name || '',
+          email: parsed.email || '',
+        }));
       })
-      .catch(error => console.error("Error fetching ingredients:", error));
+      .catch((err) => console.error('Error fetching user:', err));
 
-  }, []);
+    // fetch lists
+    fetch('/api/getDietaryPreferences')
+      .then((res) => res.json())
+      .then((data) => setDietaryPreferencesList(data))
+      .catch((error) => console.error('Error fetching dietary preferences:', error));
+
+    fetch('/api/getDietaryRestrictions')
+      .then((res) => res.json())
+      .then((data) => setDietaryRestrictionsList(data))
+      .catch((error) => console.error('Error fetching dietary restrictions:', error));
+
+    fetch('/api/getIngredients')
+      .then((res) => res.json())
+      .then((data) => setIngredientsList(data))
+      .catch((error) => console.error('Error fetching ingredients:', error));
+  }, [navigate]);
 
   const handleMultiSelectChange = (event, newValue, field) => {
     setProfile((prev) => ({
       ...prev,
-      [field]: newValue
+      [field]: newValue,
     }));
   };
 
   const handleSubmit = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/saveProfile', {
+      const response = await fetch('/api/saveProfile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(profile),
       });
-
       if (response.ok) {
         const result = await response.json();
-        console.log("Profile successfully saved:", result);
-        alert("Profile saved successfully!");
+        console.log('Profile saved:', result);
+        alert('Profile updated successfully!');
       } else {
-        console.error("Failed to save profile");
-        alert("Error saving profile");
+        console.error('Failed to save profile');
+        alert('Error saving profile');
       }
     } catch (error) {
-      console.error("Error:", error);
-      alert("Server error. Please try again later.");
+      console.error('Error:', error);
+      alert('Server error. Please try again later.');
     }
   };
 
   return (
     <>
       <LetmecookAppBar page="Profile" />
-      <Box sx={{
-        display: 'flex', justifyContent: 'center', alignItems: 'center',
-        height: '100vh', backgroundColor: '#f4f4f4'
-      }}>
+      <Box
+        sx={{
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center',
+          height: '100vh', 
+          backgroundColor: '#f4f4f4'
+        }}
+      >
         <Container maxWidth="sm" sx={{ backgroundColor: 'white', p: 4, borderRadius: 2, boxShadow: 3 }}>
           <Typography variant="h4" textAlign="center" gutterBottom>
             Student Profile
           </Typography>
           <Grid container spacing={2}>
+            {/* read-only name/email */}
             <Grid item xs={6}>
               <TextField
                 fullWidth
                 label="First Name"
                 value={profile.firstName}
-                onChange={(e) => setProfile({ ...profile, firstName: e.target.value })}
+                InputProps={{ readOnly: true }}
               />
             </Grid>
             <Grid item xs={6}>
@@ -106,7 +144,7 @@ const Profile = () => {
                 fullWidth
                 label="Last Name"
                 value={profile.lastName}
-                onChange={(e) => setProfile({ ...profile, lastName: e.target.value })}
+                InputProps={{ readOnly: true }}
               />
             </Grid>
             <Grid item xs={12}>
@@ -114,34 +152,23 @@ const Profile = () => {
                 fullWidth
                 label="Email"
                 value={profile.email}
-                onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Password"
-                type="password"
-                value={profile.password}
-                onChange={(e) => setProfile({ ...profile, password: e.target.value })}
+                InputProps={{ readOnly: true }}
               />
             </Grid>
 
-            {/** Dietary Preferences Autocomplete */}
+            {/* dietary preferences */}
             <Grid item xs={12}>
               <FormControl fullWidth>
                 <Autocomplete
                   multiple
                   options={dietaryPreferencesList}
                   getOptionLabel={(option) => option.preference_name}
-                  value={
-                    dietaryPreferencesList.filter(p =>
-                      profile.dietaryPreferences.includes(p.preference_id)
-                    )
-                  }
+                  value={dietaryPreferencesList.filter((p) =>
+                    profile.dietaryPreferences.includes(p.preference_id)
+                  )}
                   onChange={(event, newValue) => {
-                    const newIDs = newValue.map(obj => obj.preference_id);
-                    handleMultiSelectChange(event, newIDs, "dietaryPreferences");
+                    const newIDs = newValue.map((obj) => obj.preference_id);
+                    handleMultiSelectChange(event, newIDs, 'dietaryPreferences');
                   }}
                   renderInput={(params) => (
                     <TextField {...params} label="Dietary Preferences" />
@@ -150,7 +177,7 @@ const Profile = () => {
               </FormControl>
             </Grid>
 
-            {/** Dietary Restrictions Autocomplete */}
+            {/* dietary restrictions */}
             <Grid item xs={12}>
               <FormControl fullWidth>
                 <Autocomplete
@@ -159,7 +186,7 @@ const Profile = () => {
                   getOptionLabel={(option) => option.dietary_name}
                   value={profile.dietaryRestrictions}
                   onChange={(event, newValue) => {
-                    handleMultiSelectChange(event, newValue, "dietaryRestrictions");
+                    handleMultiSelectChange(event, newValue, 'dietaryRestrictions');
                   }}
                   renderInput={(params) => (
                     <TextField {...params} label="Dietary Restrictions" />
@@ -168,7 +195,7 @@ const Profile = () => {
               </FormControl>
             </Grid>
 
-            {/** Always Available Ingredients Autocomplete */}
+            {/* alwaysAvailable */}
             <Grid item xs={12}>
               <FormControl fullWidth>
                 <Autocomplete
@@ -177,7 +204,7 @@ const Profile = () => {
                   getOptionLabel={(option) => option.name}
                   value={profile.alwaysAvailable}
                   onChange={(event, newValue) => {
-                    handleMultiSelectChange(event, newValue, "alwaysAvailable");
+                    handleMultiSelectChange(event, newValue, 'alwaysAvailable');
                   }}
                   renderInput={(params) => (
                     <TextField {...params} label="Always Available Ingredients" />
@@ -186,6 +213,7 @@ const Profile = () => {
               </FormControl>
             </Grid>
 
+            {/* health goals */}
             <Grid item xs={12}>
               <TextField
                 fullWidth
@@ -194,6 +222,8 @@ const Profile = () => {
                 onChange={(e) => setProfile({ ...profile, healthGoals: e.target.value })}
               />
             </Grid>
+
+            {/* weeklyBudget */}
             <Grid item xs={12}>
               <TextField
                 fullWidth
@@ -204,6 +234,7 @@ const Profile = () => {
                 inputProps={{ min: 0 }}
               />
             </Grid>
+
             <Grid item xs={12}>
               <Button
                 fullWidth
@@ -211,7 +242,7 @@ const Profile = () => {
                 color="primary"
                 onClick={handleSubmit}
               >
-                Save Profile
+                Update Profile
               </Button>
             </Grid>
           </Grid>
