@@ -17,7 +17,6 @@ const MainGridContainer = styled(Grid)(({ theme }) => ({
   }));
 
 const RecipeView = ({getRecipe, recipe, ingredients}) => {
-    //id is defined by the recipe that is pressed on from the search page
     const { id } = useParams();
     const [scaleFactor, setScaleFactor] = useState(1);
     const [baseQuantity, setBaseQuantity] = useState({});
