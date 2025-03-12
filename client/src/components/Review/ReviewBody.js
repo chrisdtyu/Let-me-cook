@@ -1,17 +1,22 @@
-import React from 'react';
-import { TextField } from '@mui/material';
+import * as React from 'react';
+import TextField from '@mui/material/TextField';
+import Grid from '@mui/material/Grid';
 
-function ReviewBody({ enteredReview, handleReviewChange }) {
+const ReviewBody = (props) => {
+
   return (
-    <TextField
-      id="review-body"
-      label="Enter your review"
-      value={enteredReview}
-      onChange={handleReviewChange}
-      multiline
-      rows={4}
-      fullWidth
-    />
+    <Grid item xs={12} paddingTop={2}>
+      <TextField
+        id="review-body"
+        value={props.enteredReview}
+        label="Review"
+        style = {{width: 400}}
+        multiline
+        rows={4}
+        inputProps={{ maxLength: 200 }}
+        onChange={props.handleReviewChange}
+      />
+    </Grid>
   );
 }
 

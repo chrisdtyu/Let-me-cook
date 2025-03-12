@@ -392,6 +392,34 @@ app.get('/api/getRecipe', (req, res) => {
     connection.end();
 });
 
+// get recipe ingredints and quantities API
+app.get('/api/getRecipeIngredients', (req, res) => {
+
+	let connection = mysql.createConnection(config);
+	let recipeId = req.query.id;
+	
+	let sql = `select i.ingredient_id, i.name, i.type, ri.quantity, ri.quantity_type, ri.required
+		from recipe_ingredients ri
+		inner join ingredients i 
+			on ri.ingredient_id = i.ingredient_id
+		where recipe_id = ?;`;
+		
+	let data = [recipeId];
+
+	connection.query(sql, data, (error, results) => {
+		if (error) {
+			console.error(error.message);
+			return res.status(500).send("Database error");
+		}
+		if(results && results.length > 0) {
+        	res.json(results);
+		} else {
+            return res.status(404).json({ error: "Data not found" });
+		}	
+	});
+	connection.end();
+});
+
 
 // ============= getDietaryPreferences, etc. (unchanged) =============
 app.get('/api/getDietaryPreferences', (req, res) => {
@@ -418,6 +446,7 @@ app.get('/api/getIngredients', (req, res) => {
     const sql = "SELECT ingredient_id, name, type FROM ingredients";
     connection.query(sql, (error, results) => {
         if (error) {
+            console.error("Database error", error);
             return res.status(500).json({ error: "Database error" });
         }
         res.json(results);
@@ -447,3 +476,54 @@ app.get('/api/getCategories', (req, res) => {
 });
 
 app.listen(port, () => console.log(`Listening on port ${port}`));
+
+//review API's
+app.get('/api/getReviews', (req, res) => {
+    const recipeId = req.query.id;
+    if (!recipeId) {
+        return res.status(400).json({ error: "Missing recipe ID" });
+    }
+
+    let connection = mysql.createConnection(config);
+    let sql = `
+        SELECT r.*, u.first_name, u.last_name 
+        FROM reviews r
+        INNER JOIN users u ON r.user_id = u.user_id 
+        WHERE recipe_id = ?`;
+    let data = [recipeId];
+
+    connection.query(sql, data, (error, results, fields) => {
+        if (error) {
+            console.error("Database Error:", error);
+            return res.status(500).json({ error: "Database query failed" });
+        }
+        res.json(results);
+    });
+    
+    connection.end();
+});
+
+
+app.post('/api/addReview', (req, res) => {
+
+	let connection = mysql.createConnection(config);
+	let reviewData = req.body;
+	let sql = `INSERT INTO reviews
+		(user_id,
+        recipe_id,
+        review_title,
+        review_score,
+        review_content)
+		VALUES
+		(?,?,?,?,?);`;
+
+	let data = [reviewData.user_id, reviewData.recipe_id, reviewData.review_title, reviewData.review_score, reviewData.review_content];
+
+	connection.query(sql, data, (error, results, fields) => {
+		if (error) {
+			return console.error(error.message);
+		}
+		res.send(results);
+	});
+	connection.end();
+});

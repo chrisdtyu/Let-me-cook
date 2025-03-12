@@ -8,6 +8,7 @@ DROP TABLE IF EXISTS recipe;
 DROP TABLE IF EXISTS ingredient_restrictions;
 DROP TABLE IF EXISTS ingredients;
 DROP TABLE IF EXISTS dietary_restrictions;
+DROP TABLE IF EXISTS reviews;
 */
 
 /*create table script:*/
@@ -73,6 +74,20 @@ CREATE TABLE `substitutes` (
   `ingredient_id`  int NOT NULL,
   `cost` float NOT NULL
 );	
+
+CREATE TABLE `reviews` (
+  `review_id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `recipe_id` int NOT NULL,
+  `review_title` varchar(70) NOT NULL,
+  `review_score` float NOT NULL,
+  `review_content` varchar(300) NOT NULL,
+  PRIMARY KEY (`review_id`),
+  KEY `user_id` (`user_id`),
+  KEY `recipe_id` (`recipe_id`),
+  CONSTRAINT `recipe_id` FOREIGN KEY (`recipe_id`) REFERENCES `recipes` (`recipe_id`),
+  CONSTRAINT `user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
+);
 
 /*insert data script:*/
 INSERT INTO `alhogiu`.`users`
