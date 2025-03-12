@@ -11,6 +11,7 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import Api from './Api';
 import LetmecookAppBar from '../AppBar';
+import ReviewList from '../ReviewList'
 
 const MainGridContainer = styled(Grid)(({ theme }) => ({
     margin: theme.spacing(4),
@@ -28,7 +29,7 @@ const RecipeView = ({getRecipe, recipe, ingredients}) => {
 
     useEffect(() => {
         getRecipe(id);
-    }, [id, getRecipe]);  
+    }, [id, getRecipe]);
     
     useEffect(() => {
       if (ingredients.length > 0) {
@@ -148,6 +149,7 @@ const RecipeView = ({getRecipe, recipe, ingredients}) => {
             <iframe width="560" height="315" src={recipe.video} title="Recipe Video" allowFullScreen></iframe>
           </Box>
         )}
+      <ReviewList recipeId={id}> </ReviewList>
       </MainGridContainer>
     </>
     )
