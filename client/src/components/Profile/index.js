@@ -10,7 +10,7 @@ import { useNavigate } from 'react-router-dom';
 const MainGridContainer = styled(Grid)(({ theme }) => ({
   margin: theme.spacing(4),
 }));
-
+ 
 const Profile = () => {
   const navigate = useNavigate();
 
@@ -37,6 +37,7 @@ const Profile = () => {
       navigate('/Login');
       return;
     }
+
 
     fetch('/api/getUser', {
       method: 'POST',
@@ -66,6 +67,7 @@ const Profile = () => {
       })
       .catch((err) => console.error('Error fetching user:', err));
 
+
     fetch('/api/getUserProfile', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -89,6 +91,7 @@ const Profile = () => {
       })
       .catch((err) => console.error('Error fetching full user profile:', err));
 
+
     fetch('/api/getDietaryPreferences')
       .then((res) => res.json())
       .then((data) => setDietaryPreferencesList(data))
@@ -105,7 +108,7 @@ const Profile = () => {
       .catch((error) => console.error('Error fetching ingredients:', error));
   }, [navigate]);
 
-  
+
   const selectedPreferenceObjects = dietaryPreferencesList.filter((p) =>
     profile.dietaryPreferences.includes(p.preference_id)
   );
@@ -125,6 +128,7 @@ const Profile = () => {
     }));
   };
 
+  // no mandatory field checks 
   const handleSubmit = async () => {
     try {
       const response = await fetch('/api/saveProfile', {

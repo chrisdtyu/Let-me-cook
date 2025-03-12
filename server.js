@@ -20,12 +20,11 @@ app.use(cors({
     methods: ['GET', 'POST'], 
     credentials: true 
 }));
-
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, "client/build")));
 
-// MySQL Connection 
+// MySQL Connection
 const connection = mysql.createConnection(config);
 connection.connect(err => {
     if (err) {
@@ -35,18 +34,17 @@ connection.connect(err => {
     console.log("Connected to MySQL database");
 });
 
-
-// Create user (Sign-up) 
+// create user
 app.post('/api/createUser', async (req, res) => {
 	let { firebase_uid, firstName, lastName, email, password } = req.body;
 
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
-        let sql = `
+        const sql = `
           INSERT INTO users (firebase_uid, first_name, last_name, email, password)
           VALUES (?, ?, ?, ?, ?)
         `;
-        let data = [firebase_uid, firstName, lastName, email, hashedPassword];
+        const data = [firebase_uid, firstName, lastName, email, hashedPassword];
 
         connection.query(sql, data, (error, results) => {
             if (error) {
@@ -61,11 +59,10 @@ app.post('/api/createUser', async (req, res) => {
     }
 });
 
-
-// Get user
+// get user
 app.post('/api/getUser', (req, res) => {
-    let { firebase_uid } = req.body;
-    let sql = `
+    const { firebase_uid } = req.body;
+    const sql = `
       SELECT user_id, first_name, last_name, email, password
       FROM users
       WHERE firebase_uid = ?
@@ -92,8 +89,7 @@ app.post('/api/getUser', (req, res) => {
     });
 });
 
-
-// get saved user profile info
+// get user profile
 app.post('/api/getUserProfile', (req, res) => {
     const { firebase_uid } = req.body;
     if (!firebase_uid) {
@@ -154,8 +150,7 @@ app.post('/api/getUserProfile', (req, res) => {
     });
 });
 
-
-// Save profile
+// save profile
 app.post('/api/saveProfile', (req, res) => {
     const {
         firebase_uid,
@@ -169,6 +164,9 @@ app.post('/api/saveProfile', (req, res) => {
         weeklyBudget
     } = req.body;
 
+    // Convert empty string to NULL 
+    const weeklyBudgetValue = (weeklyBudget === '') ? null : weeklyBudget;
+
     const upsertSql = `
       INSERT INTO users (firebase_uid, first_name, last_name, email, health_goals, weekly_budget)
       VALUES (?, ?, ?, ?, ?, ?)
@@ -179,7 +177,7 @@ app.post('/api/saveProfile', (req, res) => {
         health_goals = VALUES(health_goals),
         weekly_budget = VALUES(weekly_budget)
     `;
-    const userData = [firebase_uid, firstName, lastName, email, healthGoals, weeklyBudget];
+    const userData = [firebase_uid, firstName, lastName, email, healthGoals, weeklyBudgetValue];
 
     connection.query(upsertSql, userData, (err, result) => {
         if (err) {
@@ -187,7 +185,7 @@ app.post('/api/saveProfile', (req, res) => {
             return res.status(500).json({ error: "Database error upserting user" });
         }
 
-        // get user_id 
+        // get user_id
         const selectUserSql = `SELECT user_id FROM users WHERE firebase_uid = ?`;
         connection.query(selectUserSql, [firebase_uid], (err2, rows) => {
             if (err2) {
@@ -224,7 +222,7 @@ app.post('/api/saveProfile', (req, res) => {
                 if (errDel2) {
                     console.error("Error deleting old user_restrictions:", errDel2);
                 } else if (dietaryRestrictions && dietaryRestrictions.length > 0) {
-                    const vals = dietaryRestrictions.map((r) => [userId, r.dietary_id]);
+                    const vals = dietaryRestrictions.map(r => [userId, r.dietary_id]);
                     const insertResSql = `
                       INSERT INTO user_restrictions (user_id, dietary_id)
                       VALUES ?
@@ -243,7 +241,7 @@ app.post('/api/saveProfile', (req, res) => {
                 if (errDel3) {
                     console.error("Error deleting old user_ingredients:", errDel3);
                 } else if (alwaysAvailable && alwaysAvailable.length > 0) {
-                    const vals = alwaysAvailable.map((i) => [userId, i.ingredient_id]);
+                    const vals = alwaysAvailable.map(i => [userId, i.ingredient_id]);
                     const insertIngSql = `
                       INSERT INTO user_ingredients (user_id, ingredient_id)
                       VALUES ?

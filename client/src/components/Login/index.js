@@ -181,72 +181,75 @@ const Login = () => {
             {isLogin ? 'Login' : 'Sign Up'}
           </Typography>
 
-          <form onSubmit={handleSubmit}>
-            {!isLogin && (
-              <>
-                <TextField
-                  fullWidth
-                  margin="normal"
-                  label="First Name"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  required
-                />
-                <TextField
-                  fullWidth
-                  margin="normal"
-                  label="Last Name"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  required
-                />
-              </>
-            )}
 
-            <TextField
-              fullWidth
-              margin="normal"
-              label="Email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-            <TextField
-              fullWidth
-              margin="normal"
-              label="Password"
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
-                      {showPassword ? <Visibility /> : <VisibilityOff />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
+          {!isUserLoggedIn && (
+            <form onSubmit={handleSubmit}>
+              {!isLogin && (
+                <>
+                  <TextField
+                    fullWidth
+                    margin="normal"
+                    label="First Name"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    required
+                  />
+                  <TextField
+                    fullWidth
+                    margin="normal"
+                    label="Last Name"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    required
+                  />
+                </>
+              )}
 
-            {errorMessage && (
-              <Typography color="error" variant="body2">
-                {errorMessage}
-              </Typography>
-            )}
+              <TextField
+                fullWidth
+                margin="normal"
+                label="Email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              <TextField
+                fullWidth
+                margin="normal"
+                label="Password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                        {showPassword ? <Visibility /> : <VisibilityOff />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
 
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              color="primary"
-              sx={{ mt: 2 }}
-            >
-              {isLogin ? 'Login' : 'Sign Up'}
-            </Button>
-          </form>
+              {errorMessage && (
+                <Typography color="error" variant="body2">
+                  {errorMessage}
+                </Typography>
+              )}
+
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                color="primary"
+                sx={{ mt: 2 }}
+              >
+                {isLogin ? 'Login' : 'Sign Up'}
+              </Button>
+            </form>
+          )}
 
           {isLogin && isUserLoggedIn && (
             <Button
@@ -260,9 +263,11 @@ const Login = () => {
             </Button>
           )}
 
-          <ChangeField onClick={() => setIsLogin(!isLogin)}>
-            {isLogin ? "Don't have an account? Sign Up here" : 'Already have an account? Login here'}
-          </ChangeField>
+          {!isUserLoggedIn && (
+            <ChangeField onClick={() => setIsLogin(!isLogin)}>
+              {isLogin ? "Don't have an account? Sign Up here" : 'Already have an account? Login here'}
+            </ChangeField>
+          )}
         </FormContainer>
       </Box>
     </>
