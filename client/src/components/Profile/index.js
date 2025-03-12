@@ -19,24 +19,18 @@ const Profile = () => {
     firstName: '',
     lastName: '',
     email: '',
-    // These arrays store the “raw” bridging data:
-    // dietaryPreferences: [ 2, 3 ], for example
     dietaryPreferences: [],
-    // dietaryRestrictions: [ { dietary_id: 1 }, { dietary_id: 5 } ], etc.
     dietaryRestrictions: [],
-    // alwaysAvailable: [ { ingredient_id: 10 }, ... ]
     alwaysAvailable: [],
     healthGoals: '',
     weeklyBudget: '',
   });
 
-  // Full lists from DB
   const [dietaryPreferencesList, setDietaryPreferencesList] = useState([]);
   const [dietaryRestrictionsList, setDietaryRestrictionsList] = useState([]);
   const [ingredientsList, setIngredientsList] = useState([]);
 
   useEffect(() => {
-    // check if user is logged in
     const firebaseUid = localStorage.getItem('firebase_uid');
     if (!firebaseUid) {
       alert('You must log in first!');
@@ -44,7 +38,6 @@ const Profile = () => {
       return;
     }
 
-    // 1) fetch user for read-only name/email
     fetch('/api/getUser', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -73,7 +66,6 @@ const Profile = () => {
       })
       .catch((err) => console.error('Error fetching user:', err));
 
-    // 2) fetch bridging data so we can auto-populate dietary stuff
     fetch('/api/getUserProfile', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -97,7 +89,6 @@ const Profile = () => {
       })
       .catch((err) => console.error('Error fetching full user profile:', err));
 
-    // 3) fetch the full lists
     fetch('/api/getDietaryPreferences')
       .then((res) => res.json())
       .then((data) => setDietaryPreferencesList(data))
@@ -114,8 +105,7 @@ const Profile = () => {
       .catch((error) => console.error('Error fetching ingredients:', error));
   }, [navigate]);
 
-  // We store the raw bridging data in profile, but
-  // the Autocomplete’s "value" must be a list of *full objects* from the DB for the label to display
+  
   const selectedPreferenceObjects = dietaryPreferencesList.filter((p) =>
     profile.dietaryPreferences.includes(p.preference_id)
   );
@@ -206,11 +196,8 @@ const Profile = () => {
                   multiple
                   options={dietaryPreferencesList}
                   getOptionLabel={(option) => option.preference_name}
-                  // Show the fully matched objects as "value"
                   value={selectedPreferenceObjects}
                   onChange={(event, newValue) => {
-                    // newValue is array of full objects
-                    // convert to array of preference_id
                     const newIDs = newValue.map((obj) => obj.preference_id);
                     setProfile((prev) => ({
                       ...prev,
@@ -231,11 +218,8 @@ const Profile = () => {
                   multiple
                   options={dietaryRestrictionsList}
                   getOptionLabel={(option) => option.dietary_name}
-                  // We filter the fully matched objects for the "value"
                   value={selectedRestrictionObjects}
                   onChange={(event, newValue) => {
-                    // newValue is array of objects with { dietary_id, dietary_name }
-                    // store them as { dietary_id } in our profile
                     const arr = newValue.map(obj => ({ dietary_id: obj.dietary_id }));
                     setProfile((prev) => ({
                       ...prev,
@@ -258,7 +242,6 @@ const Profile = () => {
                   getOptionLabel={(option) => option.name}
                   value={selectedIngredientObjects}
                   onChange={(event, newValue) => {
-                    // store them as { ingredient_id }
                     const arr = newValue.map(obj => ({ ingredient_id: obj.ingredient_id }));
                     setProfile((prev) => ({
                       ...prev,

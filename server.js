@@ -25,7 +25,7 @@ app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, "client/build")));
 
-// ============= MySQL Connection ============
+// MySQL Connection 
 const connection = mysql.createConnection(config);
 connection.connect(err => {
     if (err) {
@@ -36,7 +36,7 @@ connection.connect(err => {
 });
 
 
-// ============= CREATE USER (Sign-up) =============
+// Create user (Sign-up) 
 app.post('/api/createUser', async (req, res) => {
 	let { firebase_uid, firstName, lastName, email, password } = req.body;
 
@@ -62,7 +62,7 @@ app.post('/api/createUser', async (req, res) => {
 });
 
 
-// ============= GET USER =============
+// Get user
 app.post('/api/getUser', (req, res) => {
     let { firebase_uid } = req.body;
     let sql = `
@@ -93,14 +93,13 @@ app.post('/api/getUser', (req, res) => {
 });
 
 
-// ============= NEW: GET USER PROFILE (bridging data) =============
+// get saved user profile info
 app.post('/api/getUserProfile', (req, res) => {
     const { firebase_uid } = req.body;
     if (!firebase_uid) {
         return res.status(400).json({ error: "Missing firebase_uid" });
     }
 
-    // 1) Get user row (including health_goals, weekly_budget if needed)
     const userSql = `
       SELECT user_id, first_name, last_name, email, health_goals, weekly_budget
       FROM users
@@ -117,7 +116,6 @@ app.post('/api/getUserProfile', (req, res) => {
         const user = results[0];
         const userId = user.user_id;
 
-        // 2) Query bridging tables in parallel or series
         const prefsSql = `SELECT preference_id FROM user_preferences WHERE user_id = ?`;
         const restrictSql = `SELECT dietary_id FROM user_restrictions WHERE user_id = ?`;
         const ingSql = `SELECT ingredient_id FROM user_ingredients WHERE user_id = ?`;
@@ -138,15 +136,13 @@ app.post('/api/getUserProfile', (req, res) => {
                         return res.status(500).json({ error: "Database error" });
                     }
 
-                    // 3) Build final response
                     const dietaryPreferences = prefRows.map(row => row.preference_id);
-                    // For restrictions and alwaysAvailable, we keep them as objects if that's what your front end expects:
                     const dietaryRestrictions = restrictRows.map(row => ({ dietary_id: row.dietary_id }));
                     const alwaysAvailable = ingRows.map(row => ({ ingredient_id: row.ingredient_id }));
 
                     return res.json({
                         user: {
-                            ...user // includes first_name, last_name, email, health_goals, weekly_budget
+                            ...user 
                         },
                         dietaryPreferences,
                         dietaryRestrictions,
@@ -159,7 +155,7 @@ app.post('/api/getUserProfile', (req, res) => {
 });
 
 
-// ============= SAVE PROFILE (Upsert) =============
+// Save profile
 app.post('/api/saveProfile', (req, res) => {
     const {
         firebase_uid,
@@ -173,7 +169,6 @@ app.post('/api/saveProfile', (req, res) => {
         weeklyBudget
     } = req.body;
 
-    // Insert if new, else update
     const upsertSql = `
       INSERT INTO users (firebase_uid, first_name, last_name, email, health_goals, weekly_budget)
       VALUES (?, ?, ?, ?, ?, ?)
@@ -192,7 +187,7 @@ app.post('/api/saveProfile', (req, res) => {
             return res.status(500).json({ error: "Database error upserting user" });
         }
 
-        // get user_id for bridging tables
+        // get user_id 
         const selectUserSql = `SELECT user_id FROM users WHERE firebase_uid = ?`;
         connection.query(selectUserSql, [firebase_uid], (err2, rows) => {
             if (err2) {
@@ -267,7 +262,7 @@ app.post('/api/saveProfile', (req, res) => {
 });
 
 
-// ============= /api/recommendRecipes (unchanged) =============
+// /api/recommendRecipes
 app.post('/api/recommendRecipes', (req, res) => {
     let connection = mysql.createConnection(config);
     let { ingredients, cuisines, categories, userId, budgetMode, maxTime } = req.body;
@@ -366,7 +361,7 @@ app.post('/api/recommendRecipes', (req, res) => {
 });
 
 
-// ============= getRecipe (unchanged) =============
+// getRecipe 
 app.get('/api/getRecipe', (req, res) => {
     const recipeId = req.query.id;
     if (!recipeId) {
@@ -421,7 +416,7 @@ app.get('/api/getRecipeIngredients', (req, res) => {
 });
 
 
-// ============= getDietaryPreferences, etc. (unchanged) =============
+
 app.get('/api/getDietaryPreferences', (req, res) => {
     const sql = "SELECT preference_id, preference_name FROM dietary_preferences";
     connection.query(sql, (error, results) => {
