@@ -1,15 +1,23 @@
-import React from 'react';
-import { TextField } from '@mui/material';
+import * as React from 'react';
+//import all necessary libraries here, e.g., Material-UI Typography, as follows
+import InputLabel from '@mui/material/InputLabel';
+import TextField from '@mui/material/TextField';
+import Grid from '@mui/material/Grid';
 
-function ReviewTitle({ enteredTitle, handleTitleChange }) {
+const ReviewTitle = (props) => {
+
   return (
-    <TextField
-      label="Enter your review title"
-      value={enteredTitle}
-      onChange={handleTitleChange}
-      fullWidth
-      id="review-title"
-    />
+    <Grid item xs={12} paddingTop={2}>
+      <InputLabel id="review-title-label">Enter a review</InputLabel>
+      <TextField
+        id="review-title"
+        labelId="review-title-label"
+        style = {{width: 400}}
+        value={props.enteredTitle}
+        label = "Review Title"
+        onChange={props.handleTitleChange}
+      />
+    </Grid>
   );
 }
 
