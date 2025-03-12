@@ -19,13 +19,18 @@ const Profile = () => {
     firstName: '',
     lastName: '',
     email: '',
+    // These arrays store the “raw” bridging data:
+    // dietaryPreferences: [ 2, 3 ], for example
     dietaryPreferences: [],
+    // dietaryRestrictions: [ { dietary_id: 1 }, { dietary_id: 5 } ], etc.
     dietaryRestrictions: [],
+    // alwaysAvailable: [ { ingredient_id: 10 }, ... ]
     alwaysAvailable: [],
     healthGoals: '',
     weeklyBudget: '',
   });
 
+  // Full lists from DB
   const [dietaryPreferencesList, setDietaryPreferencesList] = useState([]);
   const [dietaryRestrictionsList, setDietaryRestrictionsList] = useState([]);
   const [ingredientsList, setIngredientsList] = useState([]);
@@ -39,7 +44,7 @@ const Profile = () => {
       return;
     }
 
-    // fetch user
+    // 1) fetch user for read-only name/email
     fetch('/api/getUser', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -68,7 +73,31 @@ const Profile = () => {
       })
       .catch((err) => console.error('Error fetching user:', err));
 
-    // fetch lists
+    // 2) fetch bridging data so we can auto-populate dietary stuff
+    fetch('/api/getUserProfile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ firebase_uid: firebaseUid }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to fetch full profile');
+        return res.json();
+      })
+      .then((data) => {
+        if (data.user) {
+          setProfile((prev) => ({
+            ...prev,
+            healthGoals: data.user.health_goals || '',
+            weeklyBudget: data.user.weekly_budget || '',
+            dietaryPreferences: data.dietaryPreferences || [],
+            dietaryRestrictions: data.dietaryRestrictions || [],
+            alwaysAvailable: data.alwaysAvailable || [],
+          }));
+        }
+      })
+      .catch((err) => console.error('Error fetching full user profile:', err));
+
+    // 3) fetch the full lists
     fetch('/api/getDietaryPreferences')
       .then((res) => res.json())
       .then((data) => setDietaryPreferencesList(data))
@@ -84,6 +113,20 @@ const Profile = () => {
       .then((data) => setIngredientsList(data))
       .catch((error) => console.error('Error fetching ingredients:', error));
   }, [navigate]);
+
+  // We store the raw bridging data in profile, but
+  // the Autocomplete’s "value" must be a list of *full objects* from the DB for the label to display
+  const selectedPreferenceObjects = dietaryPreferencesList.filter((p) =>
+    profile.dietaryPreferences.includes(p.preference_id)
+  );
+
+  const selectedRestrictionObjects = dietaryRestrictionsList.filter((dr) =>
+    profile.dietaryRestrictions.some((sel) => sel.dietary_id === dr.dietary_id)
+  );
+
+  const selectedIngredientObjects = ingredientsList.filter((ing) =>
+    profile.alwaysAvailable.some((sel) => sel.ingredient_id === ing.ingredient_id)
+  );
 
   const handleMultiSelectChange = (event, newValue, field) => {
     setProfile((prev) => ({
@@ -163,12 +206,16 @@ const Profile = () => {
                   multiple
                   options={dietaryPreferencesList}
                   getOptionLabel={(option) => option.preference_name}
-                  value={dietaryPreferencesList.filter((p) =>
-                    profile.dietaryPreferences.includes(p.preference_id)
-                  )}
+                  // Show the fully matched objects as "value"
+                  value={selectedPreferenceObjects}
                   onChange={(event, newValue) => {
+                    // newValue is array of full objects
+                    // convert to array of preference_id
                     const newIDs = newValue.map((obj) => obj.preference_id);
-                    handleMultiSelectChange(event, newIDs, 'dietaryPreferences');
+                    setProfile((prev) => ({
+                      ...prev,
+                      dietaryPreferences: newIDs,
+                    }));
                   }}
                   renderInput={(params) => (
                     <TextField {...params} label="Dietary Preferences" />
@@ -184,9 +231,16 @@ const Profile = () => {
                   multiple
                   options={dietaryRestrictionsList}
                   getOptionLabel={(option) => option.dietary_name}
-                  value={profile.dietaryRestrictions}
+                  // We filter the fully matched objects for the "value"
+                  value={selectedRestrictionObjects}
                   onChange={(event, newValue) => {
-                    handleMultiSelectChange(event, newValue, 'dietaryRestrictions');
+                    // newValue is array of objects with { dietary_id, dietary_name }
+                    // store them as { dietary_id } in our profile
+                    const arr = newValue.map(obj => ({ dietary_id: obj.dietary_id }));
+                    setProfile((prev) => ({
+                      ...prev,
+                      dietaryRestrictions: arr,
+                    }));
                   }}
                   renderInput={(params) => (
                     <TextField {...params} label="Dietary Restrictions" />
@@ -202,9 +256,14 @@ const Profile = () => {
                   multiple
                   options={ingredientsList}
                   getOptionLabel={(option) => option.name}
-                  value={profile.alwaysAvailable}
+                  value={selectedIngredientObjects}
                   onChange={(event, newValue) => {
-                    handleMultiSelectChange(event, newValue, 'alwaysAvailable');
+                    // store them as { ingredient_id }
+                    const arr = newValue.map(obj => ({ ingredient_id: obj.ingredient_id }));
+                    setProfile((prev) => ({
+                      ...prev,
+                      alwaysAvailable: arr,
+                    }));
                   }}
                   renderInput={(params) => (
                     <TextField {...params} label="Always Available Ingredients" />

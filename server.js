@@ -35,6 +35,7 @@ connection.connect(err => {
     console.log("Connected to MySQL database");
 });
 
+
 // ============= CREATE USER (Sign-up) =============
 app.post('/api/createUser', async (req, res) => {
 	let { firebase_uid, firstName, lastName, email, password } = req.body;
@@ -60,7 +61,8 @@ app.post('/api/createUser', async (req, res) => {
     }
 });
 
-// GET USER 
+
+// ============= GET USER =============
 app.post('/api/getUser', (req, res) => {
     let { firebase_uid } = req.body;
     let sql = `
@@ -90,7 +92,74 @@ app.post('/api/getUser', (req, res) => {
     });
 });
 
-// SAVE PROFILE 
+
+// ============= NEW: GET USER PROFILE (bridging data) =============
+app.post('/api/getUserProfile', (req, res) => {
+    const { firebase_uid } = req.body;
+    if (!firebase_uid) {
+        return res.status(400).json({ error: "Missing firebase_uid" });
+    }
+
+    // 1) Get user row (including health_goals, weekly_budget if needed)
+    const userSql = `
+      SELECT user_id, first_name, last_name, email, health_goals, weekly_budget
+      FROM users
+      WHERE firebase_uid = ?
+    `;
+    connection.query(userSql, [firebase_uid], (err, results) => {
+        if (err) {
+            console.error("Error fetching user row:", err);
+            return res.status(500).json({ error: "Database error" });
+        }
+        if (!results.length) {
+            return res.status(404).json({ error: "User not found" });
+        }
+        const user = results[0];
+        const userId = user.user_id;
+
+        // 2) Query bridging tables in parallel or series
+        const prefsSql = `SELECT preference_id FROM user_preferences WHERE user_id = ?`;
+        const restrictSql = `SELECT dietary_id FROM user_restrictions WHERE user_id = ?`;
+        const ingSql = `SELECT ingredient_id FROM user_ingredients WHERE user_id = ?`;
+
+        connection.query(prefsSql, [userId], (errPref, prefRows) => {
+            if (errPref) {
+                console.error("Error fetching user preferences:", errPref);
+                return res.status(500).json({ error: "Database error" });
+            }
+            connection.query(restrictSql, [userId], (errRestrict, restrictRows) => {
+                if (errRestrict) {
+                    console.error("Error fetching user restrictions:", errRestrict);
+                    return res.status(500).json({ error: "Database error" });
+                }
+                connection.query(ingSql, [userId], (errIng, ingRows) => {
+                    if (errIng) {
+                        console.error("Error fetching user ingredients:", errIng);
+                        return res.status(500).json({ error: "Database error" });
+                    }
+
+                    // 3) Build final response
+                    const dietaryPreferences = prefRows.map(row => row.preference_id);
+                    // For restrictions and alwaysAvailable, we keep them as objects if that's what your front end expects:
+                    const dietaryRestrictions = restrictRows.map(row => ({ dietary_id: row.dietary_id }));
+                    const alwaysAvailable = ingRows.map(row => ({ ingredient_id: row.ingredient_id }));
+
+                    return res.json({
+                        user: {
+                            ...user // includes first_name, last_name, email, health_goals, weekly_budget
+                        },
+                        dietaryPreferences,
+                        dietaryRestrictions,
+                        alwaysAvailable
+                    });
+                });
+            });
+        });
+    });
+});
+
+
+// ============= SAVE PROFILE (Upsert) =============
 app.post('/api/saveProfile', (req, res) => {
     const {
         firebase_uid,
@@ -197,7 +266,8 @@ app.post('/api/saveProfile', (req, res) => {
     });
 });
 
-// /api/recommendRecipes 
+
+// ============= /api/recommendRecipes (unchanged) =============
 app.post('/api/recommendRecipes', (req, res) => {
     let connection = mysql.createConnection(config);
     let { ingredients, cuisines, categories, userId, budgetMode, maxTime } = req.body;
@@ -295,7 +365,8 @@ app.post('/api/recommendRecipes', (req, res) => {
     });
 });
 
-// getRecipe
+
+// ============= getRecipe (unchanged) =============
 app.get('/api/getRecipe', (req, res) => {
     const recipeId = req.query.id;
     if (!recipeId) {
@@ -321,7 +392,8 @@ app.get('/api/getRecipe', (req, res) => {
     connection.end();
 });
 
-// getDietaryPreferences, getDietaryRestrictions, etc. 
+
+// ============= getDietaryPreferences, etc. (unchanged) =============
 app.get('/api/getDietaryPreferences', (req, res) => {
     const sql = "SELECT preference_id, preference_name FROM dietary_preferences";
     connection.query(sql, (error, results) => {

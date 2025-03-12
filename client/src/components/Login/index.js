@@ -250,8 +250,9 @@ const Login = () => {
 
           {isLogin && isUserLoggedIn && (
             <Button
-              variant="outlined"
-              color="secondary"
+              fullWidth
+              variant="contained"
+              color="primary"
               onClick={handleSignOut}
               sx={{ mt: 2 }}
             >
