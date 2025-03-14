@@ -55,7 +55,7 @@ const Login = () => {
     const uid = localStorage.getItem('firebase_uid');
     setIsUserLoggedIn(!!uid);
 
-    // example of global variables
+    // global variables
     window.isUserLoggedIn = !!uid;
     window.globalUserID = null;
   }, []);
@@ -126,7 +126,6 @@ const Login = () => {
 
       console.log('User logged in successfully:', firebase_uid);
 
-      // fetch user from MySQL to get user_id, etc.
       const response = await fetch('/api/getUser', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
