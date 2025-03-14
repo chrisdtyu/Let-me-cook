@@ -138,3 +138,42 @@ INSERT INTO dietary_preferences (preference_name) VALUES
 ('High-Protein'), 
 ('Low-Carb'), 
 ('None');
+
+ALTER TABLE users DROP COLUMN health_goals;
+
+CREATE TABLE health_goals (
+  goal_id INT AUTO_INCREMENT PRIMARY KEY,
+  goal_name VARCHAR(255) NOT NULL
+);
+
+INSERT INTO health_goals (goal_name) VALUES
+  ('Weight Loss'),
+  ('Muscle Gain'),
+  ('Increase Energy Levels'),
+  ('Improve Digestion'),
+  ('Lower sugar intake'),
+  ('Balanced Nutrition');
+
+CREATE TABLE user_goals (
+  user_id INT NOT NULL,
+  goal_id INT NOT NULL,
+  PRIMARY KEY (user_id, goal_id),
+  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+  FOREIGN KEY (goal_id) REFERENCES health_goals(goal_id) ON DELETE CASCADE
+);
+
+CREATE TABLE user_tried (
+  user_id INT NOT NULL,
+  recipe_id INT NOT NULL,
+  PRIMARY KEY (user_id, recipe_id),
+  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+  FOREIGN KEY (recipe_id) REFERENCES recipes(recipe_id) ON DELETE CASCADE
+);
+
+CREATE TABLE user_favourites (
+  user_id INT NOT NULL,
+  recipe_id INT NOT NULL,
+  PRIMARY KEY (user_id, recipe_id),
+  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+  FOREIGN KEY (recipe_id) REFERENCES recipes(recipe_id) ON DELETE CASCADE
+);
