@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Grid, TextField, Button, Typography, Box, Container, FormControl
+  Grid, TextField, Button, Typography, Box, FormControl
 } from '@mui/material';
 import { Autocomplete } from '@mui/material';
 import { styled } from '@mui/material/styles';
@@ -19,15 +19,17 @@ const Profile = () => {
     firstName: '',
     lastName: '',
     email: '',
-    dietaryPreferences: [],
-    dietaryRestrictions: [],
-    alwaysAvailable: [],
+    dietaryPreferences: [],  
+    dietaryRestrictions: [], 
+    alwaysAvailable: [],     
+    healthGoals: [],         
     weeklyBudget: '',
   });
 
   const [dietaryPreferencesList, setDietaryPreferencesList] = useState([]);
   const [dietaryRestrictionsList, setDietaryRestrictionsList] = useState([]);
   const [ingredientsList, setIngredientsList] = useState([]);
+  const [goalsList, setGoalsList] = useState([]);
 
   const [triedRecipes, setTriedRecipes] = useState([]);
   const [favRecipes, setFavRecipes] = useState([]);
@@ -40,7 +42,6 @@ const Profile = () => {
       return;
     }
 
-    // get basic user info
     fetch('/api/getUser', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -100,6 +101,7 @@ const Profile = () => {
             dietaryPreferences: data.dietaryPreferences || [],
             dietaryRestrictions: data.dietaryRestrictions || [],
             alwaysAvailable: data.alwaysAvailable || [],
+            healthGoals: data.healthGoals || [],
           }));
         }
       })
@@ -119,6 +121,12 @@ const Profile = () => {
       .then((res) => res.json())
       .then((data) => setIngredientsList(data))
       .catch((error) => console.error('Error fetching ingredients:', error));
+
+    fetch('/api/getHealthGoals')
+      .then((res) => res.json())
+      .then((data) => setGoalsList(data))
+      .catch((err) => console.error('Error fetching health goals:', err));
+
   }, [navigate]);
 
   const selectedPreferenceObjects = dietaryPreferencesList.filter((p) =>
@@ -130,13 +138,9 @@ const Profile = () => {
   const selectedIngredientObjects = ingredientsList.filter((ing) =>
     profile.alwaysAvailable.some((sel) => sel.ingredient_id === ing.ingredient_id)
   );
-
-  const handleMultiSelectChange = (event, newValue, field) => {
-    setProfile((prev) => ({
-      ...prev,
-      [field]: newValue,
-    }));
-  };
+  const selectedGoalObjects = goalsList.filter((g) =>
+    profile.healthGoals.includes(g.goal_id)
+  );
 
   const handleSubmit = async () => {
     try {
@@ -173,16 +177,15 @@ const Profile = () => {
         }}
       >
         <Grid container spacing={2} sx={{ width: '90%', maxWidth: 1200 }}>
-
-          {/* LEFT COLUMN: bridging fields, update button */}
+          {/* left column */}
           <Grid item xs={12} md={8}>
             <Box sx={{ backgroundColor: 'white', p: 3, borderRadius: 2, boxShadow: 3 }}>
               <Typography variant="h4" textAlign="center" gutterBottom>
-                User Profile
+                Student Profile
               </Typography>
 
               <Grid container spacing={2}>
-                {/* read-only firstName,lastName,email */}
+                {/* name/email */}
                 <Grid item xs={6}>
                   <TextField
                     fullWidth
@@ -239,7 +242,7 @@ const Profile = () => {
                       getOptionLabel={(option) => option.dietary_name}
                       value={selectedRestrictionObjects}
                       onChange={(event, newValue) => {
-                        const arr = newValue.map(obj => ({ dietary_id: obj.dietary_id }));
+                        const arr = newValue.map(r => ({ dietary_id: r.dietary_id }));
                         setProfile((prev) => ({
                           ...prev,
                           dietaryRestrictions: arr,
@@ -261,7 +264,7 @@ const Profile = () => {
                       getOptionLabel={(option) => option.name}
                       value={selectedIngredientObjects}
                       onChange={(event, newValue) => {
-                        const arr = newValue.map(obj => ({ ingredient_id: obj.ingredient_id }));
+                        const arr = newValue.map(i => ({ ingredient_id: i.ingredient_id }));
                         setProfile((prev) => ({
                           ...prev,
                           alwaysAvailable: arr,
@@ -269,6 +272,28 @@ const Profile = () => {
                       }}
                       renderInput={(params) => (
                         <TextField {...params} label="Always Available Ingredients" />
+                      )}
+                    />
+                  </FormControl>
+                </Grid>
+
+                {/* healthGoals */}
+                <Grid item xs={12}>
+                  <FormControl fullWidth>
+                    <Autocomplete
+                      multiple
+                      options={goalsList}
+                      getOptionLabel={(option) => option.goal_name}
+                      value={selectedGoalObjects}
+                      onChange={(event, newValue) => {
+                        const newIDs = newValue.map(obj => obj.goal_id);
+                        setProfile((prev) => ({
+                          ...prev,
+                          healthGoals: newIDs,
+                        }));
+                      }}
+                      renderInput={(params) => (
+                        <TextField {...params} label="Health Goals" />
                       )}
                     />
                   </FormControl>
@@ -286,6 +311,7 @@ const Profile = () => {
                   />
                 </Grid>
 
+                {/* Update Button */}
                 <Grid item xs={12}>
                   <Button
                     fullWidth
@@ -300,7 +326,7 @@ const Profile = () => {
             </Box>
           </Grid>
 
-          {/* RIGHT COLUMN: Tried & Favourite Recipes */}
+          {/* right column */}
           <Grid item xs={12} md={4}>
             <Box sx={{ backgroundColor: 'white', p: 3, borderRadius: 2, boxShadow: 3 }}>
               <Typography variant="h5" gutterBottom>
@@ -321,7 +347,7 @@ const Profile = () => {
                 ))
               )}
 
-              <Typography variant="h5" gutterBottom sx={{ marginTop: 3 }}>
+              <Typography variant="h5" sx={{ mt: 3 }}>
                 Favourite Recipes
               </Typography>
               {favRecipes.length === 0 ? (
