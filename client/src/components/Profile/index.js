@@ -22,13 +22,15 @@ const Profile = () => {
     dietaryPreferences: [],
     dietaryRestrictions: [],
     alwaysAvailable: [],
-    healthGoals: '',
     weeklyBudget: '',
   });
 
   const [dietaryPreferencesList, setDietaryPreferencesList] = useState([]);
   const [dietaryRestrictionsList, setDietaryRestrictionsList] = useState([]);
   const [ingredientsList, setIngredientsList] = useState([]);
+
+  const [triedRecipes, setTriedRecipes] = useState([]);
+  const [favRecipes, setFavRecipes] = useState([]);
 
   useEffect(() => {
     const firebaseUid = localStorage.getItem('firebase_uid');
@@ -38,6 +40,7 @@ const Profile = () => {
       return;
     }
 
+    // get basic user info
     fetch('/api/getUser', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -63,6 +66,20 @@ const Profile = () => {
           lastName: parsed.last_name || '',
           email: parsed.email || '',
         }));
+
+        if (parsed && parsed.user_id) {
+          fetch('/api/getUserRecipes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: parsed.user_id }),
+          })
+            .then(r => r.json())
+            .then((info) => {
+              setTriedRecipes(info.tried || []);
+              setFavRecipes(info.favourites || []);
+            })
+            .catch((err) => console.error('Error fetching user tried/favourites:', err));
+        }
       })
       .catch((err) => console.error('Error fetching user:', err));
 
@@ -79,7 +96,6 @@ const Profile = () => {
         if (data.user) {
           setProfile((prev) => ({
             ...prev,
-            healthGoals: data.user.health_goals || '',
             weeklyBudget: data.user.weekly_budget || '',
             dietaryPreferences: data.dietaryPreferences || [],
             dietaryRestrictions: data.dietaryRestrictions || [],
@@ -105,15 +121,12 @@ const Profile = () => {
       .catch((error) => console.error('Error fetching ingredients:', error));
   }, [navigate]);
 
-  
   const selectedPreferenceObjects = dietaryPreferencesList.filter((p) =>
     profile.dietaryPreferences.includes(p.preference_id)
   );
-
   const selectedRestrictionObjects = dietaryRestrictionsList.filter((dr) =>
     profile.dietaryRestrictions.some((sel) => sel.dietary_id === dr.dietary_id)
   );
-
   const selectedIngredientObjects = ingredientsList.filter((ing) =>
     profile.alwaysAvailable.some((sel) => sel.ingredient_id === ing.ingredient_id)
   );
@@ -151,144 +164,184 @@ const Profile = () => {
       <LetmecookAppBar page="Profile" />
       <Box
         sx={{
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center',
-          height: '100vh', 
-          backgroundColor: '#f4f4f4'
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'flex-start',
+          height: '100vh',
+          backgroundColor: '#f4f4f4',
+          paddingTop: 4,
         }}
       >
-        <Container maxWidth="sm" sx={{ backgroundColor: 'white', p: 4, borderRadius: 2, boxShadow: 3 }}>
-          <Typography variant="h4" textAlign="center" gutterBottom>
-            Student Profile
-          </Typography>
-          <Grid container spacing={2}>
-            {/* read-only name/email */}
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="First Name"
-                value={profile.firstName}
-                InputProps={{ readOnly: true }}
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Last Name"
-                value={profile.lastName}
-                InputProps={{ readOnly: true }}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Email"
-                value={profile.email}
-                InputProps={{ readOnly: true }}
-              />
-            </Grid>
+        <Grid container spacing={2} sx={{ width: '90%', maxWidth: 1200 }}>
 
-            {/* dietary preferences */}
-            <Grid item xs={12}>
-              <FormControl fullWidth>
-                <Autocomplete
-                  multiple
-                  options={dietaryPreferencesList}
-                  getOptionLabel={(option) => option.preference_name}
-                  value={selectedPreferenceObjects}
-                  onChange={(event, newValue) => {
-                    const newIDs = newValue.map((obj) => obj.preference_id);
-                    setProfile((prev) => ({
-                      ...prev,
-                      dietaryPreferences: newIDs,
-                    }));
-                  }}
-                  renderInput={(params) => (
-                    <TextField {...params} label="Dietary Preferences" />
-                  )}
-                />
-              </FormControl>
-            </Grid>
+          {/* LEFT COLUMN: bridging fields, update button */}
+          <Grid item xs={12} md={8}>
+            <Box sx={{ backgroundColor: 'white', p: 3, borderRadius: 2, boxShadow: 3 }}>
+              <Typography variant="h4" textAlign="center" gutterBottom>
+                User Profile
+              </Typography>
 
-            {/* dietary restrictions */}
-            <Grid item xs={12}>
-              <FormControl fullWidth>
-                <Autocomplete
-                  multiple
-                  options={dietaryRestrictionsList}
-                  getOptionLabel={(option) => option.dietary_name}
-                  value={selectedRestrictionObjects}
-                  onChange={(event, newValue) => {
-                    const arr = newValue.map(obj => ({ dietary_id: obj.dietary_id }));
-                    setProfile((prev) => ({
-                      ...prev,
-                      dietaryRestrictions: arr,
-                    }));
-                  }}
-                  renderInput={(params) => (
-                    <TextField {...params} label="Dietary Restrictions" />
-                  )}
-                />
-              </FormControl>
-            </Grid>
+              <Grid container spacing={2}>
+                {/* read-only firstName,lastName,email */}
+                <Grid item xs={6}>
+                  <TextField
+                    fullWidth
+                    label="First Name"
+                    value={profile.firstName}
+                    InputProps={{ readOnly: true }}
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    fullWidth
+                    label="Last Name"
+                    value={profile.lastName}
+                    InputProps={{ readOnly: true }}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Email"
+                    value={profile.email}
+                    InputProps={{ readOnly: true }}
+                  />
+                </Grid>
 
-            {/* alwaysAvailable */}
-            <Grid item xs={12}>
-              <FormControl fullWidth>
-                <Autocomplete
-                  multiple
-                  options={ingredientsList}
-                  getOptionLabel={(option) => option.name}
-                  value={selectedIngredientObjects}
-                  onChange={(event, newValue) => {
-                    const arr = newValue.map(obj => ({ ingredient_id: obj.ingredient_id }));
-                    setProfile((prev) => ({
-                      ...prev,
-                      alwaysAvailable: arr,
-                    }));
-                  }}
-                  renderInput={(params) => (
-                    <TextField {...params} label="Always Available Ingredients" />
-                  )}
-                />
-              </FormControl>
-            </Grid>
+                {/* dietary preferences */}
+                <Grid item xs={12}>
+                  <FormControl fullWidth>
+                    <Autocomplete
+                      multiple
+                      options={dietaryPreferencesList}
+                      getOptionLabel={(option) => option.preference_name}
+                      value={selectedPreferenceObjects}
+                      onChange={(event, newValue) => {
+                        const newIDs = newValue.map(obj => obj.preference_id);
+                        setProfile((prev) => ({
+                          ...prev,
+                          dietaryPreferences: newIDs,
+                        }));
+                      }}
+                      renderInput={(params) => (
+                        <TextField {...params} label="Dietary Preferences" />
+                      )}
+                    />
+                  </FormControl>
+                </Grid>
 
-            {/* health goals */}
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Health Goals"
-                value={profile.healthGoals}
-                onChange={(e) => setProfile({ ...profile, healthGoals: e.target.value })}
-              />
-            </Grid>
+                {/* dietary restrictions */}
+                <Grid item xs={12}>
+                  <FormControl fullWidth>
+                    <Autocomplete
+                      multiple
+                      options={dietaryRestrictionsList}
+                      getOptionLabel={(option) => option.dietary_name}
+                      value={selectedRestrictionObjects}
+                      onChange={(event, newValue) => {
+                        const arr = newValue.map(obj => ({ dietary_id: obj.dietary_id }));
+                        setProfile((prev) => ({
+                          ...prev,
+                          dietaryRestrictions: arr,
+                        }));
+                      }}
+                      renderInput={(params) => (
+                        <TextField {...params} label="Dietary Restrictions" />
+                      )}
+                    />
+                  </FormControl>
+                </Grid>
 
-            {/* weeklyBudget */}
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                type="number"
-                label="Weekly Budget ($)"
-                value={profile.weeklyBudget}
-                onChange={(e) => setProfile({ ...profile, weeklyBudget: e.target.value })}
-                inputProps={{ min: 0 }}
-              />
-            </Grid>
+                {/* alwaysAvailable */}
+                <Grid item xs={12}>
+                  <FormControl fullWidth>
+                    <Autocomplete
+                      multiple
+                      options={ingredientsList}
+                      getOptionLabel={(option) => option.name}
+                      value={selectedIngredientObjects}
+                      onChange={(event, newValue) => {
+                        const arr = newValue.map(obj => ({ ingredient_id: obj.ingredient_id }));
+                        setProfile((prev) => ({
+                          ...prev,
+                          alwaysAvailable: arr,
+                        }));
+                      }}
+                      renderInput={(params) => (
+                        <TextField {...params} label="Always Available Ingredients" />
+                      )}
+                    />
+                  </FormControl>
+                </Grid>
 
-            <Grid item xs={12}>
-              <Button
-                fullWidth
-                variant="contained"
-                color="primary"
-                onClick={handleSubmit}
-              >
-                Update Profile
-              </Button>
-            </Grid>
+                {/* weeklyBudget */}
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Weekly Budget ($)"
+                    value={profile.weeklyBudget}
+                    onChange={(e) => setProfile({ ...profile, weeklyBudget: e.target.value })}
+                    inputProps={{ min: 0 }}
+                  />
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    color="primary"
+                    onClick={handleSubmit}
+                  >
+                    Update Profile
+                  </Button>
+                </Grid>
+              </Grid>
+            </Box>
           </Grid>
-        </Container>
+
+          {/* RIGHT COLUMN: Tried & Favourite Recipes */}
+          <Grid item xs={12} md={4}>
+            <Box sx={{ backgroundColor: 'white', p: 3, borderRadius: 2, boxShadow: 3 }}>
+              <Typography variant="h5" gutterBottom>
+                Tried Recipes
+              </Typography>
+              {triedRecipes.length === 0 ? (
+                <Typography>No tried recipes yet.</Typography>
+              ) : (
+                triedRecipes.map((r) => (
+                  <Box key={r.recipe_id} sx={{ marginBottom: 1 }}>
+                    <Typography
+                      sx={{ textDecoration: 'underline', cursor: 'pointer', color: 'blue' }}
+                      onClick={() => navigate('/Recipe/' + r.recipe_id)}
+                    >
+                      {r.name}
+                    </Typography>
+                  </Box>
+                ))
+              )}
+
+              <Typography variant="h5" gutterBottom sx={{ marginTop: 3 }}>
+                Favourite Recipes
+              </Typography>
+              {favRecipes.length === 0 ? (
+                <Typography>No favourite recipes yet.</Typography>
+              ) : (
+                favRecipes.map((r) => (
+                  <Box key={r.recipe_id} sx={{ marginBottom: 1 }}>
+                    <Typography
+                      sx={{ textDecoration: 'underline', cursor: 'pointer', color: 'blue' }}
+                      onClick={() => navigate('/Recipe/' + r.recipe_id)}
+                    >
+                      {r.name}
+                    </Typography>
+                  </Box>
+                ))
+              )}
+            </Box>
+          </Grid>
+
+        </Grid>
       </Box>
     </>
   );

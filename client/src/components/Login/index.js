@@ -54,6 +54,10 @@ const Login = () => {
   useEffect(() => {
     const uid = localStorage.getItem('firebase_uid');
     setIsUserLoggedIn(!!uid);
+
+    // example of global variables
+    window.isUserLoggedIn = !!uid;
+    window.globalUserID = null;
   }, []);
 
   const handleSubmit = async (e) => {
@@ -97,6 +101,10 @@ const Login = () => {
 
       localStorage.setItem('firebase_uid', firebase_uid);
       setIsUserLoggedIn(true);
+
+      window.isUserLoggedIn = true;
+      window.globalUserID = null;
+
       navigate('/Profile');
 
       setFirstName('');
@@ -118,7 +126,7 @@ const Login = () => {
 
       console.log('User logged in successfully:', firebase_uid);
 
-      // fetch user from MySQL
+      // fetch user from MySQL to get user_id, etc.
       const response = await fetch('/api/getUser', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -133,6 +141,20 @@ const Login = () => {
 
       localStorage.setItem('firebase_uid', firebase_uid);
       setIsUserLoggedIn(true);
+
+      window.isUserLoggedIn = true;
+      let parsed = null;
+      if (userData.express) {
+        parsed = JSON.parse(userData.express);
+      } else {
+        parsed = userData;
+      }
+      if (parsed && parsed.user_id) {
+        window.globalUserID = parsed.user_id;
+      } else {
+        window.globalUserID = null;
+      }
+
       navigate('/Profile');
 
       setFirstName('');
@@ -152,6 +174,10 @@ const Login = () => {
       await signOut(auth);
       localStorage.removeItem('firebase_uid');
       setIsUserLoggedIn(false);
+
+      window.isUserLoggedIn = false;
+      window.globalUserID = null;
+
       navigate('/Login');
     } catch (error) {
       console.error('Error signing out: ', error.message);
@@ -181,72 +207,74 @@ const Login = () => {
             {isLogin ? 'Login' : 'Sign Up'}
           </Typography>
 
-          <form onSubmit={handleSubmit}>
-            {!isLogin && (
-              <>
-                <TextField
-                  fullWidth
-                  margin="normal"
-                  label="First Name"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  required
-                />
-                <TextField
-                  fullWidth
-                  margin="normal"
-                  label="Last Name"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  required
-                />
-              </>
-            )}
+          {!isUserLoggedIn && (
+            <form onSubmit={handleSubmit}>
+              {!isLogin && (
+                <>
+                  <TextField
+                    fullWidth
+                    margin="normal"
+                    label="First Name"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    required
+                  />
+                  <TextField
+                    fullWidth
+                    margin="normal"
+                    label="Last Name"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    required
+                  />
+                </>
+              )}
 
-            <TextField
-              fullWidth
-              margin="normal"
-              label="Email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-            <TextField
-              fullWidth
-              margin="normal"
-              label="Password"
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
-                      {showPassword ? <Visibility /> : <VisibilityOff />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
+              <TextField
+                fullWidth
+                margin="normal"
+                label="Email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              <TextField
+                fullWidth
+                margin="normal"
+                label="Password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                        {showPassword ? <Visibility /> : <VisibilityOff />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
 
-            {errorMessage && (
-              <Typography color="error" variant="body2">
-                {errorMessage}
-              </Typography>
-            )}
+              {errorMessage && (
+                <Typography color="error" variant="body2">
+                  {errorMessage}
+                </Typography>
+              )}
 
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              color="primary"
-              sx={{ mt: 2 }}
-            >
-              {isLogin ? 'Login' : 'Sign Up'}
-            </Button>
-          </form>
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                color="primary"
+                sx={{ mt: 2 }}
+              >
+                {isLogin ? 'Login' : 'Sign Up'}
+              </Button>
+            </form>
+          )}
 
           {isLogin && isUserLoggedIn && (
             <Button
@@ -260,9 +288,11 @@ const Login = () => {
             </Button>
           )}
 
-          <ChangeField onClick={() => setIsLogin(!isLogin)}>
-            {isLogin ? "Don't have an account? Sign Up here" : 'Already have an account? Login here'}
-          </ChangeField>
+          {!isUserLoggedIn && (
+            <ChangeField onClick={() => setIsLogin(!isLogin)}>
+              {isLogin ? "Don't have an account? Sign Up here" : 'Already have an account? Login here'}
+            </ChangeField>
+          )}
         </FormContainer>
       </Box>
     </>
