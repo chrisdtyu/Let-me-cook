@@ -13,7 +13,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 const Search = () => {
     const navigate = useNavigate();
-    
+
     const [allIngredients, setAllIngredients] = useState([]);
     const [selectedIngredients, setSelectedIngredients] = useState([]);
     const [manualIngredient, setManualIngredient] = useState("");
@@ -35,6 +35,8 @@ const Search = () => {
     const [triedRecipes, setTriedRecipes] = useState(new Set());
     const [favRecipes, setFavRecipes] = useState(new Set());
 
+    const [selectedSortTime, setSelectedSortTime] = useState("none");
+
     // get user data if logged in
     useEffect(() => {
         const firebaseUid = localStorage.getItem('firebase_uid');
@@ -45,34 +47,34 @@ const Search = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ firebase_uid: firebaseUid }),
             })
-            .then((res) => {
-                if (!res.ok) throw new Error("Failed to fetch user from MySQL");
-                return res.json();
-            })
-            .then((data) => {
-                let parsed;
-                if (data.express) {
-                    parsed = JSON.parse(data.express);
-                } else {
-                    parsed = data;
-                }
-                if (parsed && parsed.user_id) {
-                    setUserId(parsed.user_id);
-                    fetch('/api/getUserRecipes', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ user_id: parsed.user_id }),
-                    })
-                    .then(r => r.json())
-                    .then((info) => {
-                        const triedSet = new Set(info.tried?.map(r => r.recipe_id));
-                        const favSet = new Set(info.favourites?.map(r => r.recipe_id));
-                        setTriedRecipes(triedSet);
-                        setFavRecipes(favSet);
-                    });
-                }
-            })
-            .catch(err => console.error("Error in auto-login getUser:", err));
+                .then((res) => {
+                    if (!res.ok) throw new Error("Failed to fetch user from MySQL");
+                    return res.json();
+                })
+                .then((data) => {
+                    let parsed;
+                    if (data.express) {
+                        parsed = JSON.parse(data.express);
+                    } else {
+                        parsed = data;
+                    }
+                    if (parsed && parsed.user_id) {
+                        setUserId(parsed.user_id);
+                        fetch('/api/getUserRecipes', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ user_id: parsed.user_id }),
+                        })
+                            .then(r => r.json())
+                            .then((info) => {
+                                const triedSet = new Set(info.tried?.map(r => r.recipe_id));
+                                const favSet = new Set(info.favourites?.map(r => r.recipe_id));
+                                setTriedRecipes(triedSet);
+                                setFavRecipes(favSet);
+                            });
+                    }
+                })
+                .catch(err => console.error("Error in auto-login getUser:", err));
         }
     }, []);
 
@@ -150,7 +152,10 @@ const Search = () => {
                 budgetMode,
                 maxTimeInt
             );
-            setRecipes(Array.isArray(recommendedRecipes) ? recommendedRecipes : []);
+    
+            // Apply sorting after fetching recipes
+            const sortedRecipes = sortRecipes(recommendedRecipes);
+            setRecipes(Array.isArray(sortedRecipes) ? sortedRecipes : []);
         } catch (error) {
             console.error("Error fetching recommended recipes:", error);
             setRecipes([]);
@@ -159,6 +164,7 @@ const Search = () => {
             setLoading(false);
         }
     };
+    
 
     // Toggle "Mark as Tried" / "Unmark Tried"
     const handleToggleTried = async (recipeId) => {
@@ -225,6 +231,20 @@ const Search = () => {
             alert("Error toggling favourite.");
         }
     };
+
+    const sortRecipes = (recipes) => {
+        let sortedRecipes = [...recipes];
+    
+        // Sort by Time
+        if (selectedSortTime === "ascending") {
+            sortedRecipes = sortedRecipes.sort((a, b) => a.prep_time - b.prep_time);
+        } else if (selectedSortTime === "descending") {
+            sortedRecipes = sortedRecipes.sort((a, b) => b.prep_time - a.prep_time);
+        }
+    
+        return sortedRecipes;
+    };
+    
 
     return (
         <>
@@ -332,6 +352,30 @@ const Search = () => {
 
                 {/* Error Message */}
                 {error && <Typography color="error">{error}</Typography>}
+                {/* Sort by Time */}
+                <TextField
+                    select
+                    label="Sort by Time"
+                    value={selectedSortTime}
+                    onChange={(e) => setSelectedSortTime(e.target.value)}
+                    SelectProps={{
+                        native: true,
+                    }}
+                    sx={{ width: 400, marginBottom: 2 }}
+                >
+                    <option value="none">None</option>
+                    <option value="ascending">Ascending</option>
+                    <option value="descending">Descending</option>
+                </TextField>
+                {/* Sort Button */}
+                <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={handleSearch}
+                    sx={{ marginBottom: 2 }}
+                >
+                    {loading ? <CircularProgress size={24} /> : "Sort"}
+                </Button>
 
                 {/* Recipe Results */}
                 <Box sx={{ width: '80%', marginTop: 2 }}>
@@ -384,8 +428,8 @@ const Search = () => {
                                             <Typography key={missing.name} variant="body2">
                                                 {missing.name}{" "}
                                                 {budgetMode && missing.suggestedSubstitute
-                                                  ? `(Suggested: ${missing.suggestedSubstitute}, $${missing.estimatedCost})`
-                                                  : ""
+                                                    ? `(Suggested: ${missing.suggestedSubstitute}, $${missing.estimatedCost})`
+                                                    : ""
                                                 }
                                             </Typography>
                                         ))}
