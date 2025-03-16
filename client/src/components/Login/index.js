@@ -54,6 +54,10 @@ const Login = () => {
   useEffect(() => {
     const uid = localStorage.getItem('firebase_uid');
     setIsUserLoggedIn(!!uid);
+
+    // global variables
+    window.isUserLoggedIn = !!uid;
+    window.globalUserID = null;
   }, []);
 
   const handleSubmit = async (e) => {
@@ -97,6 +101,10 @@ const Login = () => {
 
       localStorage.setItem('firebase_uid', firebase_uid);
       setIsUserLoggedIn(true);
+
+      window.isUserLoggedIn = true;
+      window.globalUserID = null;
+
       navigate('/Profile');
 
       setFirstName('');
@@ -118,7 +126,6 @@ const Login = () => {
 
       console.log('User logged in successfully:', firebase_uid);
 
-      // fetch user from MySQL
       const response = await fetch('/api/getUser', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -133,6 +140,20 @@ const Login = () => {
 
       localStorage.setItem('firebase_uid', firebase_uid);
       setIsUserLoggedIn(true);
+
+      window.isUserLoggedIn = true;
+      let parsed = null;
+      if (userData.express) {
+        parsed = JSON.parse(userData.express);
+      } else {
+        parsed = userData;
+      }
+      if (parsed && parsed.user_id) {
+        window.globalUserID = parsed.user_id;
+      } else {
+        window.globalUserID = null;
+      }
+
       navigate('/Profile');
 
       setFirstName('');
@@ -152,6 +173,10 @@ const Login = () => {
       await signOut(auth);
       localStorage.removeItem('firebase_uid');
       setIsUserLoggedIn(false);
+
+      window.isUserLoggedIn = false;
+      window.globalUserID = null;
+
       navigate('/Login');
     } catch (error) {
       console.error('Error signing out: ', error.message);
@@ -180,7 +205,6 @@ const Login = () => {
           <Typography variant="h4" gutterBottom>
             {isLogin ? 'Login' : 'Sign Up'}
           </Typography>
-
 
           {!isUserLoggedIn && (
             <form onSubmit={handleSubmit}>
