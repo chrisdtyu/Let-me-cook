@@ -376,11 +376,11 @@ app.get('/api/getRecipe', (req, res) => {
         return res.status(400).json({ error: "Missing recipe ID" });
     }
 
-    let connection = mysql.createConnection(config);
+    let connection3 = mysql.createConnection(config);
     let sql = `SELECT * FROM recipes WHERE recipe_id = ?`;
     let data = [recipeId];
 
-    connection.query(sql, data, (error, results, fields) => {
+    connection3.query(sql, data, (error, results, fields) => {
         if (error) {
             console.error("Database Error:", error);
             return res.status(500).json({ error: "Database query failed" });
@@ -391,11 +391,10 @@ app.get('/api/getRecipe', (req, res) => {
             return res.status(404).json({ error: "Data not found" });
         }
     });
-    
-    connection.end();
+
+    connection3.end();
 });
 
-// get recipe ingredints and quantities API
 // getRecipeIngredients
 app.get('/api/getRecipeIngredients', (req, res) => {
     let connection4 = mysql.createConnection(config);
