@@ -10,12 +10,12 @@ const Api = {
         }
     },
 
-    callApiRecommendRecipes: async (ingredients, cuisines, categories, userId, budgetMode, maxTime) => {
+    callApiRecommendRecipes: async (ingredients, cuisines, categories, budgetMode, maxTime) => {
         try {
             const response = await fetch('/api/recommendRecipes', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ingredients, cuisines, categories, userId, budgetMode, maxTime })
+                body: JSON.stringify({ ingredients, cuisines, categories, budgetMode, maxTime })
             });
             if (!response.ok) throw new Error(`API Error: ${response.status} - ${response.statusText}`);
             return await response.json();
@@ -24,7 +24,6 @@ const Api = {
             return [];
         }
     },
-
 
     getIngredients: async () => {
         try {
@@ -135,6 +134,21 @@ const Api = {
             return null;
         }
     },
+    
+    getUserRestrictions: async (userId) => {
+        try {
+            const response = await fetch('/api/getUserRestrictions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId })
+            });
+            if (!response.ok) throw new Error(`API Error: ${response.status} - ${response.statusText}`);
+            return await response.json();
+        } catch (err) {
+            console.error("Error fetching user restrictions:", err);
+            return [];
+        }
+    }
 };
 
 export default Api;
