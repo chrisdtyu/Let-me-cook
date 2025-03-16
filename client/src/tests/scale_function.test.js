@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, act } from '@testing-library/react'; // ✅ Fixed import
+import { render, screen, fireEvent, act } from '@testing-library/react'; 
 import { MemoryRouter } from 'react-router-dom';
 import RecipeView from '../components/Recipe/RecipeView';
 
@@ -42,15 +42,12 @@ describe('RecipeView Scaling Functionality', () => {
       );
     });
 
-    // Open the dropdown
     const dropdown = screen.getByLabelText(/base ingredient for scaling/i);
     fireEvent.mouseDown(dropdown);
 
-    // Select "Flour"
     const flourOption = screen.getByText("Flour");
     fireEvent.click(flourOption);
 
-    // Verify the selection
     expect(dropdown).toHaveTextContent("Flour");
   });
 });
