@@ -80,7 +80,7 @@ const RecipeView = ({getRecipe, recipe, ingredients, budgetMode}) => {
         <Typography variant="h6">Category: {recipe.category} | Type: {recipe.type}</Typography>
         <Typography variant="h6">Time: {recipe.prep_time} mins</Typography>
 
-        <MainGridContainer container justifyContent="left" alignItems="flex-start" spacing={3}>
+        <MainGridContainer container justifyContent="left" alignItems="flex-start" spacing={4}>
           <Grid item xs={5} sx={{ display: "flex", justifyContent: "center" }}>
             <Box sx={{ textAlign: "left" }}>
             <Typography variant="h5" sx={{ mt: 2, mb: 1}}><b>Ingredients:</b></Typography>
