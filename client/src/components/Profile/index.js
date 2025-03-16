@@ -184,7 +184,7 @@ const Profile = () => {
           <Grid item xs={12} md={8}>
             <Box sx={{ backgroundColor: 'white', p: 3, borderRadius: 2, boxShadow: 3 }}>
               <Typography variant="h4" textAlign="center" gutterBottom>
-                Student Profile
+                User Profile
               </Typography>
 
               <Grid container spacing={2}>

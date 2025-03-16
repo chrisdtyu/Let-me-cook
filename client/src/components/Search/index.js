@@ -436,7 +436,7 @@ const Search = () => {
                                     </>
                                 )}
 
-                                {/* Mark/Unmark Tried & Favourite Buttons - moved to right side */}
+                                {/* Mark/Unmark Tried & Favourite Buttons */}
                                 {isUserLoggedIn && userId && (
                                     <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
                                         <Button

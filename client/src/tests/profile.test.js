@@ -1,38 +1,245 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import Profile from '../components/Profile';
 
 describe('Profile Component', () => {
-  it('renders the Student Profile heading', () => {
-    render(
-      <MemoryRouter>
-        <Profile />
-      </MemoryRouter>
-    );
-    expect(screen.getByText(/student profile/i)).toBeInTheDocument();
+  let originalFetch;
+
+  beforeEach(() => {
+    // ensure localStorage has dummy firebase_uid for tests requiring login
+    localStorage.setItem('firebase_uid', 'dummy_uid');
+    originalFetch = global.fetch;
+
+    // provide default stubs 
+    global.fetch = jest.fn((url) => {
+      if (url.includes('/api/getUser')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              express: JSON.stringify({
+                user_id: 123,
+                first_name: 'Test',
+                last_name: 'User',
+                email: 'test@example.com'
+              })
+            })
+        });
+      }
+      if (url.includes('/api/getUserProfile')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              user: { weekly_budget: '100' },
+              dietaryPreferences: [1],
+              dietaryRestrictions: [{ dietary_id: 2 }],
+              alwaysAvailable: [{ ingredient_id: 3 }]
+            })
+        });
+      }
+      if (url.includes('/api/getDietaryPreferences')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve([{ preference_id: 1, preference_name: 'Vegetarian' }])
+        });
+      }
+      if (url.includes('/api/getDietaryRestrictions')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve([{ dietary_id: 2, dietary_name: 'Gluten-Free' }])
+        });
+      }
+      if (url.includes('/api/getIngredients')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve([{ ingredient_id: 3, name: 'Tomato', type: 'Vegetable' }])
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([])
+      });
+    });
   });
 
-  it('renders the main form fields', () => {
-    render(
-      <MemoryRouter>
-        <Profile />
-      </MemoryRouter>
-    );
+  afterEach(() => {
+    localStorage.clear();
+    global.fetch = originalFetch;
+    jest.restoreAllMocks();
+  });
+
+  it('renders the User Profile heading', async () => {
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <Profile />
+        </MemoryRouter>
+      );
+    });
+    expect(screen.getByText(/user profile/i)).toBeInTheDocument();
+  });
+
+  it('renders the main form fields', async () => {
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <Profile />
+        </MemoryRouter>
+      );
+    });
     expect(screen.getByLabelText(/first name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/last name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/weekly budget/i)).toBeInTheDocument();
   });
 
-  it('allows typing into the First Name field', () => {
-    render(
-      <MemoryRouter>
-        <Profile />
-      </MemoryRouter>
-    );
+  it('does not allow editing the First Name field (read-only)', async () => {
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <Profile />
+        </MemoryRouter>
+      );
+    });
     const firstNameInput = screen.getByLabelText(/first name/i);
-    fireEvent.change(firstNameInput, { target: { value: 'John' } });
-    expect(firstNameInput.value).toBe('John');
+    expect(firstNameInput).toHaveAttribute('readonly');
+    // tries changing first name
+    fireEvent.change(firstNameInput, { target: { value: 'Ryan' } });
+    expect(firstNameInput.value).not.toBe('Ryan');
+  });
+
+  it('does not allow editing the Last Name field (read-only)', async () => {
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <Profile />
+        </MemoryRouter>
+      );
+    });
+    const lastNameInput = screen.getByLabelText(/last name/i);
+    expect(lastNameInput).toHaveAttribute('readonly');
+    // tries changing last name
+    fireEvent.change(lastNameInput, { target: { value: 'Smith' } });
+    expect(lastNameInput.value).not.toBe('Smith');
+  });
+
+  it('does not allow editing the Email field (read-only)', async () => {
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <Profile />
+        </MemoryRouter>
+      );
+    });
+    const emailInput = screen.getByLabelText(/email/i);
+    expect(emailInput).toHaveAttribute('readonly');
+    // tries changing email
+    fireEvent.change(emailInput, { target: { value: 'new@example.com' } });
+    expect(emailInput.value).not.toBe('new@example.com');
+  });
+
+  it('renders the Update Profile button', async () => {
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <Profile />
+        </MemoryRouter>
+      );
+    });
+    const updateBtn = screen.getByRole('button', { name: /update profile/i });
+    expect(updateBtn).toBeInTheDocument();
+  });
+
+  it('redirects to Login if firebase_uid is missing', async () => {
+    // clear localStorage to simulate logged-out user.
+    localStorage.clear();
+    const alertMock = jest.spyOn(window, 'alert').mockImplementation(() => {});
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <Profile />
+        </MemoryRouter>
+      );
+    });
+    expect(alertMock).toHaveBeenCalledWith('You must log in first!');
+    alertMock.mockRestore();
+  });
+
+  // Test for the multi-select (dietary preferences)
+  it('allows selecting a dietary preference from the multi-select', async () => {
+    global.fetch.mockImplementation((url) => {
+      if (url.includes('/api/getDietaryPreferences')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve([
+              { preference_id: 1, preference_name: 'Vegetarian' },
+              { preference_id: 2, preference_name: 'Vegan' }
+            ])
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([])
+      });
+    });
+
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <Profile />
+        </MemoryRouter>
+      );
+    });
+
+    const input = await screen.findByLabelText(/dietary preferences/i);
+    userEvent.click(input);
+    const option = await screen.findByText(/vegetarian/i);
+    userEvent.click(option);
+    await waitFor(() => {
+      expect(screen.getByText(/vegetarian/i)).toBeInTheDocument();
+    });
+  });
+
+  // Test for the multi-select (always available ingredients)
+  it('allows selecting an ingredient from the multi-select', async () => {
+    global.fetch.mockImplementation((url) => {
+      if (url.includes('/api/getIngredients')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve([
+              { ingredient_id: 1, name: 'Tomato', type: 'Vegetable' },
+              { ingredient_id: 2, name: 'Basil', type: 'Herb' }
+            ])
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([])
+      });
+    });
+
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <Profile />
+        </MemoryRouter>
+      );
+    });
+
+    const input = await screen.findByLabelText(/always available ingredients/i);
+    userEvent.click(input);
+    const option = await screen.findByText(/tomato/i);
+    userEvent.click(option);
+    await waitFor(() => {
+      expect(screen.getByText(/tomato/i)).toBeInTheDocument();
+    });
   });
 });
