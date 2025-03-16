@@ -13,6 +13,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+
 const port = process.env.PORT || 5000;
 
 app.use(cors({
@@ -425,13 +426,15 @@ app.post('/api/recommendRecipes', (req, res) => {
 
     let query = `
         SELECT r.recipe_id, r.name, r.type, r.category, r.prep_time, r.instructions, 
-               GROUP_CONCAT(i.name) AS recipe_ingredients, 
-               COUNT(ri.ingredient_id) AS total_ingredients,
-               SUM(CASE WHEN i.name NOT IN (${ingredients_placeholders}) THEN 1 ELSE 0 END) AS missing_ingredients
+            GROUP_CONCAT(i.name) AS recipe_ingredients, 
+            GROUP_CONCAT(i.price) AS ingredient_prices,
+            COUNT(ri.ingredient_id) AS total_ingredients,
+            SUM(CASE WHEN i.name NOT IN (${ingredients_placeholders}) THEN 1 ELSE 0 END) AS missing_ingredients
         FROM recipes r
         JOIN recipe_ingredients ri ON r.recipe_id = ri.recipe_id
         JOIN ingredients i ON ri.ingredient_id = i.ingredient_id
         ${where}
+        ${budgetMode ? 'AND i.price IS NOT NULL' : ''}
         GROUP BY r.recipe_id
         ORDER BY missing_ingredients ASC, total_ingredients DESC
         LIMIT 10
@@ -459,6 +462,7 @@ app.post('/api/recommendRecipes', (req, res) => {
             FROM recipe_ingredients ri
             JOIN ingredients i ON ri.ingredient_id = i.ingredient_id
             LEFT JOIN substitutes s ON i.ingredient_id = s.ingredient_id
+            ${budgetMode ? 'AND s.cost IS NOT NULL' : ''}
             WHERE ri.recipe_id IN (${recipeIDs.map(() => '?').join(',')})
             AND i.name NOT IN (${ingredients_placeholders});
         `;
@@ -469,9 +473,16 @@ app.post('/api/recommendRecipes', (req, res) => {
             }
 
             let recipeData = recipes.map(recipe => {
+                const ingredients = recipe.recipe_ingredients.split(',');
+                const prices = recipe.ingredient_prices.split(',').map(parseFloat);
+                const ingredientsWithPrices = ingredients.map((name, index) => ({
+                    name,
+                    price: prices[index] || null
+                }));
                 let missing = missingIngredients.filter(m => m.recipe_id === recipe.recipe_id);
                 return {
                     ...recipe,
+                    ingredients: ingredientsWithPrices,
                     missingIngredients: missing.map(m => ({
                         name: m.missing_ingredient,
                         suggestedSubstitute: budgetMode ? m.substitute_name : null,
@@ -513,18 +524,15 @@ app.get('/api/getRecipe', (req, res) => {
     connection3.end();
 });
 
-
 // getRecipeIngredients
 app.get('/api/getRecipeIngredients', (req, res) => {
     let connection4 = mysql.createConnection(config);
     let recipeId = req.query.id;
-
     let sql = `select i.ingredient_id, i.name, i.type, ri.quantity, ri.quantity_type, ri.required
         from recipe_ingredients ri
         inner join ingredients i 
             on ri.ingredient_id = i.ingredient_id
         where recipe_id = ?;`;
-
     let data = [recipeId];
 
     connection4.query(sql, data, (error, results) => {
@@ -564,7 +572,7 @@ app.get('/api/getDietaryRestrictions', (req, res) => {
 });
 
 app.get('/api/getIngredients', (req, res) => {
-    const sql = "SELECT ingredient_id, name, type FROM ingredients";
+    const sql = "SELECT ingredient_id, name, type, price FROM ingredients";
     connection.query(sql, (error, results) => {
         if (error) {
             console.error("Database error", error);

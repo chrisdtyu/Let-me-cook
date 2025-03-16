@@ -17,8 +17,9 @@ const MainGridContainer = styled(Grid)(({ theme }) => ({
     margin: theme.spacing(4),
   }));
 
-const RecipeView = ({getRecipe, recipe, ingredients}) => {
+const RecipeView = ({getRecipe, recipe, ingredients, budgetMode}) => {
     //id is defined by the recipe that is pressed on from the search page
+    
     const { id } = useParams();
     const [scaleFactor, setScaleFactor] = useState(1);
     const [baseQuantity, setBaseQuantity] = useState({});
@@ -33,6 +34,7 @@ const RecipeView = ({getRecipe, recipe, ingredients}) => {
     
     useEffect(() => {
       if (ingredients.length > 0) {
+        console.log('Ingredients:', ingredients);
         const initialQuantities = {};
         ingredients.forEach(ing => {
           if (ing.required === 1) {
@@ -63,6 +65,8 @@ const RecipeView = ({getRecipe, recipe, ingredients}) => {
       setScaleFactor(1);
     };
 
+    const totalCost = budgetMode ? ingredients.reduce((sum, ing) => sum + (ing.price !== null && ing.price !== undefined ? ing.price : 0), 0) : null;
+
     return(
       <>
         <LetmecookAppBar page={`Recipe: ${recipe ? recipe.name : ""}`} />
@@ -75,66 +79,81 @@ const RecipeView = ({getRecipe, recipe, ingredients}) => {
         )}
         <Typography variant="h6">Category: {recipe.category} | Type: {recipe.type}</Typography>
         <Typography variant="h6">Time: {recipe.prep_time} mins</Typography>
-        <Typography variant="h5" sx={{ mt: 2 }}><b>Ingredients:</b></Typography>
-        <Typography variant="h10" sx={{ mt: 2 }}>required = *</Typography>
 
-        <ul style={{ marginTop: '40px' }}>
-          {ingredients.map((ing) => {
-              let displayQuantity = ing.quantity;
-              let isScaled = false;
-              if (ing.required === 1 && baseQuantity[ing.ingredient_id] && baseIngredientId) {
-                const baseScale = baseIngredientId === ing.ingredient_id ? sliderValue / baseQuantity[baseIngredientId] : scaleFactor;
-                displayQuantity = baseQuantity[ing.ingredient_id] * baseScale;
-                isScaled = true;
+        <MainGridContainer container justifyContent="left" alignItems="flex-start" spacing={4}>
+          <Grid item xs={5} sx={{ display: "flex", justifyContent: "center" }}>
+            <Box sx={{ textAlign: "left" }}>
+            <Typography variant="h5" sx={{ mt: 2, mb: 1}}><b>Ingredients:</b></Typography>
+            <Typography variant="h10" sx={{ mb: 1 }}>required = *</Typography>
+
+            <ul style={{ marginTop: '20px' }}>
+              {ingredients.map((ing) => {
+
+                  let displayQuantity = ing.quantity;
+                  let isScaled = false;
+                  if (ing.required === 1 && baseQuantity[ing.ingredient_id] && baseIngredientId) {
+                    const baseScale = baseIngredientId === ing.ingredient_id ? sliderValue / baseQuantity[baseIngredientId] : scaleFactor;
+                    displayQuantity = baseQuantity[ing.ingredient_id] * baseScale;
+                    isScaled = true;
+                  }
+
+                  let formattedQuantity;
+                  if (ing.quantity_type) {
+                      formattedQuantity = Math.round(displayQuantity);
+                  } else {
+                      formattedQuantity = isScaled ? displayQuantity.toFixed(1) : Math.round(displayQuantity);
+                  }
+
+                  const ingredientPrice = (budgetMode && ing.price !== null && ing.price !== undefined && ing.price > 0)
+                  ? ` - $${ing.price.toFixed(2)}`
+                  : (budgetMode ? " - Price Not Available" : "");
+
+                  return (
+                      <li key={ing.ingredient_id} style={{ textAlign: "left" }}>
+                        {formattedQuantity} {ing.quantity_type ? ing.quantity_type + " " : ""}{ing.name} {ing.required === 1 ? '*' : ''}
+                        {ingredientPrice}
+                      </li>
+                  );
+              })}
+            </ul>
+            </Box>
+          </Grid>
+
+          <Grid item xs={6} sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+
+          <FormControl sx={{ mt: 2, width: "80%", maxWidth: 300 }}>
+            <InputLabel id="base-ingredient-label">Base Ingredient for Scaling</InputLabel>
+            <Select
+              labelId="base-ingredient-label"
+              value={baseIngredientId || ''}
+              onChange={handleBaseIngredientChange}
+              renderValue={(selected) => {
+                if (!selected) {
+                  return <em>Select an ingredient</em>;
               }
+                const selectedIngredient = ingredients.find((ing) => ing.ingredient_id === selected);
+                return selectedIngredient ? selectedIngredient.name : "Select an ingredient";
+              }}
+            >
+              {ingredients.filter(ing => ing.required === 1).map((ing) => (
+                <MenuItem key={ing.ingredient_id} value={ing.ingredient_id}>{ing.name}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-              let formattedQuantity;
-                if (ing.quantity_type === null || ing.quantity_type === "") {
-                    formattedQuantity = isScaled ? Math.round(displayQuantity) : Math.round(displayQuantity);
-                } else {
-                    formattedQuantity = isScaled ? displayQuantity.toFixed(1) : Math.round(displayQuantity);
-                }
-
-              return (
-                  <li key={ing.ingredient_id}>
-                    {formattedQuantity} {ing.quantity_type ? ing.quantity_type + " " : ""}{ing.name} {ing.required === 1 ? '*' : ''}
-                  </li>
-              );
-          })}
-        </ul>
-
-        <Box sx={{ mt: 2, width: 300 }}>
-          <Typography variant="h6"><b>Scale Ingredients:</b></Typography>
+          {/* Scale Ingredients */}
           <Slider
-            value={sliderValue}
-            onChange={handleScaleChange}
-            step={1} 
-            marks
-            min={sliderMin}
-            max={sliderMax}  
-            valueLabelDisplay="auto"
-          />
-        </Box>
-
-        <FormControl sx={{ mt: 2, mb: 2, width: 400 }}>
-          <InputLabel id="base-ingredient-label">Base Ingredient for Scaling</InputLabel>
-          <Select
-            labelId="base-ingredient-label"
-            value={baseIngredientId || ''}
-            onChange={handleBaseIngredientChange}
-            renderValue={(selected) => {
-              if (!selected) {
-                return <em>Select an ingredient</em>;
-            }
-              const selectedIngredient = ingredients.find((ing) => ing.ingredient_id === selected);
-              return selectedIngredient ? selectedIngredient.name : "Select an ingredient";
-            }}
-          >
-            {ingredients.filter(ing => ing.required === 1).map((ing) => (
-              <MenuItem key={ing.ingredient_id} value={ing.ingredient_id}>{ing.name}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+              value={sliderValue}
+              onChange={handleScaleChange}
+              step={1} 
+              marks
+              min={sliderMin}
+              max={sliderMax}  
+              valueLabelDisplay="auto"
+              sx={{ width: "80%", maxWidth: 300, mt: 2 }}
+            />
+          </Grid>
+        </MainGridContainer>
 
         <Typography variant="h5" sx={{ mt: 2 }}><b>Instructions:</b></Typography>
         <ul>
@@ -142,6 +161,13 @@ const RecipeView = ({getRecipe, recipe, ingredients}) => {
             <li key={index}>{step.trim()}</li>
           )): ""}
         </ul>
+
+        {budgetMode && (
+          <Typography variant="h6">
+            Total Estimated Cost: ${totalCost.toFixed(2)}
+          </Typography>
+        )}
+
 
         {recipe.video && (
           <Box sx={{ mt: 2 }}>

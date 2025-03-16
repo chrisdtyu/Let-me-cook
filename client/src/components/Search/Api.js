@@ -18,7 +18,16 @@ const Api = {
                 body: JSON.stringify({ ingredients, cuisines, categories, budgetMode, maxTime })
             });
             if (!response.ok) throw new Error(`API Error: ${response.status} - ${response.statusText}`);
-            return await response.json();
+
+            const data = await response.json();
+
+            return data.map(recipe => ({
+                ...recipe,
+                ingredients: recipe.ingredients.map(ing => ({
+                    ...ing,
+                    price: ing.price !== null && ing.price !== undefined ? parseFloat(ing.price) : null
+                }))
+            }));
         } catch (err) {
             console.error("Error fetching recommended recipes:", err);
             return [];
