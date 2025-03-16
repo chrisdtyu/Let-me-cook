@@ -81,7 +81,7 @@ const RecipeView = ({getRecipe, recipe, ingredients, budgetMode}) => {
         <Typography variant="h6">Time: {recipe.prep_time} mins</Typography>
 
         <MainGridContainer container justifyContent="center" alignItems="flex-start" spacing={4}>
-          <Grid item xs={5} sx={{ display: "flex", justifyContent: "right" }}>
+          <Grid item xs={5} sx={{ display: "flex", justifyContent: "center" }}>
             <Box sx={{ textAlign: "left" }}>
             <Typography variant="h5" sx={{ mt: 2, mb: 1}}><b>Ingredients:</b></Typography>
             <Typography variant="h10" sx={{ mb: 1 }}>required = *</Typography>
@@ -119,7 +119,7 @@ const RecipeView = ({getRecipe, recipe, ingredients, budgetMode}) => {
             </Box>
           </Grid>
 
-          <Grid item xs={6} sx={{ display: "flex", flexDirection: "column", alignItems: "left" }}>
+          <Grid item xs={6} sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
 
           <FormControl sx={{ mt: 2, width: "80%", maxWidth: 300 }}>
             <InputLabel id="base-ingredient-label">Base Ingredient for Scaling</InputLabel>
