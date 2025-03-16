@@ -62,5 +62,5 @@ For login testing, you can either **sign up for a new account** or use the follo
 - **Email:** `sampleemail@uwaterloo.ca`  
 - **Password:** `SamplePassword123@`  
 
-After logging in, you will be redirected to the **profile page**, where you can customize your student profile and save it to the database.
+After logging in, you will be redirected to the **profile page**, where you can customize your user profile and save it to the database.
 
