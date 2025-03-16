@@ -27,6 +27,11 @@ const MyRecipes = () => {
   }, [user_id]);
 
   const loadRecipes = async () => {
+    if (!user_id) {
+      console.warn("User ID not set");
+      return;
+    }
+  
     try {
       const res = await fetch('/api/getMyRecipes', {
         method: 'POST',
@@ -34,15 +39,20 @@ const MyRecipes = () => {
         body: JSON.stringify({ user_id }),
       });
       const data = await res.json();
-      if (data.error) {
-        setMessage(data.error);
-      } else {
-        setRecipes(data.recipes);
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to fetch recipes");
       }
+      if (!data.recipes) {
+        throw new Error("No recipes key in response");
+      }
+      setRecipes(data.recipes);
+      setMessage("");
     } catch (error) {
-      setMessage("Error loading recipes.");
+      console.error("Error loading recipes:", error);
+      setMessage(error.message);
     }
   };
+  
 
   const handleDelete = async (recipe_id) => {
     try {
