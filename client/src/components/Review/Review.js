@@ -15,7 +15,7 @@ const MainGridContainer = styled(Grid)(({ theme }) => ({
 
 const userId = 1;
 
-const Review = ({recipeId, reviewSubmitted}) => {
+const Review = ({ recipeId, reviewSubmitted }) => {
 
   // // Declaring states and handle functions for states
 
@@ -46,42 +46,44 @@ const Review = ({recipeId, reviewSubmitted}) => {
   // State and handle function for submit button
   const [submitSuccess, setSubmitSuccess] = React.useState(false);
 
-  const handleSubmit = (event) => {
-      if(!enteredTitle){
-        setEnteredTitleError(true);
+  const handleSubmit = async (event) => {
+    if (!enteredTitle) {
+      setEnteredTitleError(true);
+    }
+    else {
+      setEnteredTitleError(false);
+    }
+    if (!enteredReview) {
+      setEnteredReviewError(true);
+    }
+    else {
+      setEnteredReviewError(false);
+    }
+    if (!selectedRating) {
+      setSelectedRatingError(true);
+    }
+    else {
+      setSelectedRatingError(false);
+    }
+    if (enteredTitle && enteredReview && selectedRating) {
+      const reviewData = {
+        user_id: userId,
+        recipe_id: recipeId,
+        review_title: enteredTitle,
+        review_score: selectedRating,
+        review_content: enteredReview
+      };
+      try {
+        const res = await Api.callApiAddReview(reviewData);
+        console.log("callApiAddReview returned: ", res.body, reviewData);
+        setSubmitSuccess(true);
+        setTimeout(() => {
+          reviewSubmitted();
+        }, 1000);
+      } catch (error) {
+        console.error("Error submitting review: ", error);
       }
-      else{
-        setEnteredTitleError(false);      
-      }
-      if(!enteredReview){
-        setEnteredReviewError(true);
-      }
-      else{
-        setEnteredReviewError(false);
-      }
-      if(!selectedRating){
-        setSelectedRatingError(true);
-      }
-      else{
-        setSelectedRatingError(false);
-      }
-      if(enteredTitle && enteredReview && selectedRating){
-        const reviewData = { 
-          user_id: userId,
-          recipe_id: recipeId,
-          review_title: enteredTitle, 
-          review_score:selectedRating,
-          review_content: enteredReview
-        };
-        Api.callApiAddReview(reviewData)
-          .then(res => {
-            console.log("callApiAddReview returned: ", res.body, reviewData);
-            setSubmitSuccess(true);
-            setTimeout(() => {
-              reviewSubmitted();
-            }, 1000);
-          });
-      }
+    }
   }
 
   return (
@@ -91,21 +93,21 @@ const Review = ({recipeId, reviewSubmitted}) => {
       style={{ maxWidth: '100%', margin: '0 auto', padding: '2rem' }}
       direction="row"
       justifyContent="center"
-      alignItems="center"    
-    > 
-      <Grid item xs/>
-      <Grid item style={{width: 400}}>
+      alignItems="center"
+    >
+      <Grid item xs />
+      <Grid item style={{ width: 400 }}>
         <Grid item xs={12}>
           <Typography variant="h3" gutterBottom component="div">
             Review This Recipe
           </Typography>
         </Grid>
-        <ReviewTitle enteredTitle={enteredTitle} handleTitleChange={handleTitleChange}/>
-        <ErrorMessage showError={enteredTitleError} errorMessage="Enter your review title"/>
-        <ReviewBody enteredReview={enteredReview} handleReviewChange={handleReviewChange}/>
-        <ErrorMessage showError={enteredReviewError} errorMessage="Enter your review"/>
-        <ReviewRating selectedRating={selectedRating} handleRatingChange={handleRatingChange}/>
-        <ErrorMessage showError={selectedRatingError} errorMessage="Select the rating"/>
+        <ReviewTitle enteredTitle={enteredTitle} handleTitleChange={handleTitleChange} />
+        <ErrorMessage showError={enteredTitleError} errorMessage="Enter your review title" />
+        <ReviewBody enteredReview={enteredReview} handleReviewChange={handleReviewChange} />
+        <ErrorMessage showError={enteredReviewError} errorMessage="Enter your review" />
+        <ReviewRating selectedRating={selectedRating} handleRatingChange={handleRatingChange} />
+        <ErrorMessage showError={selectedRatingError} errorMessage="Select the rating" />
         <Grid item xs={12}>
           <Button
             id="submit-button"
@@ -114,16 +116,16 @@ const Review = ({recipeId, reviewSubmitted}) => {
           >
             <b>Submit</b>
           </Button>
-        </Grid> 
-        {submitSuccess &&
-        <Grid item xs={12}>
-        <Typography id="confirmation-message" variant="h6" color="#66bb6a" paddingTop={2}>
-            Your review has been received!!
-        </Typography>
         </Grid>
-        }    
-      </Grid> 
-      <Grid item xs/> 
+        {submitSuccess &&
+          <Grid item xs={12}>
+            <Typography id="confirmation-message" variant="h6" color="#66bb6a" paddingTop={2}>
+              Your review has been received!!
+            </Typography>
+          </Grid>
+        }
+      </Grid>
+      <Grid item xs />
     </MainGridContainer>
   );
 }
