@@ -134,6 +134,21 @@ const Api = {
             return null;
         }
     },
+    
+    getUserRestrictions: async (userId) => {
+        try {
+            const response = await fetch('/api/getUserRestrictions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId })
+            });
+            if (!response.ok) throw new Error(`API Error: ${response.status} - ${response.statusText}`);
+            return await response.json();
+        } catch (err) {
+            console.error("Error fetching user restrictions:", err);
+            return [];
+        }
+    }
 };
 
 export default Api;
