@@ -12,14 +12,18 @@ const Api = {
         }
     },
 
-    callApiGetRecipeIngredients: async (recipeId) => {
+    callApiGetRecipeIngredients: async (recipeId, budgetMode) => {
         try {
             const response = await fetch(`/api/getRecipeIngredients?id=${recipeId}`);
             const body = await response.json();
             if (response.status !== 200) throw Error(body.message);
-            return body;
+            return body.map(ing => ({
+                ...ing,
+                price: ing.price !== null ? parseFloat(ing.price) : null
+            }));
         } catch (err) {
             console.error("Error fetching ingredients:", err);
+            return [];
         }
     },
 };
