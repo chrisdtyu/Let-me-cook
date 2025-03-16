@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Typography, TextField, Button, Box, Paper, Autocomplete, Checkbox, FormControlLabel } from '@mui/material';
 import Api from './Api';
 
+
 const UploadRecipe = ({ onUploadSuccess }) => {
   const [name, setName] = useState('');
   const [categories, setCategories] = useState([]);
@@ -75,7 +76,6 @@ const UploadRecipe = ({ onUploadSuccess }) => {
     } else {
       newIngredients[index][field] = value;
     }
-
     setIngredients(newIngredients);
   };
 
@@ -100,14 +100,12 @@ const UploadRecipe = ({ onUploadSuccess }) => {
       setMessage("Please fill all required fields.");
       return;
     }
-
     for (let ing of ingredients) {
       if (!ing.ingredient_name || !ing.quantity) {
         setMessage("Each ingredient must have a name and quantity.");
         return;
       }
     }
-
     const payload = {
       user_id: localStorage.getItem('firebase_uid'),
       name,
@@ -124,9 +122,7 @@ const UploadRecipe = ({ onUploadSuccess }) => {
         required: ingredient.required
       }))      
     };
-
     console.log('Payload being sent to API:', payload);
-
     try {
       const res = await Api.callApiUploadRecipe(payload);
 
@@ -168,12 +164,10 @@ const UploadRecipe = ({ onUploadSuccess }) => {
           onChange={(event, newValue) => setSelectedCuisine(newValue)}
           renderInput={(params) => <TextField {...params} label="Cuisine Type" />}
         />
-
         <TextField required label="Estimated Cooking Time (mins)" type="number" value={prepTime} onChange={(e) => setPrepTime(e.target.value)} />
         <TextField required label="Preparation Steps (comma separated)" multiline rows={4} value={instructions} onChange={(e) => setInstructions(e.target.value)} />
         <TextField label="Image URL (optional)" value={image} onChange={(e) => setImage(e.target.value)} />
         <TextField label="Embeded Video URL (optional)" value={image} onChange={(e) => setVideo(e.target.value)} />
-
         <Typography variant="subtitle1">Ingredients</Typography>
         {ingredients.map((ing, index) => (
           <Box key={index} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>

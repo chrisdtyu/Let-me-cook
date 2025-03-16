@@ -487,7 +487,6 @@ app.post('/api/recommendRecipes', (req, res) => {
 });
 
 
-
 // getRecipe 
 app.get('/api/getRecipe', (req, res) => {
     const recipeId = req.query.id;
@@ -543,7 +542,7 @@ app.get('/api/getRecipeIngredients', (req, res) => {
 });
 
 
-// get dietary preferences/restrictions/ingredients
+// get dietary preferences/restrictions
 app.get('/api/getDietaryPreferences', (req, res) => {
     const sql = "SELECT preference_id, preference_name FROM dietary_preferences";
     connection.query(sql, (error, results) => {
@@ -660,6 +659,7 @@ app.post('/api/addReview', (req, res) => {
     connection6.end();
 });
 
+// Api To Upload Recipes
 app.post('/api/uploadRecipe', (req, res) => {
     const { user_id, name, category, type, instructions, image, video, prep_time, ingredients } = req.body;
     console.log('Received request to upload recipe:', req.body);
@@ -779,6 +779,7 @@ app.put('/api/editRecipe', (req, res) => {
     });
 });
 
+//Api to Delete Recipes
 app.delete('/api/deleteRecipe', (req, res) => {
     const { user_id, recipe_id } = req.body;
     if (!user_id || !recipe_id) {
