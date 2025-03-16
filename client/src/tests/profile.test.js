@@ -8,7 +8,6 @@ describe('Profile Component', () => {
   let originalFetch;
 
   beforeEach(() => {
-    // ensure localStorage has dummy firebase_uid for tests requiring login
     localStorage.setItem('firebase_uid', 'dummy_uid');
     originalFetch = global.fetch;
 
@@ -109,7 +108,6 @@ describe('Profile Component', () => {
     });
     const firstNameInput = screen.getByLabelText(/first name/i);
     expect(firstNameInput).toHaveAttribute('readonly');
-    // tries changing first name
     fireEvent.change(firstNameInput, { target: { value: 'Ryan' } });
     expect(firstNameInput.value).not.toBe('Ryan');
   });
@@ -124,7 +122,6 @@ describe('Profile Component', () => {
     });
     const lastNameInput = screen.getByLabelText(/last name/i);
     expect(lastNameInput).toHaveAttribute('readonly');
-    // tries changing last name
     fireEvent.change(lastNameInput, { target: { value: 'Smith' } });
     expect(lastNameInput.value).not.toBe('Smith');
   });
@@ -139,7 +136,6 @@ describe('Profile Component', () => {
     });
     const emailInput = screen.getByLabelText(/email/i);
     expect(emailInput).toHaveAttribute('readonly');
-    // tries changing email
     fireEvent.change(emailInput, { target: { value: 'new@example.com' } });
     expect(emailInput.value).not.toBe('new@example.com');
   });
@@ -157,7 +153,7 @@ describe('Profile Component', () => {
   });
 
   it('redirects to Login if firebase_uid is missing', async () => {
-    // clear localStorage to simulate logged-out user.
+    // simulate logged-out user
     localStorage.clear();
     const alertMock = jest.spyOn(window, 'alert').mockImplementation(() => {});
     await act(async () => {
@@ -171,7 +167,7 @@ describe('Profile Component', () => {
     alertMock.mockRestore();
   });
 
-  // Test for the multi-select (dietary preferences)
+  // test multi-select (dietary preferences)
   it('allows selecting a dietary preference from the multi-select', async () => {
     global.fetch.mockImplementation((url) => {
       if (url.includes('/api/getDietaryPreferences')) {
@@ -207,7 +203,7 @@ describe('Profile Component', () => {
     });
   });
 
-  // Test for the multi-select (always available ingredients)
+  // test multi-select (always available ingredients)
   it('allows selecting an ingredient from the multi-select', async () => {
     global.fetch.mockImplementation((url) => {
       if (url.includes('/api/getIngredients')) {
