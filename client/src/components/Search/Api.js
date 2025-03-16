@@ -10,12 +10,12 @@ const Api = {
         }
     },
 
-    callApiRecommendRecipes: async (ingredients, cuisines, categories, budgetMode, maxTime) => {
+    callApiRecommendRecipes: async (ingredients, cuisines, categories, userId, budgetMode, maxTime) => {
         try {
             const response = await fetch('/api/recommendRecipes', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ingredients, cuisines, categories, budgetMode, maxTime })
+                body: JSON.stringify({ ingredients, cuisines, categories, userId, budgetMode, maxTime })
             });
             if (!response.ok) throw new Error(`API Error: ${response.status} - ${response.statusText}`);
             return await response.json();
@@ -24,6 +24,7 @@ const Api = {
             return [];
         }
     },
+
 
     getIngredients: async () => {
         try {

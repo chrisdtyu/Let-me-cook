@@ -37,7 +37,6 @@ const Search = () => {
 
     const [selectedSortTime, setSelectedSortTime] = useState("none");
 
-    // get user data if logged in
     useEffect(() => {
         const firebaseUid = localStorage.getItem('firebase_uid');
         if (firebaseUid) {
@@ -78,7 +77,6 @@ const Search = () => {
         }
     }, []);
 
-    // Fetch ingredients from the database on component mount
     useEffect(() => {
         const fetchIngredients = async () => {
             try {
@@ -113,20 +111,17 @@ const Search = () => {
         fetchCategories();
     }, []);
 
-    //Add ingredient manually when user types and presses "Add"
     const handleManualAdd = () => {
         if (manualIngredient.trim() !== "" && !selectedIngredients.includes(manualIngredient)) {
             setSelectedIngredients([...selectedIngredients, manualIngredient]);
-            setManualIngredient(""); // Clear input after adding
+            setManualIngredient("");
         }
     };
 
-    //Handle ingredient selection from dropdown
     const handleIngredientChange = (event, newValue) => {
         setSelectedIngredients(newValue);
     };
 
-    //Handle Multi Select
     const handleMultiSelectChange = (event, newValue, field) => {
         if (field === 'cuisines') {
             setSelectedCuisines(newValue);
@@ -135,7 +130,6 @@ const Search = () => {
         }
     };
 
-    // Function to fetch recommended recipes
     const handleSearch = async () => {
         if (selectedIngredients.length === 0) {
             setError("Please select or type at least one ingredient.");
@@ -149,11 +143,10 @@ const Search = () => {
                 selectedIngredients,
                 selectedCuisines,
                 selectedCategories,
+                userId,
                 budgetMode,
                 maxTimeInt
             );
-    
-            // Apply sorting after fetching recipes
             const sortedRecipes = sortRecipes(recommendedRecipes);
             setRecipes(Array.isArray(sortedRecipes) ? sortedRecipes : []);
         } catch (error) {
@@ -164,9 +157,7 @@ const Search = () => {
             setLoading(false);
         }
     };
-    
 
-    // Toggle "Mark as Tried" / "Unmark Tried"
     const handleToggleTried = async (recipeId) => {
         if (!isUserLoggedIn || !userId) {
             alert("Please log in first!");
@@ -175,7 +166,6 @@ const Search = () => {
         const alreadyTried = triedRecipes.has(recipeId);
         try {
             if (alreadyTried) {
-                // Unmark
                 const result = await Api.unmarkTried(userId, recipeId);
                 if (result && result.message) {
                     const newSet = new Set(triedRecipes);
@@ -184,7 +174,6 @@ const Search = () => {
                     alert("Recipe unmarked as tried.");
                 }
             } else {
-                // Mark
                 const result = await Api.markTried(userId, recipeId);
                 if (result && result.message) {
                     const newSet = new Set(triedRecipes);
@@ -199,7 +188,6 @@ const Search = () => {
         }
     };
 
-    // Toggle "Mark as Favourite" / "Unmark Favourite"
     const handleToggleFavourite = async (recipeId) => {
         if (!isUserLoggedIn || !userId) {
             alert("Please log in first!");
@@ -208,7 +196,6 @@ const Search = () => {
         const alreadyFav = favRecipes.has(recipeId);
         try {
             if (alreadyFav) {
-                // Unmark
                 const result = await Api.unmarkFavourite(userId, recipeId);
                 if (result && result.message) {
                     const newSet = new Set(favRecipes);
@@ -217,7 +204,6 @@ const Search = () => {
                     alert("Recipe unmarked as favourite.");
                 }
             } else {
-                // Mark
                 const result = await Api.markFavourite(userId, recipeId);
                 if (result && result.message) {
                     const newSet = new Set(favRecipes);
@@ -233,18 +219,16 @@ const Search = () => {
     };
 
     const sortRecipes = (recipes) => {
+        if (!Array.isArray(recipes)) return [];
+
         let sortedRecipes = [...recipes];
-    
-        // Sort by Time
         if (selectedSortTime === "ascending") {
-            sortedRecipes = sortedRecipes.sort((a, b) => a.prep_time - b.prep_time);
+            sortedRecipes.sort((a, b) => a.prep_time - b.prep_time);
         } else if (selectedSortTime === "descending") {
-            sortedRecipes = sortedRecipes.sort((a, b) => b.prep_time - a.prep_time);
+            sortedRecipes.sort((a, b) => b.prep_time - a.prep_time);
         }
-    
         return sortedRecipes;
     };
-    
 
     return (
         <>
@@ -265,7 +249,6 @@ const Search = () => {
                     Find a Recipe
                 </Typography>
 
-                {/* Box 1: Manual Input */}
                 <Box sx={{ display: "flex", gap: 2, alignItems: "center", marginBottom: 2 }}>
                     <TextField
                         label="Enter an ingredient"
@@ -279,10 +262,9 @@ const Search = () => {
                     </Button>
                 </Box>
 
-                {/* Box 2: Select from Preset Ingredients */}
                 <Autocomplete
                     multiple
-                    options={allIngredients} // Predefined ingredient list
+                    options={allIngredients}
                     value={selectedIngredients}
                     onChange={handleIngredientChange}
                     renderTags={(value, getTagProps) =>
@@ -330,7 +312,6 @@ const Search = () => {
                     sx={{ width: 400, marginBottom: 2 }}
                 />
 
-                {/* Budget Mode Toggle */}
                 <Button
                     variant="contained"
                     color="secondary"
@@ -340,7 +321,6 @@ const Search = () => {
                     {budgetMode ? "Disable Budget Mode" : "Enable Budget Mode"}
                 </Button>
 
-                {/* Search Button */}
                 <Button
                     variant="contained"
                     color="primary"
@@ -350,9 +330,8 @@ const Search = () => {
                     {loading ? <CircularProgress size={24} /> : "Find Recipes"}
                 </Button>
 
-                {/* Error Message */}
                 {error && <Typography color="error">{error}</Typography>}
-                {/* Sort by Time */}
+
                 <TextField
                     select
                     label="Sort by Time"
@@ -367,7 +346,7 @@ const Search = () => {
                     <option value="ascending">Ascending</option>
                     <option value="descending">Descending</option>
                 </TextField>
-                {/* Sort Button */}
+
                 <Button
                     variant="contained"
                     color="primary"
@@ -377,7 +356,6 @@ const Search = () => {
                     {loading ? <CircularProgress size={24} /> : "Sort"}
                 </Button>
 
-                {/* Recipe Results */}
                 <Box sx={{ width: '80%', marginTop: 2 }}>
                     {loading ? (
                         <CircularProgress />
@@ -407,7 +385,6 @@ const Search = () => {
                                     <strong>Instructions:</strong> click link to see details
                                 </Typography>
 
-                                {/* If the recipe has an image, display it */}
                                 {recipe.image && (
                                     <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
                                         <img
@@ -418,17 +395,21 @@ const Search = () => {
                                     </Box>
                                 )}
 
-                                {/* Missing Ingredients */}
                                 {recipe.missingIngredients?.length > 0 && (
                                     <>
                                         <Typography variant="body2" sx={{ color: "red", marginTop: 1 }}>
                                             Missing Ingredients:
                                         </Typography>
                                         {recipe.missingIngredients.map(missing => (
-                                            <Typography key={missing.name} variant="body2">
-                                                {missing.name}{" "}
+                                            <Typography
+                                                key={missing.name}
+                                                variant="body2"
+                                                sx={{ color: missing.required ? 'red' : 'orange' }}
+                                            >
+                                                {missing.required ? "(Mandatory) " : "(Optional) "}
+                                                {missing.name}
                                                 {budgetMode && missing.suggestedSubstitute
-                                                    ? `(Suggested: ${missing.suggestedSubstitute}, $${missing.estimatedCost})`
+                                                    ? ` (Suggested: ${missing.suggestedSubstitute}, $${missing.estimatedCost})`
                                                     : ""
                                                 }
                                             </Typography>
@@ -436,7 +417,6 @@ const Search = () => {
                                     </>
                                 )}
 
-                                {/* Mark/Unmark Tried & Favourite Buttons */}
                                 {isUserLoggedIn && userId && (
                                     <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
                                         <Button
