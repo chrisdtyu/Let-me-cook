@@ -396,33 +396,32 @@ app.get('/api/getRecipe', (req, res) => {
 });
 
 // get recipe ingredints and quantities API
+// getRecipeIngredients
 app.get('/api/getRecipeIngredients', (req, res) => {
+    let connection4 = mysql.createConnection(config);
+    let recipeId = req.query.id;
 
-	let connection = mysql.createConnection(config);
-	let recipeId = req.query.id;
-	
-	let sql = `select i.ingredient_id, i.name, i.type, i.price, ri.quantity, ri.quantity_type, ri.required
-		from recipe_ingredients ri
-		inner join ingredients i 
-			on ri.ingredient_id = i.ingredient_id
-		where recipe_id = ?;`;
-		
-	let data = [recipeId];
+    let sql = `select i.ingredient_id, i.name, i.type, ri.quantity, ri.quantity_type, ri.required
+        from recipe_ingredients ri
+        inner join ingredients i 
+            on ri.ingredient_id = i.ingredient_id
+        where recipe_id = ?;`;
 
-	connection.query(sql, data, (error, results) => {
-		if (error) {
-			console.error(error.message);
-			return res.status(500).send("Database error");
-		}
-		if(results && results.length > 0) {
-        	res.json(results);
-		} else {
+    let data = [recipeId];
+
+    connection4.query(sql, data, (error, results) => {
+        if (error) {
+            console.error(error.message);
+            return res.status(500).send("Database error");
+        }
+        if(results && results.length > 0) {
+            res.json(results);
+        } else {
             return res.status(404).json({ error: "Data not found" });
-		}	
-	});
-	connection.end();
+        }
+    });
+    connection4.end();
 });
-
 
 
 app.get('/api/getDietaryPreferences', (req, res) => {
