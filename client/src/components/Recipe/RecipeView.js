@@ -9,10 +9,10 @@ import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
-import Api from './Api'; 
+import Api from './Api';
 import LetmecookAppBar from '../AppBar';
 import ReviewList from '../ReviewList';
-import Review from '../Review'; 
+import Review from '../Review';
 
 
 const MainGridContainer = styled(Grid)(({ theme }) => ({
@@ -28,14 +28,16 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
   const [sliderValue, setSliderValue] = useState(1);
   const [sliderMin, setSliderMin] = useState(1);
   const [sliderMax, setSliderMax] = useState(5);
-  const [userId, setUserId] = useState(null); 
+  const [userId, setUserId] = useState(null);
   const [userData, setUserData] = useState(null);
 
   useEffect(() => {
+    console.log("Fetching recipe for ID:", id);
     getRecipe(id);
   }, [id, getRecipe]);
 
   useEffect(() => {
+    console.log("Updated ingredients:", ingredients);
     if (ingredients.length > 0) {
       const initialQuantities = {};
       ingredients.forEach((ing) => {
@@ -44,10 +46,13 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
         }
       });
       setBaseQuantity(initialQuantities);
+      console.log("Base quantities set:", initialQuantities);
     }
   }, [ingredients]);
 
   useEffect(() => {
+    console.log("Base ingredient selected:", baseIngredientId);
+    console.log("Base quantities:", baseQuantity);
     if (baseIngredientId && baseQuantity[baseIngredientId]) {
       const initialQuantity = baseQuantity[baseIngredientId];
       setSliderMin(Math.round(initialQuantity * 0.1));
@@ -56,6 +61,7 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
       setScaleFactor(1);
     }
   }, [baseIngredientId, baseQuantity]);
+
   useEffect(() => {
     const storedUserId = localStorage.getItem('user_id');
     if (storedUserId) {
@@ -88,7 +94,7 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
       <LetmecookAppBar page={`Recipe: ${recipe ? recipe.name : ''}`} />
       <MainGridContainer container direction="column" alignItems="center">
         <Typography variant="h4">
-          <b>{recipe.name}</b>
+          <b>{recipe ? recipe.name : 'Loading...'}</b>
         </Typography>
         {recipe.image && (
           <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
@@ -204,7 +210,7 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
         )}
 
         {/* Pass userId to Review component */}
-        {userId && <Review recipeId={id} reviewSubmitted={() => {}} userId={userId} />}
+        {userId && <Review recipeId={id} reviewSubmitted={() => { }} userId={userId} />}
         <ReviewList recipeId={id} />
       </MainGridContainer>
     </>

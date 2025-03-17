@@ -166,6 +166,73 @@ const Search = () => {
         }
     };
 
+    
+     // Toggle "Mark as Tried" / "Unmark Tried"
+     const handleToggleTried = async (recipeId) => {
+        if (!isUserLoggedIn || !userId) {
+            alert("Please log in first!");
+            return;
+        }
+        const alreadyTried = triedRecipes.has(recipeId);
+        try {
+            if (alreadyTried) {
+                // Unmark
+                const result = await Api.unmarkTried(userId, recipeId);
+                if (result && result.message) {
+                    const newSet = new Set(triedRecipes);
+                    newSet.delete(recipeId);
+                    setTriedRecipes(newSet);
+                    alert("Recipe unmarked as tried.");
+                }
+            } else {
+                // Mark
+                const result = await Api.markTried(userId, recipeId);
+                if (result && result.message) {
+                    const newSet = new Set(triedRecipes);
+                    newSet.add(recipeId);
+                    setTriedRecipes(newSet);
+                    alert("Recipe marked as tried!");
+                }
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Error toggling tried.");
+        }
+    };
+
+    // Toggle "Mark as Favourite" / "Unmark Favourite"
+    const handleToggleFavourite = async (recipeId) => {
+        if (!isUserLoggedIn || !userId) {
+            alert("Please log in first!");
+            return;
+        }
+        const alreadyFav = favRecipes.has(recipeId);
+        try {
+            if (alreadyFav) {
+                // Unmark
+                const result = await Api.unmarkFavourite(userId, recipeId);
+                if (result && result.message) {
+                    const newSet = new Set(favRecipes);
+                    newSet.delete(recipeId);
+                    setFavRecipes(newSet);
+                    alert("Recipe unmarked as favourite.");
+                }
+            } else {
+                // Mark
+                const result = await Api.markFavourite(userId, recipeId);
+                if (result && result.message) {
+                    const newSet = new Set(favRecipes);
+                    newSet.add(recipeId);
+                    setFavRecipes(newSet);
+                    alert("Recipe marked as favourite!");
+                }
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Error toggling favourite.");
+        }
+    };
+
     // Sort recipes by missing ingredients and time with ascending/descending options
     const sortRecipes = (recipes) => {
         let sortedRecipes = [...recipes];
@@ -329,65 +396,89 @@ const Search = () => {
 
                 {/* Recipe Results */}
                 <Box sx={{ width: '80%', marginTop: 2 }}>
-                    {loading ? (
-                        <CircularProgress />
-                    ) : recipes.length === 0 ? (
-                        <Typography variant="h6">No recipes found.</Typography>
-                    ) : (
-                        recipes.map(recipe => (
-                            <Box
-                                key={recipe.recipe_id}
-                                sx={{
-                                    border: '1px solid #ccc',
-                                    padding: 2,
-                                    marginBottom: 2,
-                                    borderRadius: '8px',
-                                    backgroundColor: '#fff'
-                                }}
-                            >
-                                <Typography variant="h6">
-                                    <Link onClick={() => navigate('/Recipe/' + recipe.recipe_id)}>
-                                        {recipe.name}
-                                    </Link>
-                                </Typography>
-                                <Typography variant="body2"><strong>Type:</strong> {recipe.type}</Typography>
-                                <Typography variant="body2"><strong>Category:</strong> {recipe.category}</Typography>
-                                <Typography variant="body2"><strong>Time:</strong> {recipe.prep_time} mins</Typography>
-                                <Typography variant="body2">
-                                    <strong>Instructions:</strong> click link to see details
-                                </Typography>
-
-                                {/* If the recipe has an image, display it */}
-                                {recipe.image && (
-                                    <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
-                                        <img
-                                            src={recipe.image}
-                                            alt="Recipe"
-                                            style={{ width: '50%', borderRadius: 8 }}
-                                        />
-                                    </Box>
-                                )}
-
-                                {/* Missing Ingredients */}
-                                {recipe.missingIngredients?.length > 0 && (
-                                    <>
-                                        <Typography variant="body2" sx={{ color: "red", marginTop: 1 }}>
-                                            Missing Ingredients ({recipe.missingIngredients.length}):
-                                        </Typography>
-                                        {recipe.missingIngredients.map(missing => (
-                                            <Typography key={missing.name} variant="body2">
-                                                {missing.name}{" "}
-                                                {budgetMode && missing.suggestedSubstitute
-                                                    ? `(Suggested: ${missing.suggestedSubstitute})`
-                                                    : ""}
-                                            </Typography>
-                                        ))}
-                                    </>
-                                )}
-                            </Box>
-                        ))
-                    )}
-                </Box>
+                     {loading ? (
+                         <CircularProgress />
+                     ) : recipes.length === 0 ? (
+                         <Typography variant="h6">No recipes found.</Typography>
+                     ) : (
+                         recipes.map(recipe => (
+                             <Box
+                                 key={recipe.recipe_id}
+                                 sx={{
+                                     border: '1px solid #ccc',
+                                     padding: 2,
+                                     marginBottom: 2,
+                                     borderRadius: '8px',
+                                     backgroundColor: '#fff'
+                                 }}
+                             >
+                                 <Typography variant="h6">
+                                     <Link onClick={() => navigate('/Recipe/' + recipe.recipe_id)}>
+                                         {recipe.name}
+                                     </Link>
+                                 </Typography>
+                                 <Typography variant="body2"><strong>Type:</strong> {recipe.type}</Typography>
+                                 <Typography variant="body2"><strong>Category:</strong> {recipe.category}</Typography>
+                                 <Typography variant="body2"><strong>Time:</strong> {recipe.prep_time} mins</Typography>
+                                 <Typography variant="body2">
+                                     <strong>Instructions:</strong> click link to see details
+                                 </Typography>
+ 
+                                 {/* If the recipe has an image, display it */}
+                                 {recipe.image && (
+                                     <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+                                         <img
+                                             src={recipe.image}
+                                             alt="Recipe"
+                                             style={{ width: '50%', borderRadius: 8 }}
+                                         />
+                                     </Box>
+                                 )}
+ 
+                                 {/* Missing Ingredients */}
+                                 {recipe.missingIngredients?.length > 0 && (
+                                     <>
+                                         <Typography variant="body2" sx={{ color: "red", marginTop: 1 }}>
+                                             Missing Ingredients:
+                                         </Typography>
+                                         {recipe.missingIngredients.map(missing => (
+                                             <Typography key={missing.name} variant="body2">
+                                                 {missing.name}{" "}
+                                                 {budgetMode && missing.suggestedSubstitute
+                                                     ? `(Suggested: ${missing.suggestedSubstitute}, $${missing.estimatedCost})`
+                                                     : ""
+                                                 }
+                                             </Typography>
+                                         ))}
+                                     </>
+                                 )}
+ 
+                                 {/* Mark/Unmark Tried & Favourite Buttons - moved to right side */}
+                                 {/* Mark/Unmark Tried & Favourite Buttons */}
+                                 {isUserLoggedIn && userId && (
+                                     <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+                                         <Button
+                                             variant="outlined"
+                                             onClick={() => handleToggleTried(recipe.recipe_id)}
+                                         >
+                                             {triedRecipes.has(recipe.recipe_id)
+                                                 ? "Unmark Tried"
+                                                 : "Mark as Tried"}
+                                         </Button>
+                                         <Button
+                                             variant="outlined"
+                                             onClick={() => handleToggleFavourite(recipe.recipe_id)}
+                                         >
+                                             {favRecipes.has(recipe.recipe_id)
+                                                 ? "Unmark Favourite"
+                                                 : "Mark as Favourite"}
+                                         </Button>
+                                     </Box>
+                                 )}
+                             </Box>
+                         ))
+                     )}
+                 </Box>
             </Box>
         </>
     );
