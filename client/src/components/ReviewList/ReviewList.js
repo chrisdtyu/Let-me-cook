@@ -1,23 +1,17 @@
 import * as React from 'react';
-import Api from './Api';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Grid';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import { styled } from '@mui/material/styles';
 import Review from '../Review';
+import Api from './Api';
 
 const MainGridContainer = styled(Grid)(({ theme }) => ({
   margin: theme.spacing(4),
 }));
 
-const userId = 1;
-
-const ReviewList = ({ recipeId, getReviews, reviews }) => {
-  React.useEffect(() => {
-    getReviews(recipeId);
-  }, [recipeId, getReviews]);
-
+const ReviewList = ({ recipeId, reviews, averageRating, getReviews }) => {
   const [showReview, setShowReview] = React.useState(false);
 
   const toggleReview = () => {
@@ -34,6 +28,10 @@ const ReviewList = ({ recipeId, getReviews, reviews }) => {
     >
       <Typography variant="h4" gutterBottom>
         <b>Reviews</b> {(!reviews || reviews.length === 0) && "- No reviews yet"}
+      </Typography>
+
+      <Typography variant="h6" gutterBottom>
+        <b>Average Rating: </b>{averageRating ? `⭐ ${averageRating.toFixed(1)}` : "N/A"}
       </Typography>
 
       <Button
@@ -89,6 +87,5 @@ const Item = ({ item }) => {
     </Box>
   );
 };
-
 
 export default ReviewList;

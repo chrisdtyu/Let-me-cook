@@ -627,22 +627,25 @@ app.get('/api/getReviews', (req, res) => {
 
     let connection5 = mysql.createConnection(config);
     let sql = `
-        SELECT r.*, u.first_name, u.last_name 
+        SELECT r.*, u.first_name, u.last_name, 
+               (SELECT AVG(review_score) FROM reviews WHERE recipe_id = ?) AS average_rating
         FROM reviews r
         INNER JOIN users u ON r.user_id = u.user_id 
-        WHERE recipe_id = ?`;
-    let data = [recipeId];
+        WHERE r.recipe_id = ?`;
+
+    let data = [recipeId, recipeId];
 
     connection5.query(sql, data, (error, results, fields) => {
         if (error) {
             console.error("Database Error:", error);
             return res.status(500).json({ error: "Database query failed" });
         }
-        res.json(results);
+        res.json({ reviews: results, average_rating: results[0]?.average_rating });
     });
 
     connection5.end();
 });
+
 
 app.post('/api/addReview', (req, res) => {
     let connection6 = mysql.createConnection(config);
