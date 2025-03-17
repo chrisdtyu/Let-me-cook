@@ -123,7 +123,7 @@ const Review = ({ recipeId, reviewSubmitted }) => {
     >
       <Grid item xs />
       <Grid item style={{ width: 400 }}>
-        <Typography variant="h3" gutterBottom component="div">
+        <Typography variant="h5" gutterBottom component="div">
           Review This Recipe
         </Typography>
 
