@@ -10,7 +10,7 @@ import { useNavigate } from 'react-router-dom';
 const MainGridContainer = styled(Grid)(({ theme }) => ({
   margin: theme.spacing(4),
 }));
- 
+
 const Profile = () => {
   const navigate = useNavigate();
 
@@ -19,10 +19,10 @@ const Profile = () => {
     firstName: '',
     lastName: '',
     email: '',
-    dietaryPreferences: [],  
-    dietaryRestrictions: [], 
-    alwaysAvailable: [],     
-    healthGoals: [],         
+    dietaryPreferences: [],
+    dietaryRestrictions: [],
+    alwaysAvailable: [],
+    healthGoals: [],
     weeklyBudget: '',
   });
 
@@ -358,14 +358,15 @@ const Profile = () => {
               ) : (
                 favRecipes.map((r) => (
                   <Box key={r.recipe_id} sx={{ marginBottom: 1 }}>
-                    <Typography
-                      sx={{ textDecoration: 'underline', cursor: 'pointer', color: 'blue' }}
-                      onClick={() => navigate('/Recipe/' + r.recipe_id)}
+                    <a
+                      href={'/Recipe/' + r.recipe_id}
+                      style={{ textDecoration: 'underline', cursor: 'pointer', color: 'blue' }}
                     >
                       {r.name}
-                    </Typography>
+                    </a>
                   </Box>
                 ))
+
               )}
             </Box>
           </Grid>
