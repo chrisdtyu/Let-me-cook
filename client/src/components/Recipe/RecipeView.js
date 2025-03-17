@@ -94,13 +94,9 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
     setBaseIngredientId(event.target.value);
     setScaleFactor(1);
   };
-
-  // Function to handle when a note is submitted
   const handleNoteSubmitted = () => {
     setNoteSubmittedFlag(true);
     console.log('Note was successfully submitted');
-
-    // Optionally, reset the flag after some time or handle any other logic
     setTimeout(() => {
       setNoteSubmittedFlag(false);
     }, 2000);
@@ -114,18 +110,11 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
         <Typography variant="h4" sx={{ textAlign: 'center' }}>
           <b>{recipe.name}</b>
         </Typography>
-
-        {/* Recipe Image & Note Component Side by Side */}
         <Grid container spacing={2} alignItems="flex-start" justifyContent="center">
-          {/* Left Column (First column) */}
           <Grid item xs={12} sm={4} sx={{ display: 'flex', justifyContent: 'center' }}>
-            {/* You can add any additional content here for the left column */}
             <Box sx={{ textAlign: 'center' }}>
-              {/* Optional: Add content for the left column */}
             </Box>
           </Grid>
-
-          {/* Middle Column (Image Column) */}
           <Grid item xs={12} sm={4} sx={{ display: 'flex', justifyContent: 'center' }}>
             <ImageContainer>
               {recipe.image && (
@@ -137,19 +126,14 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
               )}
             </ImageContainer>
           </Grid>
-
-          {/* Right Column (Note Column) */}
           <Grid item xs={12} sm={4} sx={{ display: 'flex', justifyContent: 'center' }}>
             <Note recipeId={id} noteSubmitted={handleNoteSubmitted} />
           </Grid>
         </Grid>
-        {/* Recipe Category, Type, and Time */}
         <Typography variant="h6">
           Category: {recipe.category} | Type: {recipe.type}
         </Typography>
         <Typography variant="h6">Time: {recipe.prep_time} mins</Typography>
-
-        {/* Ingredients Section */}
         <Typography variant="h5" sx={{ mt: 2 }}>
           <b>Ingredients:</b>
         </Typography>
@@ -221,8 +205,6 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
               ))}
           </Select>
         </FormControl>
-
-        {/* Instructions Section */}
         <Typography variant="h5" sx={{ mt: 2 }}>
           <b>Instructions:</b>
         </Typography>
@@ -231,8 +213,6 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
             ? recipe.instructions.split('.').map((step, index) => <li key={index}>{step.trim()}</li>)
             : ''}
         </ul>
-
-        {/* Video Section */}
         {recipe.video && (
           <Box sx={{ mt: 2 }}>
             <Typography variant="h6">
@@ -241,8 +221,6 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
             <iframe width="560" height="315" src={recipe.video} title="Recipe Video" allowFullScreen></iframe>
           </Box>
         )}
-
-        {/* User Information */}
         {userData && (
           <Box sx={{ mt: 2 }}>
             <Typography variant="h6">
@@ -252,8 +230,6 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
             <Typography variant="body1">Email: {userData.email}</Typography>
           </Box>
         )}
-
-        {/* Review Section */}
         {userId && <Review recipeId={id} reviewSubmitted={() => { }} userId={userId} />}
         <ReviewList recipeId={id} />
       </MainGridContainer>
