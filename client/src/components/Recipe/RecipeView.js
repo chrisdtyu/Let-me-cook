@@ -13,12 +13,20 @@ import Api from './Api';
 import LetmecookAppBar from '../AppBar';
 import ReviewList from '../ReviewList';
 import Review from '../Review';
-
+import Note from '../Notes/Notes';
 
 const MainGridContainer = styled(Grid)(({ theme }) => ({
   margin: theme.spacing(4),
 }));
 
+const ImageContainer = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  justifyContent: 'center',
+  marginTop: theme.spacing(2),
+  [theme.breakpoints.down('sm')]: {
+    margin: '0 auto',
+  },
+}));
 
 const RecipeView = ({ getRecipe, recipe, ingredients }) => {
   const { id } = useParams();
@@ -31,13 +39,14 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
   const [userId, setUserId] = useState(null);
   const [userData, setUserData] = useState(null);
 
+  // Note submission state
+  const [noteSubmittedFlag, setNoteSubmittedFlag] = useState(false);
+
   useEffect(() => {
-    console.log("Fetching recipe for ID:", id);
     getRecipe(id);
   }, [id, getRecipe]);
 
   useEffect(() => {
-    console.log("Updated ingredients:", ingredients);
     if (ingredients.length > 0) {
       const initialQuantities = {};
       ingredients.forEach((ing) => {
@@ -46,13 +55,10 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
         }
       });
       setBaseQuantity(initialQuantities);
-      console.log("Base quantities set:", initialQuantities);
     }
   }, [ingredients]);
 
   useEffect(() => {
-    console.log("Base ingredient selected:", baseIngredientId);
-    console.log("Base quantities:", baseQuantity);
     if (baseIngredientId && baseQuantity[baseIngredientId]) {
       const initialQuantity = baseQuantity[baseIngredientId];
       setSliderMin(Math.round(initialQuantity * 0.1));
@@ -88,23 +94,42 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
     setBaseIngredientId(event.target.value);
     setScaleFactor(1);
   };
+  const handleNoteSubmitted = () => {
+    setNoteSubmittedFlag(true);
+    console.log('Note was successfully submitted');
+    setTimeout(() => {
+      setNoteSubmittedFlag(false);
+    }, 2000);
+  };
 
   return (
     <>
       <LetmecookAppBar page={`Recipe: ${recipe ? recipe.name : ''}`} />
       <MainGridContainer container direction="column" alignItems="center">
-        <Typography variant="h4">
-          <b>{recipe ? recipe.name : 'Loading...'}</b>
+        {/* Recipe Name */}
+        <Typography variant="h4" sx={{ textAlign: 'center' }}>
+          <b>{recipe.name}</b>
         </Typography>
-        {recipe.image && (
-          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
-            <img
-              src={recipe.image}
-              alt="Recipe"
-              style={{ width: '50%', borderRadius: 8 }}
-            />
-          </Box>
-        )}
+        <Grid container spacing={2} alignItems="flex-start" justifyContent="center">
+          <Grid item xs={12} sm={4} sx={{ display: 'flex', justifyContent: 'center' }}>
+            <Box sx={{ textAlign: 'center' }}>
+            </Box>
+          </Grid>
+          <Grid item xs={12} sm={4} sx={{ display: 'flex', justifyContent: 'center' }}>
+            <ImageContainer>
+              {recipe.image && (
+                <img
+                  src={recipe.image}
+                  alt="Recipe"
+                  style={{ width: '100%', maxWidth: '400px', borderRadius: 8 }}
+                />
+              )}
+            </ImageContainer>
+          </Grid>
+          <Grid item xs={12} sm={4} sx={{ display: 'flex', justifyContent: 'center' }}>
+            <Note recipeId={id} noteSubmitted={handleNoteSubmitted} />
+          </Grid>
+        </Grid>
         <Typography variant="h6">
           Category: {recipe.category} | Type: {recipe.type}
         </Typography>
@@ -141,6 +166,7 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
           })}
         </ul>
 
+        {/* Ingredient Scaling */}
         <Box sx={{ mt: 2, width: 300 }}>
           <Typography variant="h6">
             <b>Scale Ingredients:</b>
@@ -179,7 +205,6 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
               ))}
           </Select>
         </FormControl>
-
         <Typography variant="h5" sx={{ mt: 2 }}>
           <b>Instructions:</b>
         </Typography>
@@ -188,7 +213,6 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
             ? recipe.instructions.split('.').map((step, index) => <li key={index}>{step.trim()}</li>)
             : ''}
         </ul>
-
         {recipe.video && (
           <Box sx={{ mt: 2 }}>
             <Typography variant="h6">
@@ -197,8 +221,6 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
             <iframe width="560" height="315" src={recipe.video} title="Recipe Video" allowFullScreen></iframe>
           </Box>
         )}
-
-        {/* Display user data if available */}
         {userData && (
           <Box sx={{ mt: 2 }}>
             <Typography variant="h6">
@@ -208,8 +230,6 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
             <Typography variant="body1">Email: {userData.email}</Typography>
           </Box>
         )}
-
-        {/* Pass userId to Review component */}
         {userId && <Review recipeId={id} reviewSubmitted={() => { }} userId={userId} />}
         <ReviewList recipeId={id} />
       </MainGridContainer>

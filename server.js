@@ -670,6 +670,38 @@ app.post('/api/addReview', (req, res) => {
     connection6.end();
 });
 
+app.post('/api/addNote', (req, res) => {
+    let connection6 = mysql.createConnection(config);
+    let noteData = req.body;
+    let sql = `INSERT INTO notes (user_id, recipe_id, note) VALUES (?, ?, ?);`;
+
+    let data = [noteData.user_id, noteData.recipe_id, noteData.note];
+
+    connection6.query(sql, data, (error, results) => {
+        if (error) {
+            return console.error(error.message);
+        }
+        res.send(results);
+    });
+    connection6.end();
+});
+
+app.get('/api/getNote', (req, res) => {
+    let connection6 = mysql.createConnection(config);
+    let { user_id, recipe_id } = req.query; 
+    let sql = `SELECT * from notes WHERE user_id = ? AND recipe_id = ?`;
+
+    let data = [user_id, recipe_id];
+
+    connection6.query(sql, data, (error, results) => {
+        if (error) {
+            return console.error(error.message);
+        }
+        res.json(results[0] || {});
+    });
+    connection6.end();
+});
+
 // Api To Upload Recipes
 app.post('/api/uploadRecipe', (req, res) => {
     const { user_id, name, category, type, instructions, image, video, prep_time, ingredients } = req.body;
