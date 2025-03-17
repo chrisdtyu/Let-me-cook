@@ -54,7 +54,7 @@ describe('Profile Page', () => {
   it('displays the user profile information', () => {
     cy.visit('http://localhost:3000/Profile');
     cy.contains(/user profile/i).should('exist');
-    cy.get('input[readonly]').should('have.length', 3); // first name, last name, email
+    cy.get('input[readonly]').should('have.length', 3); 
     cy.contains(/weekly budget/i).should('exist');
   });
 
