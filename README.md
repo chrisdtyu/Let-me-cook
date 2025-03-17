@@ -18,6 +18,7 @@ LetMeCook is a web application designed to assist university students and other 
 - **Interactive Features**: Users can engage with existing recipes, leave comments, and add their own recipes.
 - **Scalability**: The ability to adjust recipes based on ingredient availability.
 - **Chatbot Assistance**: A chatbot feature allows users to ask questions about recipes and further tailor their preferences.
+- **Recipe Tracking**: Users can mark recipes as "Tried" and save favorites, which appear on their profile for easy access.
 
 ## Installation
 
