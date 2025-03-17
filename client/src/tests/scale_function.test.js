@@ -3,7 +3,6 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import RecipeView from '../components/Recipe/RecipeView';
 
-
 describe('RecipeView Scaling Functionality', () => {
   const mockRecipe = {
     name: "Test Recipe",
