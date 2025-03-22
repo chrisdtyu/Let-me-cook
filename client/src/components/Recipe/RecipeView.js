@@ -14,6 +14,8 @@ import LetmecookAppBar from '../AppBar';
 import ReviewList from '../ReviewList';
 import Review from '../Review';
 import Note from '../Notes/Notes';
+import PriceDisplay from '../Budget/PriceDisplay';
+import { useBudget } from '../Budget/BudgetContext';
 
 const MainGridContainer = styled(Grid)(({ theme }) => ({
   margin: theme.spacing(4),
@@ -38,6 +40,30 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
   const [sliderMax, setSliderMax] = useState(5);
   const [userId, setUserId] = useState(null);
   const [userData, setUserData] = useState(null);
+  const { budgetMode } = useBudget();
+
+  const calculateTotalCost = () => {
+    if (!ingredients || ingredients.length === 0) return 0;
+  
+    if (!userData || !userData.alwaysAvailable || !Array.isArray(userData.alwaysAvailable)) {
+      return ingredients.reduce((sum, ing) => sum + (ing.price || 0), 0).toFixed(2);
+    }
+  
+    const availableIds = userData.alwaysAvailable.map(item => item.ingredient_id);
+    
+    let total = 0;
+    ingredients.forEach((ing) => {
+      if (!availableIds.includes(ing.ingredient_id)) {
+        if (ing.price && !isNaN(ing.price)) {
+          total += parseFloat(ing.price);
+        }
+      }
+    });
+  
+    return total.toFixed(2); // format to 2 decimal places
+  };
+  
+  
 
   // Note submission state
   const [noteSubmittedFlag, setNoteSubmittedFlag] = useState(false);
@@ -78,8 +104,14 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
 
   const fetchUserData = async (userId) => {
     try {
-      const response = await Api.get(`/user/${userId}`);
-      setUserData(response.data);
+      const firebaseUid = localStorage.getItem('firebase_uid');
+      const response = await fetch('/api/getUserProfile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ firebase_uid: firebaseUid }),
+      });
+      const data = await response.json();
+      setUserData(data.user);
     } catch (error) {
       console.error("Error fetching user data:", error);
     }
@@ -134,6 +166,11 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
           Category: {recipe.category} | Type: {recipe.type}
         </Typography>
         <Typography variant="h6">Time: {recipe.prep_time} mins</Typography>
+        {budgetMode && (
+          <Typography variant="h6">
+            Estimated Total Cost: ${calculateTotalCost()}
+          </Typography>
+        )}
         <Typography variant="h5" sx={{ mt: 2 }}>
           <b>Ingredients:</b>
         </Typography>
@@ -161,6 +198,7 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
             return (
               <li key={ing.ingredient_id}>
                 {formattedQuantity} {ing.quantity_type ? ing.quantity_type + ' ' : ''}{ing.name} {ing.required === 1 ? '*' : ''}
+                <PriceDisplay price={ing.price} />
               </li>
             );
           })}
@@ -230,6 +268,7 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
             <Typography variant="body1">Email: {userData.email}</Typography>
           </Box>
         )}
+
         {userId && <Review recipeId={id} reviewSubmitted={() => { }} userId={userId} />}
         <ReviewList recipeId={id} />
       </MainGridContainer>
