@@ -6,6 +6,7 @@ import { Autocomplete } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import LetmecookAppBar from '../AppBar';
 import { useNavigate } from 'react-router-dom';
+import { useBudget } from '../Budget/BudgetContext';
 
 const MainGridContainer = styled(Grid)(({ theme }) => ({
   margin: theme.spacing(4),
@@ -13,6 +14,7 @@ const MainGridContainer = styled(Grid)(({ theme }) => ({
 
 const Profile = () => {
   const navigate = useNavigate();
+  const { weeklySpent } = useBudget();
 
   const [profile, setProfile] = useState({
     firebase_uid: '',
@@ -369,6 +371,26 @@ const Profile = () => {
 
               )}
             </Box>
+
+            <Box sx={{ mt: 4, borderRadius: 2, backgroundColor: 'white', p: 3, boxShadow: 3 }}>
+              <Typography variant="h6">Weekly Budget Tracker</Typography>
+              <Typography variant="body1">
+                Total Spent This Week: ${weeklySpent} 
+              </Typography>
+
+              {profile.weeklyBudget && weeklySpent > profile.weeklyBudget && (
+                <Typography variant="body2" color="error" sx={{ mt: 1 }}>
+                  You are over your weekly budget!
+                </Typography>
+              )}
+
+              {profile.weeklyBudget && weeklySpent > profile.weeklyBudget * 0.8 && weeklySpent <= profile.weeklyBudget && (
+                <Typography variant="body2" color="warning.main" sx={{ mt: 1 }}>
+                  You're nearing your weekly budget.
+                </Typography>
+              )}
+            </Box>
+
           </Grid>
 
         </Grid>

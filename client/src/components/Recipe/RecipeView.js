@@ -9,6 +9,7 @@ import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
+import Button from '@mui/material/Button';
 import Api from './Api';
 import LetmecookAppBar from '../AppBar';
 import ReviewList from '../ReviewList';
@@ -40,17 +41,19 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
   const [sliderMax, setSliderMax] = useState(5);
   const [userId, setUserId] = useState(null);
   const [userData, setUserData] = useState(null);
-  const { budgetMode } = useBudget();
+  const { budgetMode, weeklySpent, addedRecipes, addMealCost, } = useBudget();
 
   const calculateTotalCost = () => {
     if (!ingredients || ingredients.length === 0) return 0;
-  
     if (!userData || !userData.alwaysAvailable || !Array.isArray(userData.alwaysAvailable)) {
       return ingredients.reduce((sum, ing) => sum + (ing.price || 0), 0).toFixed(2);
     }
   
-    const availableIds = userData.alwaysAvailable.map(item => item.ingredient_id);
-    
+    // exclude always available ingredients from the profile
+    //const availableIds = userData.alwaysAvailable.map(item => item.ingredient_id);
+    const availableIds = userData?.alwaysAvailable?.map(i => i.ingredient_id) || [];
+
+
     let total = 0;
     ingredients.forEach((ing) => {
       if (!availableIds.includes(ing.ingredient_id)) {
@@ -60,10 +63,8 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
       }
     });
   
-    return total.toFixed(2); // format to 2 decimal places
+    return total
   };
-  
-  
 
   // Note submission state
   const [noteSubmittedFlag, setNoteSubmittedFlag] = useState(false);
@@ -167,10 +168,25 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
         </Typography>
         <Typography variant="h6">Time: {recipe.prep_time} mins</Typography>
         {budgetMode && (
-          <Typography variant="h6">
-            Estimated Total Cost: ${calculateTotalCost()}
-          </Typography>
+          <>
+            <Typography variant="h6">
+              Estimated Total Cost: ${calculateTotalCost()}
+            </Typography>
+
+            <Button
+              variant="contained"
+              color="primary"
+              sx={{ mt: 2 }}
+              onClick={() => {
+                const total = calculateTotalCost();
+                addMealCost(recipe.recipe_id, total);
+              }}
+            >
+              Add to This Week's Meals
+            </Button>
+          </>
         )}
+
         <Typography variant="h5" sx={{ mt: 2 }}>
           <b>Ingredients:</b>
         </Typography>
@@ -198,7 +214,11 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
             return (
               <li key={ing.ingredient_id}>
                 {formattedQuantity} {ing.quantity_type ? ing.quantity_type + ' ' : ''}{ing.name} {ing.required === 1 ? '*' : ''}
-                <PriceDisplay price={ing.price} />
+                <PriceDisplay 
+                  price={ing.price}
+                  ingredientId={ing.ingredient_id}
+                  alwaysAvailable={userData?.alwaysAvailable?.map(item => item.ingredient_id)}
+                />
               </li>
             );
           })}
