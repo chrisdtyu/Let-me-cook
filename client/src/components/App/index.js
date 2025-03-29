@@ -12,7 +12,18 @@ import MyRecipes from '../Recipe/MyRecipes';
 const theme = createTheme({
   palette: {
     mode: 'light',
-    primary: { main: '#1976d2' },
+    primary: { main: '#1a0eac' },
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: '50px', 
+          padding: '12px 32px', 
+          textTransform: 'none',
+        },
+      },
+    },
   },
 });
 
