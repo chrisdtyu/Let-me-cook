@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Grid, TextField, Button, Typography, Box, FormControl
 } from '@mui/material';
@@ -11,10 +11,60 @@ const MainGridContainer = styled(Grid)(({ theme }) => ({
   margin: theme.spacing(4),
 }));
 
+// memoized child component with React.memo
+const TriedRecipesList = React.memo(function TriedRecipesList({ recipes, onNavigate }) {
+  return (
+    <>
+      <Typography variant="h5" gutterBottom>
+        Tried Recipes
+      </Typography>
+      {recipes.length === 0 ? (
+        <Typography>No tried recipes yet.</Typography>
+      ) : (
+        recipes.map((r) => (
+          <Box key={r.recipe_id} sx={{ marginBottom: 1 }}>
+            <Typography
+              sx={{ textDecoration: 'underline', cursor: 'pointer', color: 'blue' }}
+              onClick={() => onNavigate(r.recipe_id)}
+            >
+              {r.name}
+            </Typography>
+          </Box>
+        ))
+      )}
+    </>
+  );
+});
+
+// memoized child component with React.memo
+const FavouriteRecipesList = React.memo(function FavouriteRecipesList({ recipes }) {
+  return (
+    <>
+      <Typography variant="h5" sx={{ mt: 3 }}>
+        Favourite Recipes
+      </Typography>
+      {recipes.length === 0 ? (
+        <Typography>No favourite recipes yet.</Typography>
+      ) : (
+        recipes.map((r) => (
+          <Box key={r.recipe_id} sx={{ marginBottom: 1 }}>
+            <a
+              href={'/Recipe/' + r.recipe_id}
+              style={{ textDecoration: 'underline', cursor: 'pointer', color: 'blue' }}
+            >
+              {r.name}
+            </a>
+          </Box>
+        ))
+      )}
+    </>
+  );
+});
+
 const Profile = () => {
   const navigate = useNavigate();
 
-  const [profile, setProfile] = useState({
+  const [profile, setProfile] = React.useState({
     firebase_uid: '',
     firstName: '',
     lastName: '',
@@ -26,22 +76,22 @@ const Profile = () => {
     weeklyBudget: '',
   });
 
-  const [dietaryPreferencesList, setDietaryPreferencesList] = useState([]);
-  const [dietaryRestrictionsList, setDietaryRestrictionsList] = useState([]);
-  const [ingredientsList, setIngredientsList] = useState([]);
-  const [goalsList, setGoalsList] = useState([]);
+  const [dietaryPreferencesList, setDietaryPreferencesList] = React.useState([]);
+  const [dietaryRestrictionsList, setDietaryRestrictionsList] = React.useState([]);
+  const [ingredientsList, setIngredientsList] = React.useState([]);
+  const [goalsList, setGoalsList] = React.useState([]);
 
-  const [triedRecipes, setTriedRecipes] = useState([]);
-  const [favRecipes, setFavRecipes] = useState([]);
+  const [triedRecipes, setTriedRecipes] = React.useState([]);
+  const [favRecipes, setFavRecipes] = React.useState([]);
 
-  useEffect(() => {
+  // Fetch user info, recipes, profile details, and lists
+  React.useEffect(() => {
     const firebaseUid = localStorage.getItem('firebase_uid');
     if (!firebaseUid) {
       alert('You must log in first!');
       navigate('/Login');
       return;
     }
-
 
     fetch('/api/getUser', {
       method: 'POST',
@@ -85,7 +135,6 @@ const Profile = () => {
       })
       .catch((err) => console.error('Error fetching user:', err));
 
-
     fetch('/api/getUserProfile', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -109,7 +158,6 @@ const Profile = () => {
       })
       .catch((err) => console.error('Error fetching full user profile:', err));
 
-
     fetch('/api/getDietaryPreferences')
       .then((res) => res.json())
       .then((data) => setDietaryPreferencesList(data))
@@ -132,19 +180,32 @@ const Profile = () => {
 
   }, [navigate]);
 
-  const selectedPreferenceObjects = dietaryPreferencesList.filter((p) =>
-    profile.dietaryPreferences.includes(p.preference_id)
-  );
-  const selectedRestrictionObjects = dietaryRestrictionsList.filter((dr) =>
-    profile.dietaryRestrictions.some((sel) => sel.dietary_id === dr.dietary_id)
-  );
-  const selectedIngredientObjects = ingredientsList.filter((ing) =>
-    profile.alwaysAvailable.some((sel) => sel.ingredient_id === ing.ingredient_id)
-  );
-  const selectedGoalObjects = goalsList.filter((g) =>
-    profile.healthGoals.includes(g.goal_id)
-  );
+  // memoized filter operations
+  const selectedPreferenceObjects = React.useMemo(() => {
+    return dietaryPreferencesList.filter((p) =>
+      profile.dietaryPreferences.includes(p.preference_id)
+    );
+  }, [dietaryPreferencesList, profile.dietaryPreferences]);
 
+  const selectedRestrictionObjects = React.useMemo(() => {
+    return dietaryRestrictionsList.filter((dr) =>
+      profile.dietaryRestrictions.some((sel) => sel.dietary_id === dr.dietary_id)
+    );
+  }, [dietaryRestrictionsList, profile.dietaryRestrictions]);
+
+  const selectedIngredientObjects = React.useMemo(() => {
+    return ingredientsList.filter((ing) =>
+      profile.alwaysAvailable.some((sel) => sel.ingredient_id === ing.ingredient_id)
+    );
+  }, [ingredientsList, profile.alwaysAvailable]);
+
+  const selectedGoalObjects = React.useMemo(() => {
+    return goalsList.filter((g) =>
+      profile.healthGoals.includes(g.goal_id)
+    );
+  }, [goalsList, profile.healthGoals]);
+
+  // Save the updated profile
   const handleSubmit = async () => {
     try {
       const response = await fetch('/api/saveProfile', {
@@ -165,6 +226,14 @@ const Profile = () => {
       alert('Server error. Please try again later.');
     }
   };
+
+  // memoized callback function
+  const handleNavigate = React.useCallback(
+    (recipeId) => {
+      navigate('/Recipe/' + recipeId);
+    },
+    [navigate]
+  );
 
   return (
     <>
@@ -332,42 +401,11 @@ const Profile = () => {
           {/* right column */}
           <Grid item xs={12} md={4}>
             <Box sx={{ backgroundColor: 'white', p: 3, borderRadius: 2, boxShadow: 3 }}>
-              <Typography variant="h5" gutterBottom>
-                Tried Recipes
-              </Typography>
-              {triedRecipes.length === 0 ? (
-                <Typography>No tried recipes yet.</Typography>
-              ) : (
-                triedRecipes.map((r) => (
-                  <Box key={r.recipe_id} sx={{ marginBottom: 1 }}>
-                    <Typography
-                      sx={{ textDecoration: 'underline', cursor: 'pointer', color: 'blue' }}
-                      onClick={() => navigate('/Recipe/' + r.recipe_id)}
-                    >
-                      {r.name}
-                    </Typography>
-                  </Box>
-                ))
-              )}
+              {/* Memoized Tried Recipes */}
+              <TriedRecipesList recipes={triedRecipes} onNavigate={handleNavigate} />
 
-              <Typography variant="h5" sx={{ mt: 3 }}>
-                Favourite Recipes
-              </Typography>
-              {favRecipes.length === 0 ? (
-                <Typography>No favourite recipes yet.</Typography>
-              ) : (
-                favRecipes.map((r) => (
-                  <Box key={r.recipe_id} sx={{ marginBottom: 1 }}>
-                    <a
-                      href={'/Recipe/' + r.recipe_id}
-                      style={{ textDecoration: 'underline', cursor: 'pointer', color: 'blue' }}
-                    >
-                      {r.name}
-                    </a>
-                  </Box>
-                ))
-
-              )}
+              {/* Memoized Favourite Recipes */}
+              <FavouriteRecipesList recipes={favRecipes} />
             </Box>
           </Grid>
 
