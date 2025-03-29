@@ -7,7 +7,7 @@ import Search from '../Search';
 import Login from '../Login';
 import Profile from '../Profile';
 import Recipe from '../Recipe';
-import MyRecipes from '../Recipe/MyRecipes'; // This page combines upload & delete
+import MyRecipes from '../Recipe/MyRecipes';
 
 const theme = createTheme({
   palette: {
