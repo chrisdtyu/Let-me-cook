@@ -101,7 +101,8 @@ const Profile = () => {
         if (data.user) {
           setProfile((prev) => ({
             ...prev,
-            weeklyBudget: data.user.weekly_budget || '',
+            //weeklyBudget: data.user.weekly_budget || '',
+            weeklyBudget: localStorage.getItem('weeklySpent') === '0' ? '' : data.user.weekly_budget || '',
             dietaryPreferences: data.dietaryPreferences || [],
             dietaryRestrictions: data.dietaryRestrictions || [],
             alwaysAvailable: data.alwaysAvailable || [],
