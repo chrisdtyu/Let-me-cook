@@ -1,16 +1,15 @@
-import React, { useState } from 'react';
+import React from 'react';
 import Api from './Api';
 import RecipeView from './RecipeView';
 
 const Recipe = () => {
-    const [budgetMode, setBudgetMode] = useState(false); 
     const getRecipe = React.useCallback(async (recipe_id) => {
         try {
             // Get recipe information
             const recipe = await Api.callApiGetRecipe(recipe_id);
             setRecipe(recipe);
             // Get recipe ingredients
-            let ingredients = await Api.callApiGetRecipeIngredients(recipe_id, budgetMode);
+            let ingredients = await Api.callApiGetRecipeIngredients(recipe_id);
             // Append "*" to required ingredients
             ingredients = ingredients.map(ingredient => ({
                 ...ingredient,
@@ -20,13 +19,13 @@ const Recipe = () => {
         } catch (error) {
             console.error("Error fetching recipe:", error);
         }
-    }, [budgetMode]);
+    }, []);
 
     const [recipe, setRecipe] = React.useState({});
     const [ingredients, setIngredients] = React.useState([]);
 
     return (
-        <RecipeView getRecipe={getRecipe} recipe={recipe} ingredients={ingredients} budgetMode={budgetMode}/>
+        <RecipeView getRecipe={getRecipe} recipe={recipe} ingredients={ingredients} />
     )
 }
 
