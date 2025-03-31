@@ -12,6 +12,7 @@ const MainGridContainer = styled(Grid)(({ theme }) => ({
   margin: theme.spacing(4),
 }));
 
+// memoized child component with React.memo
 const TriedRecipesList = React.memo(function TriedRecipesList({ recipes, onNavigate }) {
   return (
     <>
@@ -36,6 +37,7 @@ const TriedRecipesList = React.memo(function TriedRecipesList({ recipes, onNavig
   );
 });
 
+// memoized child component with React.memo
 const FavouriteRecipesList = React.memo(function FavouriteRecipesList({ recipes }) {
   return (
     <>
@@ -198,6 +200,7 @@ const Profile = () => {
 
   }, [navigate]);
 
+  // memoized filter operations
   const selectedPreferenceObjects = React.useMemo(() => {
     return dietaryPreferencesList.filter((p) =>
       profile.dietaryPreferences.includes(p.preference_id)
@@ -216,6 +219,7 @@ const Profile = () => {
     );
   }, [goalsList, profile.healthGoals]);
 
+  // handleSubmit
   const handleSubmit = async () => {
     const ingredientErrors = profile.alwaysAvailable.map(item => !item.ingredient_name);
     setDidSubmitErrors(ingredientErrors);
@@ -276,6 +280,7 @@ const Profile = () => {
         }}
       >
         <Grid container spacing={2} sx={{ width: '90%', maxWidth: 1200 }}>
+          {/* left column */}
           <Grid item xs={12} md={8}>
             <Box sx={{ backgroundColor: 'white', p: 3, borderRadius: 2, boxShadow: 3 }}>
               <Typography variant="h4" textAlign="center" gutterBottom>
@@ -283,6 +288,7 @@ const Profile = () => {
               </Typography>
 
               <Grid container spacing={2}>
+                {/* name/email */}
                 <Grid item xs={6}>
                   <TextField
                     fullWidth
@@ -308,6 +314,7 @@ const Profile = () => {
                   />
                 </Grid>
 
+                {/* dietary preferences */}
                 <Grid item xs={12}>
                   <FormControl fullWidth>
                     <Autocomplete
@@ -329,6 +336,7 @@ const Profile = () => {
                   </FormControl>
                 </Grid>
 
+                {/* dietary restrictions */}
                 <Grid item xs={12}>
                   <FormControl fullWidth>
                     <Autocomplete
@@ -350,6 +358,7 @@ const Profile = () => {
                   </FormControl>
                 </Grid>
 
+                {/* Always Available Ingredients */}
                 <Grid item xs={12}>
                   <Typography variant="h6" gutterBottom>
                     Always Available Ingredients
@@ -389,6 +398,7 @@ const Profile = () => {
                           sx={{ width: 220 }}
                         />
 
+                        {/* storing expiry date */}
                         <TextField
                           label="Expiration Date"
                           type="date"
@@ -438,6 +448,7 @@ const Profile = () => {
                   </Button>
                 </Grid>
 
+                {/* healthGoals */}
                 <Grid item xs={12}>
                   <FormControl fullWidth>
                     <Autocomplete
@@ -459,6 +470,7 @@ const Profile = () => {
                   </FormControl>
                 </Grid>
 
+                {/* weeklyBudget */}
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
@@ -470,6 +482,7 @@ const Profile = () => {
                   />
                 </Grid>
 
+                {/* Update Button */}
                 <Grid item xs={12}>
                   <Button
                     fullWidth
@@ -484,9 +497,13 @@ const Profile = () => {
             </Box>
           </Grid>
 
+          {/* right column */}
           <Grid item xs={12} md={4}>
             <Box sx={{ backgroundColor: 'white', p: 3, borderRadius: 2, boxShadow: 3 }}>
+              {/* Memoized Tried Recipes */}
               <TriedRecipesList recipes={triedRecipes} onNavigate={handleNavigate} />
+
+              {/* Memoized Favourite Recipes */}
               <FavouriteRecipesList recipes={favRecipes} />
             </Box>
 
@@ -508,7 +525,6 @@ const Profile = () => {
                 </Typography>
               )}
             </Box>
-
           </Grid>
         </Grid>
       </Box>
