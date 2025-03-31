@@ -9,11 +9,14 @@ import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
+import Button from '@mui/material/Button';
 import Api from './Api';
 import LetmecookAppBar from '../AppBar';
 import ReviewList from '../ReviewList';
 import Review from '../Review';
 import Note from '../Notes/Notes';
+import PriceDisplay from '../Budget/PriceDisplay';
+import { useBudget } from '../Budget/BudgetContext';
 
 const MainGridContainer = styled(Grid)(({ theme }) => ({
   margin: theme.spacing(4),
@@ -38,6 +41,30 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
   const [sliderMax, setSliderMax] = useState(5);
   const [userId, setUserId] = useState(null);
   const [userData, setUserData] = useState(null);
+  const { budgetMode, weeklySpent, addedRecipes, addMealCost, } = useBudget();
+
+  const calculateTotalCost = () => {
+    if (!ingredients || ingredients.length === 0) return 0;
+    if (!userData || !userData.alwaysAvailable || !Array.isArray(userData.alwaysAvailable)) {
+      return ingredients.reduce((sum, ing) => sum + (ing.price || 0), 0).toFixed(2);
+    }
+  
+    // exclude always available ingredients from the profile
+    //const availableIds = userData.alwaysAvailable.map(item => item.ingredient_id);
+    const availableIds = userData?.alwaysAvailable?.map(i => i.ingredient_id) || [];
+
+
+    let total = 0;
+    ingredients.forEach((ing) => {
+      if (!availableIds.includes(ing.ingredient_id)) {
+        if (ing.price && !isNaN(ing.price)) {
+          total += parseFloat(ing.price);
+        }
+      }
+    });
+  
+    return total
+  };
 
   // Note submission state
   const [noteSubmittedFlag, setNoteSubmittedFlag] = useState(false);
@@ -78,8 +105,14 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
 
   const fetchUserData = async (userId) => {
     try {
-      const response = await Api.get(`/user/${userId}`);
-      setUserData(response.data);
+      const firebaseUid = localStorage.getItem('firebase_uid');
+      const response = await fetch('/api/getUserProfile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ firebase_uid: firebaseUid }),
+      });
+      const data = await response.json();
+      setUserData(data.user);
     } catch (error) {
       console.error("Error fetching user data:", error);
     }
@@ -134,6 +167,26 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
           Category: {recipe.category} | Type: {recipe.type}
         </Typography>
         <Typography variant="h6">Time: {recipe.prep_time} mins</Typography>
+        {budgetMode && (
+          <>
+            <Typography variant="h6">
+              Estimated Total Cost: ${calculateTotalCost()}
+            </Typography>
+
+            <Button
+              variant="contained"
+              color="primary"
+              sx={{ mt: 2 }}
+              onClick={() => {
+                const total = calculateTotalCost();
+                addMealCost(recipe.recipe_id, total);
+              }}
+            >
+              Add to This Week's Meals
+            </Button>
+          </>
+        )}
+
         <Typography variant="h5" sx={{ mt: 2 }}>
           <b>Ingredients:</b>
         </Typography>
@@ -161,6 +214,11 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
             return (
               <li key={ing.ingredient_id}>
                 {formattedQuantity} {ing.quantity_type ? ing.quantity_type + ' ' : ''}{ing.name} {ing.required === 1 ? '*' : ''}
+                <PriceDisplay 
+                  price={ing.price}
+                  ingredientId={ing.ingredient_id}
+                  alwaysAvailable={userData?.alwaysAvailable?.map(item => item.ingredient_id)}
+                />
               </li>
             );
           })}
@@ -230,6 +288,7 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
             <Typography variant="body1">Email: {userData.email}</Typography>
           </Box>
         )}
+
         {userId && <Review recipeId={id} reviewSubmitted={() => { }} userId={userId} />}
         <ReviewList recipeId={id} />
       </MainGridContainer>

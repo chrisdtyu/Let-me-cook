@@ -10,6 +10,7 @@ import Chip from '@mui/material/Chip';
 import Autocomplete from '@mui/material/Autocomplete';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
+import { useBudget } from '../Budget/BudgetContext';
 
 const Search = () => {
     const navigate = useNavigate();
@@ -24,7 +25,8 @@ const Search = () => {
     const [selectedCategories, setSelectedCategories] = useState([]);
 
     const [maxTime, setMaxTime] = useState('');
-    const [budgetMode, setBudgetMode] = useState(false);
+
+    const {budgetMode, toggleBudgetMode} = useBudget();
 
     const [recipes, setRecipes] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -372,42 +374,88 @@ const Search = () => {
                     >
                         {loading ? <CircularProgress size={24} /> : "Find Recipes"}
                     </Button>
+                <Typography variant="body2">
+                    <strong>Filters:</strong>
+                </Typography>
+                <Autocomplete
+                    multiple
+                    options={allCuisines}
+                    value={selectedCuisines}
+                    onChange={(event, newValue) => handleMultiSelectChange(event, newValue, "cuisines")}
+                    renderInput={(params) => <TextField {...params} label="Cuisines" />}
+                    sx={{ width: 400, marginBottom: 2 }}
+                />
+                <Autocomplete
+                    multiple
+                    options={allCategories}
+                    value={selectedCategories}
+                    onChange={(event, newValue) => handleMultiSelectChange(event, newValue, "categories")}
+                    renderInput={(params) => <TextField {...params} label="Categories" />}
+                    sx={{ width: 400, marginBottom: 2 }}
+                />
 
-                    {/* Error Message */}
-                    {error && <Typography color="error">{error}</Typography>}
+                <TextField
+                    label="Max Time (minutes)"
+                    variant="outlined"
+                    type="number"
+                    value={maxTime}
+                    onChange={(e) => setMaxTime(e.target.value)}
+                    sx={{ width: 400, marginBottom: 2 }}
+                />
 
-                    {/* Sort By Option */}
-                    <TextField
-                        select
-                        label="Sort By"
-                        value={selectedSortOption}
-                        onChange={(e) => setSelectedSortOption(e.target.value)}
-                        SelectProps={{
-                            native: true,
-                        }}
-                        sx={{ width: 400, marginBottom: 2 }}
-                    >
-                        <option value="none">None</option>
-                        <option value="missingIngredients">Number of Missing Ingredients</option>
-                        <option value="time">Preparation Time</option>
-                    </TextField>
+                {/* Budget Mode Toggle */}
+                <Button
+                    variant="contained"
+                    color="secondary"
+                    onClick={toggleBudgetMode}
+                    sx={{ marginBottom: 2 }}
+                >
+                    {budgetMode ? "Disable Budget Mode" : "Enable Budget Mode"}
+                </Button>
 
-                    {/* Sort Order Option */}
-                    <TextField
-                        select
-                        label="Sort Order"
-                        value={selectedSortOrder}
-                        onChange={(e) => setSelectedSortOrder(e.target.value)}
-                        SelectProps={{
-                            native: true,
-                        }}
-                        sx={{ width: 400, marginBottom: 2 }}
-                    >
-                        <option value="ascending">Ascending</option>
-                        <option value="descending">Descending</option>
-                    </TextField>
-                </Box>
+                {/* Search Button */}
+                <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={handleSearch}
+                    sx={{ marginBottom: 2 }}
+                >
+                    {loading ? <CircularProgress size={24} /> : "Find Recipes"}
+                </Button>
 
+                {/* Error Message */}
+                {error && <Typography color="error">{error}</Typography>}
+
+                {/* Sort By Option */}
+                <TextField
+                    select
+                    label="Sort By"
+                    value={selectedSortOption}
+                    onChange={(e) => setSelectedSortOption(e.target.value)}
+                    SelectProps={{
+                        native: true,
+                    }}
+                    sx={{ width: 400, marginBottom: 2 }}
+                >
+                    <option value="none">None</option>
+                    <option value="missingIngredients">Number of Missing Ingredients</option>
+                    <option value="time">Preparation Time</option>
+                </TextField>
+
+                {/* Sort Order Option */}
+                <TextField
+                    select
+                    label="Sort Order"
+                    value={selectedSortOrder}
+                    onChange={(e) => setSelectedSortOrder(e.target.value)}
+                    SelectProps={{
+                        native: true,
+                    }}
+                    sx={{ width: 400, marginBottom: 2 }}
+                >
+                    <option value="ascending">Ascending</option>
+                    <option value="descending">Descending</option>
+                </TextField>
                 {/* Recipe Results */}
                 <Box sx={{ width: '80%', marginTop: 2 }}>
                     {loading ? (
