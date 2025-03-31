@@ -13,6 +13,9 @@ const theme = createTheme({
   palette: {
     mode: 'light',
     primary: { main: '#1a0eac' },
+    background: {
+      default: '#fffbf0',  // Set the background color for pages
+    },
   },
   components: {
     MuiButton: {
