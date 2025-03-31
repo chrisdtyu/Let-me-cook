@@ -10,6 +10,8 @@ import Chip from '@mui/material/Chip';
 import Autocomplete from '@mui/material/Autocomplete';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
+import Snackbar from '@mui/material/Snackbar';
+import MuiAlert from '@mui/material/Alert';
 
 const Search = () => {
     const navigate = useNavigate();
@@ -37,6 +39,11 @@ const Search = () => {
 
     const [selectedSortOption, setSelectedSortOption] = useState("none");
     const [selectedSortOrder, setSelectedSortOrder] = useState("ascending");
+
+    const [snackbarOpen, setSnackbarOpen] = useState(false);
+    const [snackbarMessage, setSnackbarMessage] = useState('');
+    const [snackbarSeverity, setSnackbarSeverity] = useState('success'); 
+
 
     // get user data if logged in
     useEffect(() => {
@@ -182,7 +189,10 @@ const Search = () => {
                     const newSet = new Set(triedRecipes);
                     newSet.delete(recipeId);
                     setTriedRecipes(newSet);
-                    alert("Recipe unmarked as tried.");
+                    //alert("Recipe unmarked as tried.");
+                    setSnackbarMessage("Recipe unmarked as tried");
+                    setSnackbarSeverity('success');
+                    setSnackbarOpen(true);
                 }
             } else {
                 // Mark
@@ -191,7 +201,10 @@ const Search = () => {
                     const newSet = new Set(triedRecipes);
                     newSet.add(recipeId);
                     setTriedRecipes(newSet);
-                    alert("Recipe marked as tried!");
+                    //alert("Recipe marked as tried!");
+                    setSnackbarMessage("Recipe marked as tried!");
+                    setSnackbarSeverity('success');
+                    setSnackbarOpen(true);
                 }
             }
         } catch (err) {
@@ -215,7 +228,10 @@ const Search = () => {
                     const newSet = new Set(favRecipes);
                     newSet.delete(recipeId);
                     setFavRecipes(newSet);
-                    alert("Recipe unmarked as favourite.");
+                    //alert("Recipe unmarked as favourite.");
+                    setSnackbarMessage("Recipe unmarked as favourite");
+                    setSnackbarSeverity('success');
+                    setSnackbarOpen(true);
                 }
             } else {
                 // Mark
@@ -224,7 +240,10 @@ const Search = () => {
                     const newSet = new Set(favRecipes);
                     newSet.add(recipeId);
                     setFavRecipes(newSet);
-                    alert("Recipe marked as favourite!");
+                    //alert("Recipe marked as favourite!");
+                    setSnackbarMessage("Recipe marked as favourite!");
+                    setSnackbarSeverity('success');
+                    setSnackbarOpen(true);
                 }
             }
         } catch (err) {
@@ -232,6 +251,12 @@ const Search = () => {
             alert("Error toggling favourite.");
         }
     };
+
+    // Display a message for mark as tried and mark as favorite
+    const handleSnackbarClose = () => {
+        setSnackbarOpen(false);
+      };
+      
 
 
     // Sort recipes by missing ingredients and time with ascending/descending options
@@ -494,6 +519,16 @@ const Search = () => {
                     )}
                 </Box>
             </Box>
+            <Snackbar
+                open={snackbarOpen}
+                autoHideDuration={3000}
+                onClose={handleSnackbarClose}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                >
+                <MuiAlert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: '100%' }}>
+                    {snackbarMessage}
+                </MuiAlert>
+            </Snackbar>
         </>
     );
 };
