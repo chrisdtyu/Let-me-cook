@@ -12,6 +12,7 @@ import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
 import Snackbar from '@mui/material/Snackbar';
 import MuiAlert from '@mui/material/Alert';
+import { useBudget } from '../Budget/BudgetContext';
 
 const Search = () => {
     const navigate = useNavigate();
@@ -26,7 +27,7 @@ const Search = () => {
     const [selectedCategories, setSelectedCategories] = useState([]);
 
     const [maxTime, setMaxTime] = useState('');
-    const [budgetMode, setBudgetMode] = useState(false);
+    //const [budgetMode, setBudgetMode] = useState(false);
 
     const [recipes, setRecipes] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -43,6 +44,8 @@ const Search = () => {
     const [snackbarOpen, setSnackbarOpen] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState('');
     const [snackbarSeverity, setSnackbarSeverity] = useState('success'); 
+ 
+    const { budgetMode, toggleBudgetMode } = useBudget();
 
 
     // get user data if logged in
@@ -382,7 +385,7 @@ const Search = () => {
                     <Button
                         variant="contained"
                         color="secondary"
-                        onClick={() => setBudgetMode(!budgetMode)}
+                        onClick={toggleBudgetMode}
                         sx={{ marginBottom: 2 }}
                     >
                         {budgetMode ? "Disable Budget Mode" : "Enable Budget Mode"}
