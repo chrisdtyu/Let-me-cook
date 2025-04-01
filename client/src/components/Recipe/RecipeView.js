@@ -17,6 +17,8 @@ import Review from '../Review';
 import Note from '../Notes/Notes';
 import PriceDisplay from '../Budget/PriceDisplay';
 import { useBudget } from '../Budget/BudgetContext';
+import Snackbar from '@mui/material/Snackbar';
+import MuiAlert from '@mui/material/Alert';
 
 const MainGridContainer = styled(Grid)(({ theme }) => ({
   margin: theme.spacing(4),
@@ -41,6 +43,7 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
   const [sliderMax, setSliderMax] = useState(5);
   const [userId, setUserId] = useState(null);
   const [userData, setUserData] = useState(null);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
   const { budgetMode, weeklySpent, addedRecipes, addMealCost, } = useBudget();
 
   const calculateTotalCost = () => {
@@ -51,8 +54,7 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
   
     // exclude always available ingredients from the profile
     //const availableIds = userData.alwaysAvailable.map(item => item.ingredient_id);
-    const availableIds = userData?.alwaysAvailable?.map(i => i.ingredient_id) || [];
-
+  const availableIds = userData?.alwaysAvailable?.map(i => i.ingredient_id) || [];
 
     let total = 0;
     ingredients.forEach((ing) => {
@@ -135,6 +137,10 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
     }, 2000);
   };
 
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false);
+  };
+
   return (
     <>
       <LetmecookAppBar page={`Recipe: ${recipe ? recipe.name : ''}`} />
@@ -180,6 +186,7 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
               onClick={() => {
                 const total = calculateTotalCost();
                 addMealCost(recipe.recipe_id, total);
+                setSnackbarOpen(true);
               }}
             >
               Add to This Week's Meals
@@ -292,7 +299,19 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
         {userId && <Review recipeId={id} reviewSubmitted={() => { }} userId={userId} />}
         <ReviewList recipeId={id} />
       </MainGridContainer>
+
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <MuiAlert onClose={handleSnackbarClose} severity="success" sx={{ width: '100%' }}>
+          Meal added to your weekly budget tracker!
+        </MuiAlert>
+      </Snackbar>
     </>
+    
   );
 };
 

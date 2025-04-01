@@ -19,23 +19,31 @@ export const BudgetProvider = ({ children }) => {
   // Weekly budget Reset
   useEffect(() => {
     const today = new Date();
-    const dayOfWeek = today.getDay(); 
     const storedResetDate = localStorage.getItem('lastResetDate');
-  
     const todayStr = today.toISOString().split('T')[0];
   
-    if (dayOfWeek === 0 && storedResetDate !== todayStr) {
+    const getWeekNumber = (date) => {
+      const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+      const dayNum = d.getUTCDay() || 7;
+      d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+      const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+      return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    };
+  
+    const currentWeek = getWeekNumber(today);
+    const lastResetWeek = storedResetDate ? getWeekNumber(new Date(storedResetDate)) : null;
+  
+    if (storedResetDate === null || currentWeek !== lastResetWeek) {
       console.log("Resetting weekly budget for new week");
   
       setWeeklySpent(0);
       setAddedRecipes([]);
       localStorage.setItem('weeklySpent', '0');
       localStorage.setItem('lastResetDate', todayStr);
-
+  
       alert("It's a new week! Please update your weekly budget in your profile.");
     }
   }, []);
-
 
   return (
     <BudgetContext.Provider 
