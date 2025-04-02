@@ -89,7 +89,6 @@ callApiUploadRecipe: async (recipeData) => {
         console.error("Error uploading recipe:", err);
     }
 },
-
 };
 
 export default Api;

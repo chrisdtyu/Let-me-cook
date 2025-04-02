@@ -453,7 +453,8 @@ app.post('/api/recommendRecipes', (req, res) => {
             GROUP_CONCAT(i.name) AS recipe_ingredients, 
             GROUP_CONCAT(i.price) AS ingredient_prices,
             COUNT(ri.ingredient_id) AS total_ingredients,
-            SUM(CASE WHEN i.name NOT IN (${ingredients_placeholders}) THEN 1 ELSE 0 END) AS missing_ingredients
+            SUM(CASE WHEN i.name NOT IN (${ingredients_placeholders}) THEN 1 ELSE 0 END) AS missing_ingredients,
+            (SELECT AVG(review_score) FROM reviews re WHERE re.recipe_id = r.recipe_id) AS average_rating
         FROM recipes r
         JOIN recipe_ingredients ri ON r.recipe_id = ri.recipe_id
         JOIN ingredients i ON ri.ingredient_id = i.ingredient_id
@@ -693,7 +694,8 @@ app.post('/api/addReview', (req, res) => {
 app.post('/api/addNote', (req, res) => {
     let connection6 = mysql.createConnection(config);
     let noteData = req.body;
-    let sql = `INSERT INTO notes (user_id, recipe_id, note) VALUES (?, ?, ?);`;
+    let sql = `INSERT INTO notes (user_id, recipe_id, note) VALUES (?, ?, ?)
+    ON DUPLICATE KEY UPDATE note = VALUES(note);`;
 
     let data = [noteData.user_id, noteData.recipe_id, noteData.note];
 

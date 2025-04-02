@@ -435,6 +435,9 @@ const Search = () => {
                                 <Typography variant="body2"><strong>Category:</strong> {recipe.category}</Typography>
                                 <Typography variant="body2"><strong>Time:</strong> {recipe.prep_time} mins</Typography>
                                 <Typography variant="body2">
+                                        <strong>Average Rating: </strong>{recipe.average_rating ? `⭐ ${recipe.average_rating.toFixed(1)}` : "N/A"}
+                                </Typography>
+                                <Typography variant="body2">
                                     <strong>Instructions:</strong> {recipe.instructions.slice(0, 100)}...
                                 </Typography>
 
