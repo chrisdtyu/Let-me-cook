@@ -22,25 +22,28 @@ export const BudgetProvider = ({ children }) => {
     const storedResetDate = localStorage.getItem('lastResetDate');
     const todayStr = today.toISOString().split('T')[0];
   
-    const getWeekNumber = (date) => {
-      const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-      const dayNum = d.getUTCDay() || 7;
-      d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-      const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-      return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    const getLastSunday = (date) => {
+      const day = date.getDay(); 
+      const diff = date.getDate() - day;
+      return new Date(date.setDate(diff));
     };
   
-    const currentWeek = getWeekNumber(today);
-    const lastResetWeek = storedResetDate ? getWeekNumber(new Date(storedResetDate)) : null;
+    const lastSunday = getLastSunday(new Date());
+    const lastSundayStr = lastSunday.toISOString().split('T')[0];
+
+    const hasResetThisWeek = storedResetDate === lastSundayStr;
   
-    if (storedResetDate === null || currentWeek !== lastResetWeek) {
+    const isSunday = today.getDay() === 0;
+    const isAfterSunday = today.getDay() > 0;
+
+    if ((isSunday || isAfterSunday) && !hasResetThisWeek) {
       console.log("Resetting weekly budget for new week");
-  
+
       setWeeklySpent(0);
       setAddedRecipes([]);
       localStorage.setItem('weeklySpent', '0');
-      localStorage.setItem('lastResetDate', todayStr);
-  
+      localStorage.setItem('lastResetDate', lastSundayStr);
+
       alert("It's a new week! Please update your weekly budget in your profile.");
     }
   }, []);
