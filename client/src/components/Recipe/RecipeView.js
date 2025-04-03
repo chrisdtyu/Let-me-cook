@@ -44,29 +44,7 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
   const [userId, setUserId] = useState(null);
   const [userData, setUserData] = useState(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const { budgetMode, weeklySpent, addedRecipes, addMealCost, } = useBudget();
-
-  const calculateTotalCost = () => {
-    if (!ingredients || ingredients.length === 0) return 0;
-    if (!userData || !userData.alwaysAvailable || !Array.isArray(userData.alwaysAvailable)) {
-      return ingredients.reduce((sum, ing) => sum + (ing.price || 0), 0).toFixed(2);
-    }
-  
-    // exclude always available ingredients from the profile
-    //const availableIds = userData.alwaysAvailable.map(item => item.ingredient_id);
-  const availableIds = userData?.alwaysAvailable?.map(i => i.ingredient_id) || [];
-
-    let total = 0;
-    ingredients.forEach((ing) => {
-      if (!availableIds.includes(ing.ingredient_id)) {
-        if (ing.price && !isNaN(ing.price)) {
-          total += parseFloat(ing.price);
-        }
-      }
-    });
-  
-    return total
-  };
+  const { budgetMode, weeklySpent, addedRecipes, addMealCost } = useBudget();
 
   // Note submission state
   const [noteSubmittedFlag, setNoteSubmittedFlag] = useState(false);
@@ -74,6 +52,10 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
   useEffect(() => {
     getRecipe(id);
   }, [id, getRecipe]);
+
+  useEffect(() => {
+    console.log("Loaded recipe:", recipe);
+  }, [recipe]);
 
   useEffect(() => {
     if (ingredients.length > 0) {
@@ -176,17 +158,17 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
         {budgetMode && (
           <>
             <Typography variant="h6">
-              Estimated Total Cost: ${calculateTotalCost()}
+              Estimated Total Cost: {recipe.estimated_cost ? `$${recipe.estimated_cost.toFixed(2)}` : 'N/A'}
             </Typography>
-
             <Button
               variant="contained"
               color="primary"
               sx={{ mt: 2 }}
               onClick={() => {
-                const total = calculateTotalCost();
-                addMealCost(recipe.recipe_id, total);
-                setSnackbarOpen(true);
+                if (recipe.estimated_cost) {
+                  addMealCost(recipe.recipe_id, recipe.estimated_cost);
+                  setSnackbarOpen(true);
+                }                
               }}
             >
               Add to This Week's Meals

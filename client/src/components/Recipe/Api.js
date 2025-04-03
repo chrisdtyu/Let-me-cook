@@ -3,7 +3,8 @@ import fetch from 'node-fetch';
 const Api = {
     callApiGetRecipe: async (recipeId) => {
         try {
-            const response = await fetch(`/api/getRecipe?id=${recipeId}`);
+            const firebaseUid = localStorage.getItem('firebase_uid');
+            const response = await fetch(`/api/getRecipe?id=${recipeId}&uid = ${firebaseUid}`);
             const body = await response.json();
             if (response.status !== 200) throw Error(body.message);
             return body;
