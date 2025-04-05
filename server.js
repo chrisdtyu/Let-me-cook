@@ -449,7 +449,7 @@ app.post('/api/recommendRecipes', (req, res) => {
     }
 
     let query = `
-        SELECT r.recipe_id, r.name, r.type, r.category, r.prep_time, r.instructions, 
+        SELECT r.recipe_id, r.name, r.type, r.category, r.prep_time, r.instructions, r.image, 
             GROUP_CONCAT(i.name) AS recipe_ingredients, 
             GROUP_CONCAT(i.price) AS ingredient_prices,
             COUNT(ri.ingredient_id) AS total_ingredients,
