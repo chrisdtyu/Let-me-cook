@@ -275,7 +275,7 @@ const Profile = () => {
           justifyContent: 'center',
           alignItems: 'flex-start',
           minHeight: '100vh',
-          backgroundColor: '#f4f4f4',
+          backgroundColor: '#fffbf0',
           paddingTop: 4,
         }}
       >
