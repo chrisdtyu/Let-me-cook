@@ -462,7 +462,7 @@ app.post('/api/recommendRecipes', (req, res) => {
         ${budgetMode ? 'AND i.price IS NOT NULL' : ''}
         GROUP BY r.recipe_id
         ORDER BY missing_ingredients ASC, total_ingredients DESC
-        LIMIT 10
+        LIMIT 15
     `;
     let data = [...ingredients, ...cuisines, ...categories];
     if (maxTime) {
