@@ -43,8 +43,8 @@ const Search = () => {
 
     const [snackbarOpen, setSnackbarOpen] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState('');
-    const [snackbarSeverity, setSnackbarSeverity] = useState('success'); 
- 
+    const [snackbarSeverity, setSnackbarSeverity] = useState('success');
+
     const { budgetMode, toggleBudgetMode } = useBudget();
 
 
@@ -176,7 +176,7 @@ const Search = () => {
         }
     };
 
-    
+
     // Toggle "Mark as Tried" / "Unmark Tried"
     const handleToggleTried = async (recipeId) => {
         if (!isUserLoggedIn || !userId) {
@@ -258,15 +258,15 @@ const Search = () => {
     // Display a message for mark as tried and mark as favorite
     const handleSnackbarClose = () => {
         setSnackbarOpen(false);
-      };
-      
+    };
+
 
 
     // Sort recipes by missing ingredients, time, and rating with ascending/descending options
     const sortRecipes = (recipes) => {
         let sortedRecipes = [...recipes];
         const isAscending = selectedSortOrder === "ascending";
-    
+
         if (selectedSortOption === "missingIngredients") {
             sortedRecipes.sort((a, b) =>
                 isAscending
@@ -288,10 +288,10 @@ const Search = () => {
                     : ratingB - ratingA;
             });
         }
-    
+
         return sortedRecipes;
     };
-    
+
     return (
         <>
             <LetmecookAppBar page="Search" />
@@ -459,80 +459,79 @@ const Search = () => {
                                     padding: 2,
                                     marginBottom: 2,
                                     borderRadius: '8px',
-                                    backgroundColor: '#fff'
+                                    backgroundImage: `url(${recipe.image || 'https://via.placeholder.com/150?text=No+Image'})`,
+                                    backgroundSize: 'cover',
+                                    backgroundPosition: 'center',
+                                    minHeight: 250, // to ensure the box has enough height
                                 }}
                             >
-                                <Typography variant="h6">
-                                    <Link onClick={() => navigate('/Recipe/' + recipe.recipe_id)}>
-                                        {recipe.name}
-                                    </Link>
-                                </Typography>
-                                <Typography variant="body2"><strong>Type:</strong> {recipe.type}</Typography>
-                                <Typography variant="body2"><strong>Category:</strong> {recipe.category}</Typography>
-                                <Typography variant="body2"><strong>Time:</strong> {recipe.prep_time} mins</Typography>
-                                {budgetMode && recipe.estimated_cost && (
-                                    <Typography variant="body2">
-                                        <strong>Estimated Cost:</strong> ${(recipe.estimated_cost)}
+                                <Box sx={{
+                                    backgroundColor: 'rgba(255, 255, 255, 0.8)', // semi-transparent white background for text
+                                    borderRadius: '8px',
+                                    padding: 2,
+                                }}>
+                                    <Typography variant="h6">
+                                        <Link onClick={() => navigate('/Recipe/' + recipe.recipe_id)}>
+                                            {recipe.name}
+                                        </Link>
                                     </Typography>
-                                )}
-                                <Typography variant="body2">
-                                        <strong>Average Rating: </strong>{recipe.average_rating ? `⭐ ${recipe.average_rating.toFixed(1)}` : "N/A"}
-                                </Typography>
-                                <Typography variant="body2">
-                                    <strong>Instructions:</strong> {recipe.instructions.slice(0, 100)}...
-                                </Typography>
-
-                                
-                                {/* If the recipe has an image, display it */}
-                                {recipe.image && (
-                                    <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
-                                        <img
-                                            src={recipe.image}
-                                            alt="Recipe"
-                                            style={{ width: '50%', borderRadius: 8 }}
-                                        />
-                                    </Box>
-                                )}
-
-                                {/* Missing Ingredients */}
-                                {recipe.missingIngredients?.length > 0 && (
-                                    <>
-                                        <Typography variant="body2" sx={{ color: "red", marginTop: 1 }}>
-                                            Missing Ingredients ({recipe.missingIngredients.length}):
+                                    <Typography variant="body2"><strong>Type:</strong> {recipe.type}</Typography>
+                                    <Typography variant="body2"><strong>Category:</strong> {recipe.category}</Typography>
+                                    <Typography variant="body2"><strong>Time:</strong> {recipe.prep_time} mins</Typography>
+                                    {budgetMode && recipe.estimated_cost && (
+                                        <Typography variant="body2">
+                                            <strong>Estimated Cost:</strong> ${recipe.estimated_cost}
                                         </Typography>
-                                        {recipe.missingIngredients.map(missing => (
-                                            <Typography key={missing.name} variant="body2">
-                                                {missing.name}{" "}
-                                                {budgetMode && missing.suggestedSubstitute
-                                                    ? `(Suggested: ${missing.suggestedSubstitute}, $${missing.estimatedCost})`
-                                                    : ""}
-                                            </Typography>
-                                        ))}
-                                    </>
-                                )}
+                                    )}
+                                    <Typography variant="body2">
+                                        <strong>Average Rating:</strong>{' '}
+                                        {recipe.average_rating ? `⭐ ${recipe.average_rating.toFixed(1)}` : 'N/A'}
+                                    </Typography>
 
-                                {/* Mark/Unmark Tried & Favourite Buttons - moved to right side */}
-                                {/* Mark/Unmark Tried & Favourite Buttons */}
-                                {isUserLoggedIn && userId && (
-                                    <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-                                        <Button
-                                            variant="outlined"
-                                            onClick={() => handleToggleTried(recipe.recipe_id)}
-                                        >
-                                            {triedRecipes.has(recipe.recipe_id)
-                                                ? "Unmark Tried"
-                                                : "Mark as Tried"}
-                                        </Button>
-                                        <Button
-                                            variant="outlined"
-                                            onClick={() => handleToggleFavourite(recipe.recipe_id)}
-                                        >
-                                            {favRecipes.has(recipe.recipe_id)
-                                                ? "Unmark Favourite"
-                                                : "Mark as Favourite"}
-                                        </Button>
-                                    </Box>
-                                )}
+                                    {/* Missing Ingredients */}
+                                    {recipe.missingIngredients?.length > 0 && (
+                                        <>
+                                            <Typography variant="body2" sx={{ color: 'red', marginTop: 1 }}>
+                                                Missing Ingredients ({recipe.missingIngredients.length}):
+                                            </Typography>
+                                            {recipe.missingIngredients.map(missing => (
+                                                <Typography key={missing.name} variant="body2">
+                                                    {missing.name}
+                                                    {budgetMode && missing.suggestedSubstitute
+                                                        ? ` (Suggested: ${missing.suggestedSubstitute}, $${missing.estimatedCost})`
+                                                        : ''}
+                                                </Typography>
+                                            ))}
+                                        </>
+                                    )}
+                                    {recipe.missingIngredients?.length == 0 && (
+                                        <>
+                                            <Typography variant="body2" sx={{ color: 'green', marginTop: 1 }}>
+                                                <b>You have all ingredients, get cooking!</b>
+                                            </Typography>
+                                        </>
+                                    )}
+
+                                    {/* Tried & Favourite Buttons */}
+                                    {isUserLoggedIn && userId && (
+                                        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+                                            <Button
+                                                variant="outlined"
+                                                onClick={() => handleToggleTried(recipe.recipe_id)}
+                                            >
+                                                {triedRecipes.has(recipe.recipe_id) ? 'Unmark Tried' : 'Mark as Tried'}
+                                            </Button>
+                                            <Button
+                                                variant="outlined"
+                                                onClick={() => handleToggleFavourite(recipe.recipe_id)}
+                                            >
+                                                {favRecipes.has(recipe.recipe_id)
+                                                    ? 'Unmark Favourite'
+                                                    : 'Mark as Favourite'}
+                                            </Button>
+                                        </Box>
+                                    )}
+                                </Box>
                             </Box>
                         ))
                     )}
@@ -543,7 +542,7 @@ const Search = () => {
                 autoHideDuration={3000}
                 onClose={handleSnackbarClose}
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-                >
+            >
                 <MuiAlert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: '100%' }}>
                     {snackbarMessage}
                 </MuiAlert>
