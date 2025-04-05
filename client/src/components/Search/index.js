@@ -262,29 +262,36 @@ const Search = () => {
       
 
 
-    // Sort recipes by missing ingredients and time with ascending/descending options
+    // Sort recipes by missing ingredients, time, and rating with ascending/descending options
     const sortRecipes = (recipes) => {
         let sortedRecipes = [...recipes];
-
         const isAscending = selectedSortOrder === "ascending";
-
+    
         if (selectedSortOption === "missingIngredients") {
-            sortedRecipes = sortedRecipes.sort((a, b) => {
-                return isAscending
+            sortedRecipes.sort((a, b) =>
+                isAscending
                     ? a.missingIngredients.length - b.missingIngredients.length
-                    : b.missingIngredients.length - a.missingIngredients.length;
-            });
+                    : b.missingIngredients.length - a.missingIngredients.length
+            );
         } else if (selectedSortOption === "time") {
-            sortedRecipes = sortedRecipes.sort((a, b) => {
-                return isAscending
+            sortedRecipes.sort((a, b) =>
+                isAscending
                     ? a.prep_time - b.prep_time
-                    : b.prep_time - a.prep_time;
+                    : b.prep_time - a.prep_time
+            );
+        } else if (selectedSortOption === "rating") {
+            sortedRecipes.sort((a, b) => {
+                const ratingA = a.average_rating ?? 0;
+                const ratingB = b.average_rating ?? 0;
+                return isAscending
+                    ? ratingA - ratingB
+                    : ratingB - ratingA;
             });
         }
-
+    
         return sortedRecipes;
     };
-
+    
     return (
         <>
             <LetmecookAppBar page="Search" />
@@ -418,6 +425,7 @@ const Search = () => {
                         <option value="none">None</option>
                         <option value="missingIngredients">Number of Missing Ingredients</option>
                         <option value="time">Preparation Time</option>
+                        <option value="rating">Rating</option>
                     </TextField>
 
                     {/* Sort Order Option */}
