@@ -8,7 +8,7 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import { styled } from '@mui/material/styles';
-import Review from '../Review';
+import Review from '../ReviewForm';
 
 const MainGridContainer = styled(Grid)(({ theme }) => ({
   margin: theme.spacing(4),
@@ -25,6 +25,20 @@ const ReviewList = ({ recipeId, reviews, averageRating, getReviews }) => {
   // Close Review Dialog
   const handleReviewDialogClose = () => {
     setIsReviewDialogOpen(false);
+
+    // Return a promise that waits for reviews to be fetched
+    new Promise((resolve, reject) => {
+      getReviews(recipeId)  // Pass the recipeId to fetch reviews
+        .then(() => resolve())  // Resolves once the reviews are updated
+        .catch((error) => reject(error));  // Reject if error occurs
+    })
+    .then(() => {
+      // Handle further actions after reviews have been updated
+      console.log("Reviews have been successfully updated.");
+    })
+    .catch((error) => {
+      console.error("Failed to fetch reviews:", error);
+    });
   };
 
   return (
@@ -77,6 +91,7 @@ const ReviewList = ({ recipeId, reviews, averageRating, getReviews }) => {
     </MainGridContainer>
   );
 };
+
 
 const Item = ({ item }) => {
   return (

@@ -2,7 +2,7 @@ import React from 'react';
 import Api from './Api';
 import ReviewList from './ReviewList';
 
-const Review = ({ recipeId }) => {
+const ReviewContainer = ({ recipeId }) => {
     const [reviews, setReviews] = React.useState([]);
     const [averageRating, setAverageRating] = React.useState(null);
 
@@ -23,12 +23,12 @@ const Review = ({ recipeId }) => {
 
     return (
         <ReviewList 
-            getReviews={getReviews} 
+            recipeId={recipeId} 
             reviews={reviews} 
             averageRating={averageRating} 
-            recipeId={recipeId} 
+            getReviews={() => getReviews(recipeId)}
         />
     );
 }
 
-export default Review;
+export default ReviewContainer;
