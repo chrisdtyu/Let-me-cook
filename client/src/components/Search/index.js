@@ -27,7 +27,6 @@ const Search = () => {
     const [selectedCategories, setSelectedCategories] = useState([]);
 
     const [maxTime, setMaxTime] = useState('');
-    //const [budgetMode, setBudgetMode] = useState(false);
 
     const [recipes, setRecipes] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -192,7 +191,6 @@ const Search = () => {
                     const newSet = new Set(triedRecipes);
                     newSet.delete(recipeId);
                     setTriedRecipes(newSet);
-                    //alert("Recipe unmarked as tried.");
                     setSnackbarMessage("Recipe unmarked as tried");
                     setSnackbarSeverity('success');
                     setSnackbarOpen(true);
