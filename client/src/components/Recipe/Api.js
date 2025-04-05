@@ -66,30 +66,41 @@ const Api = {
             return [];
         }
     },
-
-callApiUploadRecipe: async (recipeData) => {
-    try {
-        const response = await fetch('/api/uploadRecipe', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(recipeData),
-        });
-        const textBody = await response.text();
-        let body;
+    callApiGetReviews: async (recipeId) => {
         try {
-            body = JSON.parse(textBody);
-        } catch (e) {
-            throw new Error('Failed to parse JSON response: ' + e.message);
+            const response = await fetch(`/api/getReviews?id=${recipeId}`);
+            const body = await response.json();
+            if (response.status !== 200) throw Error(body.message);
+            return body;
+        } catch (err) {
+            console.error("Error fetching ingredients:", err);
         }
+    },
 
-        if (response.status !== 200) throw new Error(body.message);
-        return body;
-    } catch (err) {
-        console.error("Error uploading recipe:", err);
-    }
-},
+
+    callApiUploadRecipe: async (recipeData) => {
+        try {
+            const response = await fetch('/api/uploadRecipe', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(recipeData),
+            });
+            const textBody = await response.text();
+            let body;
+            try {
+                body = JSON.parse(textBody);
+            } catch (e) {
+                throw new Error('Failed to parse JSON response: ' + e.message);
+            }
+
+            if (response.status !== 200) throw new Error(body.message);
+            return body;
+        } catch (err) {
+            console.error("Error uploading recipe:", err);
+        }
+    },
 };
 
 export default Api;
