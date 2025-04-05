@@ -294,6 +294,12 @@ const Search = () => {
                     ? costA - costB
                     : costB - costA;
             });
+        } else if (selectedSortOption === "tried") {
+            sortedRecipes.sort((b, a) => {
+                const triedA = triedRecipes.has(a.recipe_id) ? 1 : 0;
+                const triedB = triedRecipes.has(b.recipe_id) ? 1 : 0;
+                return isAscending ? triedA - triedB : triedB - triedA;
+            });
         }
         return sortedRecipes;
     };
@@ -433,6 +439,7 @@ const Search = () => {
                         <option value="time">Preparation Time</option>
                         <option value="rating">Rating</option>
                         <option value="rating">Estimated Cost</option>
+                        <option value="tried">Tried</option>     
                     </TextField>
     
                     {/* Sort Order Option */}
