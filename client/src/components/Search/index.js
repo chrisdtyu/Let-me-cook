@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import LetmecookAppBar from '../AppBar';
 import Api from './Api';
 import Box from '@mui/material/Box';
+import Grid from '@mui/material/Grid'
 import Link from '@mui/material/Link';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
@@ -27,7 +28,6 @@ const Search = () => {
     const [selectedCategories, setSelectedCategories] = useState([]);
 
     const [maxTime, setMaxTime] = useState('');
-    //const [budgetMode, setBudgetMode] = useState(false);
 
     const [recipes, setRecipes] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -192,7 +192,6 @@ const Search = () => {
                     const newSet = new Set(triedRecipes);
                     newSet.delete(recipeId);
                     setTriedRecipes(newSet);
-                    //alert("Recipe unmarked as tried.");
                     setSnackbarMessage("Recipe unmarked as tried");
                     setSnackbarSeverity('success');
                     setSnackbarOpen(true);
@@ -266,7 +265,7 @@ const Search = () => {
     const sortRecipes = (recipes) => {
         let sortedRecipes = [...recipes];
         const isAscending = selectedSortOrder === "ascending";
-
+    
         if (selectedSortOption === "missingIngredients") {
             sortedRecipes.sort((a, b) =>
                 isAscending
@@ -287,8 +286,15 @@ const Search = () => {
                     ? ratingA - ratingB
                     : ratingB - ratingA;
             });
+        } else if (selectedSortOption === "estimatedCost") {
+            sortedRecipes.sort((a, b) => {
+                const costA = a.estimated_cost ?? 0;
+                const costB = b.estimated_cost ?? 0;
+                return isAscending
+                    ? costA - costB
+                    : costB - costA;
+            });
         }
-
         return sortedRecipes;
     };
 
@@ -310,7 +316,7 @@ const Search = () => {
                 <Typography variant="h4" fontWeight="bold" color="text.primary">
                     Find a Recipe!
                 </Typography>
-
+    
                 {/* Box 1: Search Filters */}
                 <Box
                     sx={{
@@ -336,7 +342,7 @@ const Search = () => {
                             Add
                         </Button>
                     </Box>
-
+    
                     {/* Box 2: Select from Preset Ingredients */}
                     <Autocomplete
                         multiple
@@ -358,7 +364,7 @@ const Search = () => {
                         )}
                         sx={{ width: 400, marginBottom: 2 }}
                     />
-
+    
                     <Typography variant="body2">
                         <strong>Filters:</strong>
                     </Typography>
@@ -378,7 +384,7 @@ const Search = () => {
                         renderInput={(params) => <TextField {...params} label="Categories" />}
                         sx={{ width: 400, marginBottom: 2 }}
                     />
-
+    
                     <TextField
                         label="Max Time (minutes)"
                         variant="outlined"
@@ -387,7 +393,7 @@ const Search = () => {
                         onChange={(e) => setMaxTime(e.target.value)}
                         sx={{ width: 400, marginBottom: 2 }}
                     />
-
+    
                     {/* Budget Mode Toggle */}
                     <Button
                         variant="contained"
@@ -397,7 +403,7 @@ const Search = () => {
                     >
                         {budgetMode ? "Disable Budget Mode" : "Enable Budget Mode"}
                     </Button>
-
+    
                     {/* Search Button */}
                     <Button
                         variant="contained"
@@ -407,10 +413,10 @@ const Search = () => {
                     >
                         {loading ? <CircularProgress size={24} /> : "Find Recipes"}
                     </Button>
-
+    
                     {/* Error Message */}
                     {error && <Typography color="error">{error}</Typography>}
-
+    
                     {/* Sort By Option */}
                     <TextField
                         select
@@ -426,8 +432,9 @@ const Search = () => {
                         <option value="missingIngredients">Number of Missing Ingredients</option>
                         <option value="time">Preparation Time</option>
                         <option value="rating">Rating</option>
+                        <option value="rating">Estimated Cost</option>
                     </TextField>
-
+    
                     {/* Sort Order Option */}
                     <TextField
                         select
@@ -443,99 +450,106 @@ const Search = () => {
                         <option value="descending">Descending</option>
                     </TextField>
                 </Box>
-
+    
                 {/* Recipe Results */}
-                <Box sx={{ width: '80%', marginTop: 2 }}>
+                <Grid
+                    container
+                    spacing={3}
+                    sx={{
+                        width: '80%',
+                        marginTop: 2,
+                    }}
+                >
                     {loading ? (
                         <CircularProgress />
                     ) : recipes.length === 0 ? (
                         <Typography variant="h6">No recipes found.</Typography>
                     ) : (
                         recipes.map(recipe => (
-                            <Box
-                                key={recipe.recipe_id}
-                                sx={{
-                                    border: '1px solid #ccc',
-                                    padding: 2,
-                                    marginBottom: 2,
-                                    borderRadius: '8px',
-                                    backgroundImage: `url(${recipe.image || 'https://via.placeholder.com/150?text=No+Image'})`,
-                                    backgroundSize: 'cover',
-                                    backgroundPosition: 'center',
-                                    minHeight: 250, // to ensure the box has enough height
-                                }}
-                            >
-                                <Box sx={{
-                                    backgroundColor: 'rgba(255, 255, 255, 0.8)', // semi-transparent white background for text
-                                    borderRadius: '8px',
-                                    padding: 2,
-                                }}>
-                                    <Typography variant="h6">
-                                        <Link onClick={() => navigate('/Recipe/' + recipe.recipe_id)}>
-                                            {recipe.name}
-                                        </Link>
-                                    </Typography>
-                                    <Typography variant="body2"><strong>Type:</strong> {recipe.type}</Typography>
-                                    <Typography variant="body2"><strong>Category:</strong> {recipe.category}</Typography>
-                                    <Typography variant="body2"><strong>Time:</strong> {recipe.prep_time} mins</Typography>
-                                    {budgetMode && recipe.estimated_cost && (
-                                        <Typography variant="body2">
-                                            <strong>Estimated Cost:</strong> ${recipe.estimated_cost}
+                            <Grid item key={recipe.recipe_id} xs={12} sm={6} md={4}>
+                                <Box
+                                    sx={{
+                                        border: '1px solid #ccc',
+                                        padding: 2,
+                                        borderRadius: '8px',
+                                        backgroundImage: `url(${recipe.image || 'https://via.placeholder.com/150?text=No+Image'})`,
+                                        backgroundSize: 'cover',
+                                        backgroundPosition: 'center',
+                                        minHeight: 250, // to ensure the box has enough height
+                                    }}
+                                >
+                                    <Box sx={{
+                                        backgroundColor: 'rgba(255, 255, 255, 0.8)', // semi-transparent white background for text
+                                        borderRadius: '8px',
+                                        padding: 2,
+                                    }}>
+                                        <Typography variant="h6">
+                                            <Link onClick={() => navigate('/Recipe/' + recipe.recipe_id)}>
+                                                {recipe.name}
+                                            </Link>
                                         </Typography>
-                                    )}
-                                    <Typography variant="body2">
-                                        <strong>Average Rating:</strong>{' '}
-                                        {recipe.average_rating ? `⭐ ${recipe.average_rating.toFixed(1)}` : 'N/A'}
-                                    </Typography>
-
-                                    {/* Missing Ingredients */}
-                                    {recipe.missingIngredients?.length > 0 && (
-                                        <>
-                                            <Typography variant="body2" sx={{ color: 'red', marginTop: 1 }}>
-                                                Missing Ingredients ({recipe.missingIngredients.length}):
+                                        <Typography variant="body2"><strong>Type:</strong> {recipe.type}</Typography>
+                                        <Typography variant="body2"><strong>Category:</strong> {recipe.category}</Typography>
+                                        <Typography variant="body2"><strong>Time:</strong> {recipe.prep_time} mins</Typography>
+                                        {budgetMode && recipe.estimated_cost && (
+                                            <Typography variant="body2">
+                                                <strong>Estimated Cost:</strong> ${recipe.estimated_cost}
                                             </Typography>
-                                            {recipe.missingIngredients.map(missing => (
-                                                <Typography key={missing.name} variant="body2">
-                                                    {missing.name}
-                                                    {budgetMode && missing.suggestedSubstitute
-                                                        ? ` (Suggested: ${missing.suggestedSubstitute}, $${missing.estimatedCost})`
-                                                        : ''}
+                                        )}
+                                        <Typography variant="body2">
+                                            <strong>Average Rating:</strong>{' '}
+                                            {recipe.average_rating ? `⭐ ${recipe.average_rating.toFixed(1)}` : 'N/A'}
+                                        </Typography>
+    
+                                        {/* Missing Ingredients */}
+                                        {recipe.missingIngredients?.length > 0 && (
+                                            <>
+                                                <Typography variant="body2" sx={{ color: 'red', marginTop: 1 }}>
+                                                    Missing Ingredients ({recipe.missingIngredients.length}):
                                                 </Typography>
-                                            ))}
-                                        </>
-                                    )}
-                                    {recipe.missingIngredients?.length == 0 && (
-                                        <>
-                                            <Typography variant="body2" sx={{ color: 'green', marginTop: 1 }}>
-                                                <b>You have all ingredients, get cooking!</b>
-                                            </Typography>
-                                        </>
-                                    )}
-
-                                    {/* Tried & Favourite Buttons */}
-                                    {isUserLoggedIn && userId && (
-                                        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-                                            <Button
-                                                variant="outlined"
-                                                onClick={() => handleToggleTried(recipe.recipe_id)}
-                                            >
-                                                {triedRecipes.has(recipe.recipe_id) ? 'Unmark Tried' : 'Mark as Tried'}
-                                            </Button>
-                                            <Button
-                                                variant="outlined"
-                                                onClick={() => handleToggleFavourite(recipe.recipe_id)}
-                                            >
-                                                {favRecipes.has(recipe.recipe_id)
-                                                    ? 'Unmark Favourite'
-                                                    : 'Mark as Favourite'}
-                                            </Button>
-                                        </Box>
-                                    )}
+                                                {recipe.missingIngredients.map(missing => (
+                                                    <Typography key={missing.name} variant="body2">
+                                                        {missing.name}
+                                                        {budgetMode && missing.suggestedSubstitute
+                                                            ? ` (Suggested: ${missing.suggestedSubstitute}, $${missing.estimatedCost})`
+                                                            : ''}
+                                                    </Typography>
+                                                ))}
+                                            </>
+                                        )}
+                                        {recipe.missingIngredients?.length === 0 && (
+                                            <>
+                                                <Typography variant="body2" sx={{ color: 'green', marginTop: 1 }}>
+                                                    <b>You have all ingredients, get cooking!</b>
+                                                </Typography>
+                                            </>
+                                        )}
+    
+                                        {/* Tried & Favourite Buttons */}
+                                        {isUserLoggedIn && userId && (
+                                            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+                                                <Button
+                                                    variant="outlined"
+                                                    onClick={() => handleToggleTried(recipe.recipe_id)}
+                                                >
+                                                    {triedRecipes.has(recipe.recipe_id) ? 'Unmark Tried' : 'Mark as Tried'}
+                                                </Button>
+                                                <Button
+                                                    variant="outlined"
+                                                    onClick={() => handleToggleFavourite(recipe.recipe_id)}
+                                                >
+                                                    {favRecipes.has(recipe.recipe_id)
+                                                        ? 'Unmark Favourite'
+                                                        : 'Mark as Favourite'}
+                                                </Button>
+                                            </Box>
+                                        )}
+                                    </Box>
                                 </Box>
-                            </Box>
+                            </Grid>
                         ))
                     )}
-                </Box>
+                </Grid>
             </Box>
             <Snackbar
                 open={snackbarOpen}
