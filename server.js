@@ -114,7 +114,7 @@ app.post('/api/getUserProfile', (req, res) => {
         const restrictSql = `SELECT dietary_id FROM user_restrictions WHERE user_id = ?`;
 
         const ingSql = `
-          SELECT i.name
+          SELECT i.name, ui.expiration_date
           FROM user_ingredients ui
           JOIN ingredients i ON ui.ingredient_id = i.ingredient_id
           WHERE ui.user_id = ?
@@ -144,9 +144,18 @@ app.post('/api/getUserProfile', (req, res) => {
 
                         const dietaryPreferences = prefRows.map(row => row.preference_id);
                         const dietaryRestrictions = restrictRows.map(row => ({ dietary_id: row.dietary_id }));
-                        const alwaysAvailable = ingRows.map(row => ({
-                            ingredient_name: row.name  
-                        }));
+                        const alwaysAvailable = ingRows.map(row => {
+                            let dateStr = '';
+                            if (row.expiration_date) {
+                                const d = new Date(row.expiration_date);
+                                dateStr = d.toISOString().split('T')[0]; 
+                            }
+                        
+                            return {
+                                ingredient_name: row.name,
+                                expirationDate: dateStr
+                            };
+                        });
                         const healthGoals = goalRows.map(row => row.goal_id);
 
                         return res.json({
@@ -245,6 +254,7 @@ app.post('/api/saveProfile', (req, res) => {
                 }
             });
 
+            // remove old bridging
             const deleteIngSql = `DELETE FROM user_ingredients WHERE user_id = ?`;
             connection.query(deleteIngSql, [userId], (errDel3) => {
                 if (errDel3) {
@@ -261,13 +271,16 @@ app.post('/api/saveProfile', (req, res) => {
                                 if (itemsProcessed === alwaysAvailable.length) insertBridgingRows();
                                 return;
                             }
-
                             const findIngSql = `SELECT ingredient_id FROM ingredients WHERE name = ? LIMIT 1`;
                             connection.query(findIngSql, [row.ingredient_name], (errFind, resFind) => {
                                 if (errFind) {
                                     console.error("Error finding ingredient_id:", errFind);
                                 } else if (resFind && resFind.length > 0) {
-                                    newRows.push([userId, resFind[0].ingredient_id]);
+                                    newRows.push([
+                                        userId,
+                                        resFind[0].ingredient_id,
+                                        row.expirationDate || null
+                                    ]);
                                 }
                                 itemsProcessed++;
                                 if (itemsProcessed === alwaysAvailable.length) {
@@ -279,7 +292,7 @@ app.post('/api/saveProfile', (req, res) => {
                         function insertBridgingRows() {
                             if (!newRows.length) return;
                             const sqlInsert = `
-                              INSERT INTO user_ingredients (user_id, ingredient_id)
+                              INSERT INTO user_ingredients (user_id, ingredient_id, expiration_date)
                               VALUES ?
                             `;
                             connection.query(sqlInsert, [newRows], (errInsert) => {
@@ -498,7 +511,6 @@ app.post('/api/recommendRecipes', (req, res) => {
             }
 
             const alwaysAvailableQuery = `SELECT ingredient_id FROM user_ingredients WHERE user_id = ?`;
-
             connection2.query(alwaysAvailableQuery, [userId], (err3, availableRows) => {
                 if (err3) {
                     console.error('Error fetching always available:', err3);
@@ -506,7 +518,6 @@ app.post('/api/recommendRecipes', (req, res) => {
                 }
 
                 const availableIds = new Set(availableRows.map(row => row.ingredient_id));
-                
                 const ingredientCostQuery = `
                     SELECT ri.recipe_id, i.ingredient_id, i.price
                     FROM recipe_ingredients ri
@@ -519,7 +530,7 @@ app.post('/api/recommendRecipes', (req, res) => {
                         console.error('Error fetching ingredient prices:', err4);
                         return res.status(500).json({ error: 'Database query failed' });
                     }
-                    
+
                     const costMap = {};
                     costRows.forEach(row => {
                         if (!availableIds.has(row.ingredient_id) && row.price !== null) {
@@ -528,30 +539,30 @@ app.post('/api/recommendRecipes', (req, res) => {
                         }
                     });
 
-            let recipeData = recipes.map(recipe => {
-                const allIngredients = recipe.recipe_ingredients.split(',');
-                const prices = recipe.ingredient_prices.split(',').map(parseFloat);
-                const ingredientsWithPrices = allIngredients.map((name, index) => ({
-                    name,
-                    price: prices[index] || null
-                }));
-                let missing = missingIngredients.filter(m => m.recipe_id === recipe.recipe_id);
-                return {
-                    ...recipe,
-                    estimated_cost: parseFloat((costMap[recipe.recipe_id] || 0).toFixed(2)),
-                    ingredients: ingredientsWithPrices,
-                    missingIngredients: missing.map(m => ({
-                        name: m.missing_ingredient,
-                        suggestedSubstitute: budgetMode ? m.substitute_name : null,
-                        estimatedCost: budgetMode ? m.cost : null
-                    }))
-                };
-            });
+                    let recipeData = recipes.map(recipe => {
+                        const allIngredients = recipe.recipe_ingredients.split(',');
+                        const prices = recipe.ingredient_prices.split(',').map(parseFloat);
+                        const ingredientsWithPrices = allIngredients.map((name, index) => ({
+                            name,
+                            price: prices[index] || null
+                        }));
+                        let missing = missingIngredients.filter(m => m.recipe_id === recipe.recipe_id);
+                        return {
+                            ...recipe,
+                            estimated_cost: parseFloat((costMap[recipe.recipe_id] || 0).toFixed(2)),
+                            ingredients: ingredientsWithPrices,
+                            missingIngredients: missing.map(m => ({
+                                name: m.missing_ingredient,
+                                suggestedSubstitute: budgetMode ? m.substitute_name : null,
+                                estimatedCost: budgetMode ? m.cost : null
+                            }))
+                        };
+                    });
 
-            res.json(recipeData);
-            connection2.end();
+                    res.json(recipeData);
+                    connection2.end();
+                });
             });
-        });
         });
     });
 });
@@ -603,7 +614,7 @@ app.get('/api/getRecipe', (req, res) => {
                 return res.json(recipe);
             }
 
-            // Get alwaysAvailable ingredients based on firebase_uid
+            // Get alwaysAvailable based on firebase_uid
             const availableSql = `
                 SELECT i.ingredient_id
                 FROM user_ingredients ui
