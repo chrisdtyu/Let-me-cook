@@ -882,55 +882,109 @@ app.post('/api/uploadRecipe', (req, res) => {
 });
 
 app.put('/api/editRecipe', (req, res) => {
-    const { user_id, recipe_id, name, category, type, instructions, image, prep_time, allergens, ingredients } = req.body;
-    if (!user_id || !recipe_id || !name || !instructions || !prep_time || !ingredients || ingredients.length === 0) {
+    const {
+        user_id,
+        recipe_id,
+        name,
+        category,
+        type,
+        instructions,
+        image,
+        video,
+        prep_time,
+        ingredients
+    } = req.body;
+
+    // Validate required fields
+    if (!user_id || !recipe_id || !name || !instructions || !prep_time || !Array.isArray(ingredients) || ingredients.length === 0) {
         return res.status(400).json({ error: "Missing required fields" });
     }
-    let connectionEdit = mysql.createConnection(config);
-    // Verify that the recipe belongs to the user
-    let verifySql = "SELECT * FROM recipes WHERE recipe_id = ? AND user_id = ?";
+
+    const connectionEdit = mysql.createConnection(config);
+
+    // Verify that the recipe exists and belongs to the user
+    const verifySql = "SELECT * FROM recipes WHERE recipe_id = ? AND user_id = ?";
     connectionEdit.query(verifySql, [recipe_id, user_id], (err, results) => {
         if (err) {
             connectionEdit.end();
-            return res.status(500).json({ error: "Database error" });
+            return res.status(500).json({ error: "Database error during verification" });
         }
-        if (!results || results.length === 0) {
+
+        if (results.length === 0) {
             connectionEdit.end();
-            return res.status(403).json({ error: "Unauthorized" });
+            return res.status(403).json({ error: "Unauthorized or recipe not found" });
         }
-        const allergensVal = allergens ? JSON.stringify(allergens) : null;
-        let updateSql = `
-          UPDATE recipes 
-          SET name = ?, category = ?, type = ?, instructions = ?, image = ?, prep_time = ?, allergens = ?
-          WHERE recipe_id = ?
+
+        // Build the update query dynamically based on provided fields
+        let updateFields = [];
+        let updateValues = [];
+
+        if (name) {
+            updateFields.push("name = ?");
+            updateValues.push(name);
+        }
+        if (category) {
+            updateFields.push("category = ?");
+            updateValues.push(category);
+        }
+        if (type) {
+            updateFields.push("type = ?");
+            updateValues.push(type);
+        }
+        if (instructions) {
+            updateFields.push("instructions = ?");
+            updateValues.push(instructions);
+        }
+        if (image) {
+            updateFields.push("image = ?");
+            updateValues.push(image);
+        }
+        if (video) {
+            updateFields.push("video = ?");
+            updateValues.push(video);
+        }
+        if (prep_time) {
+            updateFields.push("prep_time = ?");
+            updateValues.push(prep_time);
+        }
+
+        updateValues.push(recipe_id);
+
+        const updateSql = `
+            UPDATE recipes 
+            SET ${updateFields.join(', ')}
+            WHERE recipe_id = ?
         `;
-        let updateData = [name, category || null, type || null, instructions, image || null, prep_time, allergensVal, recipe_id];
-        connectionEdit.query(updateSql, updateData, (err2) => {
+
+        connectionEdit.query(updateSql, updateValues, (err2) => {
             if (err2) {
                 connectionEdit.end();
                 return res.status(500).json({ error: "Database error updating recipe" });
             }
-            // Delete old recipe ingredients
-            let deleteIngSql = "DELETE FROM recipe_ingredients WHERE recipe_id = ?";
+
+            // Delete existing ingredients for the recipe
+            const deleteIngSql = "DELETE FROM recipe_ingredients WHERE recipe_id = ?";
             connectionEdit.query(deleteIngSql, [recipe_id], (err3) => {
                 if (err3) {
                     connectionEdit.end();
                     return res.status(500).json({ error: "Database error deleting old ingredients" });
                 }
-                // Insert new recipe ingredients
-                let values = ingredients.map(ing => [
+
+                // Insert new ingredients
+                const insertIngSql = `
+                    INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, quantity_type, required)
+                    VALUES ?
+                `;
+
+                const ingredientValues = ingredients.map(ing => [
                     recipe_id,
                     ing.ingredient_id,
                     ing.quantity,
                     ing.quantity_type || null,
-                    ing.required,
-                    ing.estimated_cost || null
+                    ing.required
                 ]);
-                let insertIngSql = `
-                  INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, quantity_type, required, estimated_cost)
-                  VALUES ?
-                `;
-                connectionEdit.query(insertIngSql, [values], (err4) => {
+
+                connectionEdit.query(insertIngSql, [ingredientValues], (err4) => {
                     connectionEdit.end();
                     if (err4) {
                         return res.status(500).json({ error: "Database error inserting new ingredients" });
@@ -941,44 +995,7 @@ app.put('/api/editRecipe', (req, res) => {
         });
     });
 });
-
-//Api to Delete Recipes
-app.delete('/api/deleteRecipe', (req, res) => {
-    const { user_id, recipe_id } = req.body;
-    if (!user_id || !recipe_id) {
-        return res.status(400).json({ error: "Missing user_id or recipe_id" });
-    }
-    let connectionDelete = mysql.createConnection(config);
-    // Verify that the recipe belongs to the user
-    let verifySql = "SELECT * FROM recipes WHERE recipe_id = ? AND user_id = ?";
-    connectionDelete.query(verifySql, [recipe_id, user_id], (err, results) => {
-        if (err) {
-            connectionDelete.end();
-            return res.status(500).json({ error: "Database error" });
-        }
-        if (!results || results.length === 0) {
-            connectionDelete.end();
-            return res.status(403).json({ error: "Unauthorized" });
-        }
-        // Delete associated recipe ingredients first
-        let deleteIngSql = "DELETE FROM recipe_ingredients WHERE recipe_id = ?";
-        connectionDelete.query(deleteIngSql, [recipe_id], (err2) => {
-            if (err2) {
-                connectionDelete.end();
-                return res.status(500).json({ error: "Database error deleting recipe ingredients" });
-            }
-            // Delete the recipe itself
-            let deleteRecipeSql = "DELETE FROM recipes WHERE recipe_id = ?";
-            connectionDelete.query(deleteRecipeSql, [recipe_id], (err3) => {
-                connectionDelete.end();
-                if (err3) {
-                    return res.status(500).json({ error: "Database error deleting recipe" });
-                }
-                res.json({ message: "Recipe deleted successfully" });
-            });
-        });
-    });
-});
+  
 
 // Get all recipes uploaded by the user
 app.post('/api/getMyRecipes', (req, res) => {

@@ -4,20 +4,22 @@ import { useNavigate } from 'react-router-dom';
 import LetmecookAppBar from '../AppBar';
 import UploadRecipe from './UploadRecipes';
 
-
 const MyRecipes = () => {
   const [recipes, setRecipes] = useState([]);
   const [message, setMessage] = useState('');
   const [showUploadForm, setShowUploadForm] = useState(false);
+  const [editingRecipe, setEditingRecipe] = useState(null);
   const [user_id, setUserId] = useState(null);
   const navigate = useNavigate();
-  
+
   useEffect(() => {
     const firebaseUid = localStorage.getItem('firebase_uid');
     if (!firebaseUid) {
       alert('You must log in first!');
       return;
     }
+
+    // If your backend expects a numeric user_id, convert it appropriately
     setUserId(firebaseUid);
   }, []);
 
@@ -28,11 +30,6 @@ const MyRecipes = () => {
   }, [user_id]);
 
   const loadRecipes = async () => {
-    if (!user_id) {
-      console.warn("User ID not set");
-      return;
-    }
-  
     try {
       const res = await fetch('/api/getMyRecipes', {
         method: 'POST',
@@ -40,20 +37,16 @@ const MyRecipes = () => {
         body: JSON.stringify({ user_id }),
       });
       const data = await res.json();
-      if (!res.ok) {
+      if (!res.ok || !data.recipes) {
         throw new Error(data.error || "Failed to fetch recipes");
       }
-      if (!data.recipes) {
-        throw new Error("No recipes key in response");
-      }
       setRecipes(data.recipes);
-      setMessage("");
+      setMessage('');
     } catch (error) {
       console.error("Error loading recipes:", error);
       setMessage(error.message);
     }
   };
-  
 
   const handleDelete = async (recipe_id) => {
     try {
@@ -74,20 +67,57 @@ const MyRecipes = () => {
     }
   };
 
+  const handleUploadSuccess = () => {
+    loadRecipes();
+    setShowUploadForm(false);
+    setEditingRecipe(null);
+  };
+
+  const handleEdit = (recipe) => {
+    setEditingRecipe(recipe);
+    setShowUploadForm(true); // ensure form is shown when editing
+  };
+
+  const handleCancelEdit = () => {
+    setEditingRecipe(null);
+    setShowUploadForm(false);
+  };
+
   return (
     <>
       <LetmecookAppBar page="My Recipes" />
       <Box sx={{ p: 3 }}>
         <Typography variant="h4" gutterBottom>My Recipes</Typography>
         {message && <Typography color="primary">{message}</Typography>}
-        <Button 
-          variant="contained" 
-          onClick={() => setShowUploadForm(!showUploadForm)}
-          sx={{ mb: 3 }}
-        >
-          {showUploadForm ? "Hide Upload Form" : "Upload New Recipe"}
-        </Button>
-        {showUploadForm && <UploadRecipe onUploadSuccess={loadRecipes} />}
+
+        {!editingRecipe && (
+          <Button
+            variant="contained"
+            onClick={() => setShowUploadForm(prev => !prev)}
+            sx={{ mb: 3 }}
+          >
+            {showUploadForm ? "Hide Upload Form" : "Upload New Recipe"}
+          </Button>
+        )}
+
+        {showUploadForm && (
+          <UploadRecipe
+            editingRecipe={editingRecipe}
+            onUploadSuccess={handleUploadSuccess}
+          />
+        )}
+
+        {editingRecipe && (
+          <Button
+            variant="outlined"
+            color="secondary"
+            onClick={handleCancelEdit}
+            sx={{ mt: 2 }}
+          >
+            Cancel Edit
+          </Button>
+        )}
+
         {recipes.length === 0 ? (
           <Typography>No recipes found.</Typography>
         ) : (
@@ -96,9 +126,9 @@ const MyRecipes = () => {
               <Grid item xs={12} sm={6} md={4} key={recipe.recipe_id}>
                 <Paper sx={{ p: 2, borderRadius: 2, boxShadow: 3 }}>
                   <Typography variant="h6">
-                    <Link 
-                      onClick={() => navigate('/Recipe/' + recipe.recipe_id)} 
-                      sx={{cursor: 'pointer', color: 'blue'}}
+                    <Link
+                      onClick={() => navigate('/Recipe/' + recipe.recipe_id)}
+                      sx={{ cursor: 'pointer', color: 'blue' }}
                     >
                       {recipe.name}
                     </Link>
@@ -108,14 +138,18 @@ const MyRecipes = () => {
                   <Typography variant="body2">Type: {recipe.type}</Typography>
                   <Typography variant="body2" sx={{ mt: 1 }}>{recipe.instructions}</Typography>
 
-                  <Button 
-                    variant="outlined" 
-                    color="error" 
-                    onClick={() => handleDelete(recipe.recipe_id)}
-                    sx={{ mt: 1 }}
-                  >
-                    Delete Recipe
-                  </Button>
+                  <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+                    <Button variant="outlined" onClick={() => handleEdit(recipe)}>
+                      Edit Recipe
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      onClick={() => handleDelete(recipe.recipe_id)}
+                    >
+                      Delete Recipe
+                    </Button>
+                  </Box>
                 </Paper>
               </Grid>
             ))}
