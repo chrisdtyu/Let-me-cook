@@ -47,7 +47,7 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
   const { budgetMode, weeklySpent, addedRecipes, addMealCost } = useBudget();
   const [noteSubmittedFlag, setNoteSubmittedFlag] = useState(false);
   const [reviews, setReviews] = useState([]);
-  const [averageRating, setAverageRating] = React.useState(null);
+  const [averageRating, setAverageRating] = useState(null);
 
   useEffect(() => {
     getRecipe(id);
@@ -69,7 +69,6 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
       console.error("Error fetching review:", error);
     }
   }, []);
-
 
   useEffect(() => {
     if (ingredients.length > 0) {
@@ -137,7 +136,7 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
         getReviews(id)  // Call getReviews after state update
           .then(() => resolve())  // Resolve once getReviews is completed
           .catch((error) => reject(error));  // Reject if there's an error
-      }, 0); // Small delay to allow React to complete the state update
+      }, 0);
     });
   };
 
@@ -160,6 +159,7 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
         <Typography variant="h4" sx={{ textAlign: 'center' }}>
           <b>{recipe.name}</b>
         </Typography>
+
         <Grid container spacing={2} alignItems="flex-start" justifyContent="center">
           <Grid item xs={12} sm={4}>
             <Box sx={{ textAlign: 'center' }} />
@@ -181,8 +181,9 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
         </Grid>
 
         <Typography variant="h6">
-          Category: {recipe.category} | Type: {recipe.type}
+          Category: {recipe.category} | Type: {recipe.type} 
         </Typography>
+        <Typography variant="h6">Target Goal: {recipe.goals || "N/A"}</Typography>
         <Typography variant="h6">Time: {recipe.prep_time} mins</Typography>
 
         {budgetMode && (
@@ -212,6 +213,7 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
           {ingredients.map((ing) => {
             let displayQuantity = ing.quantity;
             let isScaled = false;
+
             if (ing.required === 1 && baseQuantity[ing.ingredient_id] && baseIngredientId) {
               const baseScale = baseIngredientId === ing.ingredient_id
                 ? sliderValue / baseQuantity[baseIngredientId]
@@ -284,7 +286,13 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
         {recipe.video && (
           <Box sx={{ mt: 2 }}>
             <Typography variant="h6"><b>Video:</b></Typography>
-            <iframe width="560" height="315" src={recipe.video} title="Recipe Video" allowFullScreen></iframe>
+            <iframe
+              width="560"
+              height="315"
+              src={recipe.video}
+              title="Recipe Video"
+              allowFullScreen
+            />
           </Box>
         )}
 
