@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef  } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LetmecookAppBar from '../AppBar';
 import Api from './Api';
@@ -157,7 +157,7 @@ const Search = () => {
             isFirstRender.current = false;
             return;
         }
-    
+
         const fetchFilteredIngredients = async () => {
             try {
                 const data = await Api.getFilteredIngredients(selectedType);
@@ -369,259 +369,340 @@ const Search = () => {
                     textAlign: 'center',
                 }}
             >
-                <Typography variant="h4" fontWeight="bold" color="text.primary">
+                <Typography variant="h4" fontWeight="bold" color="text.primary" sx={{ mb: 3 }}>
                     Find a Recipe!
                 </Typography>
 
-                {/* Box 1: Search Filters */}
+                {/* Main Section with Ingredients + Filters */}
                 <Box
                     sx={{
+                        display: 'flex',
+                        gap: 3,
+                        justifyContent: 'center',
+                        flexWrap: 'wrap',
                         width: '100%',
-                        maxWidth: '600px',
-                        padding: '2rem',
-                        backgroundColor: '#ffffff',
-                        borderRadius: '8px',
-                        boxShadow: 2,
-                        marginBottom: 3,
+                        maxWidth: '1100px',
+                        mb: 3,
                     }}
                 >
-                    {/* Box 1: Manual Input */}
-                    <Box sx={{ display: "flex", gap: 2, alignItems: "center", marginBottom: 2 }}>
-                        <TextField
-                            label="Enter an ingredient"
-                            variant="outlined"
-                            value={manualIngredient}
-                            onChange={(e) => setManualIngredient(e.target.value)}
-                            sx={{ width: 300 }}
+                    {/* Ingredient Box */}
+                    <Box
+                        sx={{
+                            flex: 1,
+                            minWidth: '300px',
+                            padding: '2rem',
+                            backgroundColor: '#3e0907',
+                            borderRadius: '8px',
+                            boxShadow: 2,
+                        }}
+                    >
+                        <Typography variant="h6" color="white" sx={{ mb: 2 }}>
+                            Ingredients
+                        </Typography>
+
+                        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', marginBottom: 2 }}>
+                            <TextField
+                                label="Enter an ingredient"
+                                variant="outlined"
+                                value={manualIngredient}
+                                onChange={(e) => setManualIngredient(e.target.value)}
+                                sx={{ width: 200, backgroundColor: '#ffffff', borderRadius: '8px' }}
+                            />
+                            <Button variant="contained" color="primary" onClick={handleManualAdd}>
+                                Add
+                            </Button>
+                        </Box>
+
+                        <Autocomplete
+                            multiple
+                            options={allIngTypes}
+                            value={selectedType}
+                            onChange={(event, newValue) => setSelectedType(newValue || [])}
+                            renderInput={(params) => <TextField {...params} label="Ingredient Type" />}
+                            sx={{ width: '100%', mb: 2, backgroundColor: '#ffffff', borderRadius: '8px' }}
                         />
-                        <Button variant="contained" color="primary" onClick={handleManualAdd}>
-                            Add
+
+                        <Autocomplete
+                            multiple
+                            options={selectedType.length > 0 ? filteredIngredients : allIngredients}
+                            value={selectedIngredients}
+                            onChange={handleIngredientChange}
+                            renderTags={(value, getTagProps) => (
+                                <Box
+                                    sx={{
+                                        maxHeight: '150px', // You can adjust height as needed
+                                        overflowY: 'auto',
+                                        display: 'flex',
+                                        flexWrap: 'wrap',
+                                        gap: 1,
+                                        paddingRight: '0.5rem',
+                                    }}
+                                >
+                                    {value.map((option, index) => (
+                                        <Chip
+                                            key={option}
+                                            label={option}
+                                            {...getTagProps({ index })}
+                                            color="primary"
+                                        />
+                                    ))}
+                                </Box>
+                            )}
+                            renderInput={(params) => (
+                                <TextField
+                                    {...params}
+                                    label="Select Ingredients"
+                                    variant="outlined"
+                                />
+                            )}
+                            sx={{
+                                width: '100%',
+                                mb: 2,
+                                backgroundColor: '#ffffff',
+                                borderRadius: '8px',
+                            }}
+                        />
+
+                        {/* Search Button in Ingredient Box */}
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={handleSearch}
+                            fullWidth
+                            sx={{ mt: 2 }}
+                        >
+                            {loading ? <CircularProgress size={24} /> : "Find Recipes"}
                         </Button>
                     </Box>
 
-                    {/* chose ingredient type if you want to */}
-                    <Autocomplete
-                        multiple
-                        options={allIngTypes}
-                        value={selectedType}
-                        onChange={(event, newValue) => setSelectedType(newValue || [])}
-                        renderInput={(params) => <TextField {...params} label="Ingredient Type" />}
-                    />
-
-
-                    {/* Box 2: Select from Preset Ingredients */}
-                    <Autocomplete
-                        multiple
-                        options={selectedType.length > 0 ? filteredIngredients : allIngredients}
-                        value={selectedIngredients}
-                        onChange={handleIngredientChange}
-                        renderTags={(value, getTagProps) =>
-                            value.map((option, index) => (
-                                <Chip
-                                    key={option}
-                                    label={option}
-                                    {...getTagProps({ index })}
-                                    color="primary"
-                                />
-                            ))
-                        }
-                        renderInput={(params) => (
-                            <TextField {...params} label="Select Ingredients" variant="outlined" />
-                        )}
-                        sx={{ width: 400, marginBottom: 2 }}
-                    />
-
-                    <Typography variant="body2">
-                        <strong>Filters:</strong>
-                    </Typography>
-                    <Autocomplete
-                        multiple
-                        options={allCuisines}
-                        value={selectedCuisines}
-                        onChange={(event, newValue) => handleMultiSelectChange(event, newValue, "cuisines")}
-                        renderInput={(params) => <TextField {...params} label="Cuisines" />}
-                        sx={{ width: 400, marginBottom: 2 }}
-                    />
-                    <Autocomplete
-                        multiple
-                        options={allCategories}
-                        value={selectedCategories}
-                        onChange={(event, newValue) => handleMultiSelectChange(event, newValue, "categories")}
-                        renderInput={(params) => <TextField {...params} label="Categories" />}
-                        sx={{ width: 400, marginBottom: 2 }}
-                    />
-
-                    <TextField
-                        label="Max Time (minutes)"
-                        variant="outlined"
-                        type="number"
-                        value={maxTime}
-                        onChange={(e) => setMaxTime(e.target.value)}
-                        sx={{ width: 400, marginBottom: 2 }}
-                    />
-
-                    {/* Budget Mode Toggle */}
-                    <Button
-                        variant="contained"
-                        color="secondary"
-                        onClick={toggleBudgetMode}
-                        sx={{ marginBottom: 2 }}
+                    {/* Filter Box */}
+                    <Box
+                        sx={{
+                            flex: 1,
+                            minWidth: '300px',
+                            padding: '2rem',
+                            backgroundColor: '#3e0907',
+                            borderRadius: '8px',
+                            boxShadow: 2,
+                            position: 'relative',
+                        }}
                     >
-                        {budgetMode ? "Disable Budget Mode" : "Enable Budget Mode"}
-                    </Button>
+                        {/* Budget Button in Top Right */}
+                        <Box sx={{ position: 'absolute', top: '1rem', right: '1rem' }}>
+                            <Button
+                                variant="contained"
+                                color="secondary"
+                                onClick={toggleBudgetMode}
+                                size="small"
+                            >
+                                {budgetMode ? "Disable Budget" : "Enable Budget"}
+                            </Button>
+                        </Box>
 
-                    {/* Search Button */}
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        onClick={handleSearch}
-                        sx={{ marginBottom: 2 }}
-                    >
-                        {loading ? <CircularProgress size={24} /> : "Find Recipes"}
-                    </Button>
+                        <Typography variant="h6" color="white" sx={{ mb: 2 }}>
+                            Filters
+                        </Typography>
 
-                    {/* Error Message */}
-                    {error && <Typography color="error">{error}</Typography>}
+                        <Autocomplete
+                            multiple
+                            options={allCuisines}
+                            value={selectedCuisines}
+                            onChange={(event, newValue) => handleMultiSelectChange(event, newValue, "cuisines")}
+                            renderInput={(params) => <TextField {...params} label="Cuisines" />}
+                            sx={{ width: '100%', mb: 2, backgroundColor: '#ffffff', borderRadius: '8px' }}
+                        />
 
-                    {/* Sort By Option */}
+                        <Autocomplete
+                            multiple
+                            options={allCategories}
+                            value={selectedCategories}
+                            onChange={(event, newValue) => handleMultiSelectChange(event, newValue, "categories")}
+                            renderInput={(params) => <TextField {...params} label="Categories" />}
+                            sx={{ width: '100%', mb: 2, backgroundColor: '#ffffff', borderRadius: '8px' }}
+                        />
+
+                        <TextField
+                            label="Max Time (minutes)"
+                            variant="outlined"
+                            type="number"
+                            value={maxTime}
+                            onChange={(e) => setMaxTime(e.target.value)}
+                            sx={{ width: '100%', mb: 2, backgroundColor: '#ffffff', borderRadius: '8px' }}
+                        />
+
+                        {/* New Search Button at bottom of Filters box */}
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={handleSearch}
+                            fullWidth
+                            sx={{ mt: 2 }}
+                        >
+                            {loading ? <CircularProgress size={24} /> : "Find Recipes"}
+                        </Button>
+                    </Box>
+                </Box>
+
+                {/* Sorting Box */}
+                <Box
+                    sx={{
+                        width: '100%',
+                        maxWidth: '1100px',
+                        padding: '1.5rem',
+                        backgroundColor: '#3e0907',
+                        borderRadius: '8px',
+                        boxShadow: 2,
+                        mb: 3,
+                        display: 'flex',
+                        gap: 3,
+                        flexWrap: 'wrap',
+                        justifyContent: 'center',
+                    }}
+                >
                     <TextField
                         select
                         label="Sort By"
                         value={selectedSortOption}
                         onChange={(e) => setSelectedSortOption(e.target.value)}
-                        SelectProps={{
-                            native: true,
-                        }}
-                        sx={{ width: 400, marginBottom: 2 }}
+                        SelectProps={{ native: true }}
+                        sx={{ width: 300, backgroundColor: '#ffffff', borderRadius: '8px' }}
                     >
                         <option value="none">None</option>
-                        <option value="missingIngredients">Number of Missing Ingredients</option>
-                        <option value="time">Preparation Time</option>
+                        <option value="missingIngredients">Missing Ingredients</option>
+                        <option value="time">Prep Time</option>
                         <option value="rating">Rating</option>
-                        <option value="rating">Estimated Cost</option>
+                        <option value="cost">Cost</option>
                         <option value="tried">Tried</option>
                     </TextField>
 
-                    {/* Sort Order Option */}
                     <TextField
                         select
                         label="Sort Order"
                         value={selectedSortOrder}
                         onChange={(e) => setSelectedSortOrder(e.target.value)}
-                        SelectProps={{
-                            native: true,
-                        }}
-                        sx={{ width: 400, marginBottom: 2 }}
+                        SelectProps={{ native: true }}
+                        sx={{ width: 300, backgroundColor: '#ffffff', borderRadius: '8px' }}
                     >
                         <option value="ascending">Ascending</option>
                         <option value="descending">Descending</option>
                     </TextField>
                 </Box>
-
-                {/* Recipe Results */}
-                <Grid
-                    container
-                    spacing={3}
-                    sx={{
-                        width: '80%',
-                        marginTop: 2,
-                    }}
+                {/* Final Search Button at Bottom */}
+                <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={handleSearch}
+                    sx={{ mb: 4 }}
                 >
-                    {loading ? (
-                        <CircularProgress />
-                    ) : recipes.length === 0 ? (
-                        <Typography variant="h6">No recipes found.</Typography>
-                    ) : (
-                        recipes.map(recipe => (
-                            <Grid item key={recipe.recipe_id} xs={12} sm={6} md={4}>
-                                <Box
-                                    sx={{
-                                        border: '1px solid #ccc',
-                                        padding: 2,
-                                        borderRadius: '8px',
-                                        backgroundImage: `url(${recipe.image || 'https://via.placeholder.com/150?text=No+Image'})`,
-                                        backgroundSize: 'cover',
-                                        backgroundPosition: 'center',
-                                        minHeight: 250, // to ensure the box has enough height
-                                    }}
-                                >
-                                    <Box sx={{
-                                        backgroundColor: 'rgba(255, 255, 255, 0.8)', // semi-transparent white background for text
-                                        borderRadius: '8px',
-                                        padding: 2,
-                                    }}>
-                                        <Typography variant="h6">
-                                            <Link onClick={() => navigate('/Recipe/' + recipe.recipe_id)}>
-                                                {recipe.name}
-                                            </Link>
-                                        </Typography>
-                                        <Typography variant="body2"><strong>Type:</strong> {recipe.type}</Typography>
-                                        <Typography variant="body2"><strong>Category:</strong> {recipe.category}</Typography>
-                                        <Typography variant="body2">
-                                        <strong>Target Goal:</strong> {recipe.goal || "N/A"}
-                                        </Typography>
+                    {loading ? <CircularProgress size={24} /> : "Find Recipes"}
+                </Button>
 
-                                        <Typography variant="body2"><strong>Time:</strong> {recipe.prep_time} mins</Typography>
-                                        {budgetMode && recipe.estimated_cost && (
-                                            <Typography variant="body2">
-                                                <strong>Estimated Cost:</strong> ${recipe.estimated_cost}
-                                            </Typography>
-                                        )}
-                                        <Typography variant="body2">
-                                            <strong>Average Rating:</strong>{' '}
-                                            {recipe.average_rating ? `⭐ ${recipe.average_rating.toFixed(1)}` : 'N/A'}
-                                        </Typography>
-
-                                        {/* Missing Ingredients */}
-                                        {recipe.missingIngredients?.length > 0 && (
-                                            <>
-                                                <Typography variant="body2" sx={{ color: 'red', marginTop: 1 }}>
-                                                    Missing Ingredients ({recipe.missingIngredients.length}):
-                                                </Typography>
-                                                {recipe.missingIngredients.map(missing => (
-                                                    <Typography key={missing.name} variant="body2">
-                                                        {missing.name}
-                                                        {budgetMode && missing.suggestedSubstitute
-                                                            ? ` (Suggested: ${missing.suggestedSubstitute}, $${missing.estimatedCost})`
-                                                            : ''}
-                                                    </Typography>
-                                                ))}
-                                            </>
-                                        )}
-                                        {recipe.missingIngredients?.length === 0 && (
-                                            <>
-                                                <Typography variant="body2" sx={{ color: 'green', marginTop: 1 }}>
-                                                    <b>You have all ingredients, get cooking!</b>
-                                                </Typography>
-                                            </>
-                                        )}
-
-                                        {/* Tried & Favourite Buttons */}
-                                        {isUserLoggedIn && userId && (
-                                            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-                                                <Button
-                                                    variant="outlined"
-                                                    onClick={() => handleToggleTried(recipe.recipe_id)}
-                                                >
-                                                    {triedRecipes.has(recipe.recipe_id) ? 'Unmark Tried' : 'Mark as Tried'}
-                                                </Button>
-                                                <Button
-                                                    variant="outlined"
-                                                    onClick={() => handleToggleFavourite(recipe.recipe_id)}
-                                                >
-                                                    {favRecipes.has(recipe.recipe_id)
-                                                        ? 'Unmark Favourite'
-                                                        : 'Mark as Favourite'}
-                                                </Button>
-                                            </Box>
-                                        )}
-                                    </Box>
-                                </Box>
-                            </Grid>
-                        ))
-                    )}
-                </Grid>
+                {error && <Typography color="error">{error}</Typography>}
             </Box>
+
+            {/* Recipe Results */}
+            <Grid
+                container
+                spacing={3}
+                sx={{
+                    width: '100%',
+                    maxWidth: '1400px', // optional cap if you don’t want it super wide on large screens
+                    marginTop: 2,
+                    marginLeft: 'auto',
+                    marginRight: 'auto',
+                }}
+            >
+                {loading ? (
+                    <CircularProgress />
+                ) : recipes.length === 0 ? (
+                    <Typography variant="h6">No recipes found.</Typography>
+                ) : (
+                    recipes.map(recipe => (
+                        <Grid item key={recipe.recipe_id} xs={12} sm={6} md={4}>
+                            <Box
+                                sx={{
+                                    border: '1px solid #ccc',
+                                    padding: 2,
+                                    borderRadius: '8px',
+                                    borderColor: '#1a0eac',
+                                    backgroundImage: `url(${recipe.image || 'https://via.placeholder.com/150?text=No+Image'})`,
+                                    backgroundSize: 'cover',
+                                    backgroundPosition: 'center',
+                                    minHeight: 250, // to ensure the box has enough height
+                                }}
+                            >
+                                <Box sx={{
+                                    backgroundColor: 'rgba(255, 255, 255, 0.8)', // semi-transparent white background for text
+                                    borderRadius: '8px',
+                                    padding: 2,
+                                }}>
+                                    <Typography variant="h6">
+                                        <Link onClick={() => navigate('/Recipe/' + recipe.recipe_id)}>
+                                            {recipe.name}
+                                        </Link>
+                                    </Typography>
+                                    <Typography variant="body2"><strong>Type:</strong> {recipe.type}</Typography>
+                                    <Typography variant="body2"><strong>Category:</strong> {recipe.category}</Typography>
+                                    <Typography variant="body2"><strong>Time:</strong> {recipe.prep_time} mins</Typography>
+                                    {budgetMode && recipe.estimated_cost && (
+                                        <Typography variant="body2">
+                                            <strong>Estimated Cost:</strong> ${recipe.estimated_cost}
+                                        </Typography>
+                                    )}
+                                    <Typography variant="body2">
+                                        <strong>Average Rating:</strong>{' '}
+                                        {recipe.average_rating ? `⭐ ${recipe.average_rating.toFixed(1)}` : 'N/A'}
+                                    </Typography>
+
+                                    {/* Missing Ingredients */}
+                                    {recipe.missingIngredients?.length > 0 && (
+                                        <>
+                                            <Typography variant="body2" sx={{ color: 'red', marginTop: 1 }}>
+                                                Missing Ingredients ({recipe.missingIngredients.length}):
+                                            </Typography>
+                                            {recipe.missingIngredients.map(missing => (
+                                                <Typography key={missing.name} variant="body2">
+                                                    {missing.name}
+                                                    {budgetMode && missing.suggestedSubstitute
+                                                        ? ` (Suggested: ${missing.suggestedSubstitute}, $${missing.estimatedCost})`
+                                                        : ''}
+                                                </Typography>
+                                            ))}
+                                        </>
+                                    )}
+                                    {recipe.missingIngredients?.length === 0 && (
+                                        <>
+                                            <Typography variant="body2" sx={{ color: 'green', marginTop: 1 }}>
+                                                <b>You have all ingredients, get cooking!</b>
+                                            </Typography>
+                                        </>
+                                    )}
+
+                                    {/* Tried & Favourite Buttons */}
+                                    {isUserLoggedIn && userId && (
+                                        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+                                            <Button
+                                                variant="outlined"
+                                                onClick={() => handleToggleTried(recipe.recipe_id)}
+                                            >
+                                                {triedRecipes.has(recipe.recipe_id) ? 'Unmark Tried' : 'Mark as Tried'}
+                                            </Button>
+                                            <Button
+                                                variant="outlined"
+                                                onClick={() => handleToggleFavourite(recipe.recipe_id)}
+                                            >
+                                                {favRecipes.has(recipe.recipe_id)
+                                                    ? 'Unmark Favourite'
+                                                    : 'Mark as Favourite'}
+                                            </Button>
+                                        </Box>
+                                    )}
+                                </Box>
+                            </Box>
+                        </Grid>
+                    ))
+                )}
+            </Grid>
             <Snackbar
                 open={snackbarOpen}
                 autoHideDuration={3000}
@@ -634,6 +715,5 @@ const Search = () => {
             </Snackbar>
         </>
     );
-};
-
+}
 export default Search;
