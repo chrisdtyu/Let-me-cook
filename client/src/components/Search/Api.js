@@ -26,8 +26,6 @@ const Api = {
         }
     },
 
-    // user profile api for search feature
-
     getUserSearchProfile: async (firebase_uid) => {
         try {
             const response = await fetch('/api/getUserSearchProfile', {
