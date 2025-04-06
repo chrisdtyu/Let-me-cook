@@ -473,7 +473,7 @@ app.post('/api/getUserRecipes', (req, res) => {
     });
 });
 
-// recommendRecipes
+// recommendRecipes with dietary restrcitions
 app.post('/api/recommendRecipes', (req, res) => {
     let connection2 = mysql.createConnection(config);
     let { ingredients, cuisines, categories, userId, budgetMode, maxTime, restrictedIngredients = [] } = req.body;
