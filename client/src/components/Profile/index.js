@@ -73,7 +73,7 @@ const Profile = () => {
     email: '',
     dietaryPreferences: [],
     dietaryRestrictions: [],
-    alwaysAvailable: [],  // includes { ingredient_name, expirationDate }
+    alwaysAvailable: [],  
     healthGoals: [],
     weeklyBudget: '',
   });
