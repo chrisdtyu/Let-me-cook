@@ -4,7 +4,7 @@ const Api = {
     callApiGetRecipe: async (recipeId) => {
         try {
             const firebaseUid = localStorage.getItem('firebase_uid');
-            const response = await fetch(`/api/getRecipe?id=${recipeId}&uid = ${firebaseUid}`);
+            const response = await fetch(`/api/getRecipe?id=${recipeId}&uid=${firebaseUid}`);
             const body = await response.json();
             if (response.status !== 200) throw Error(body.message);
             return body;
@@ -66,6 +66,7 @@ const Api = {
             return [];
         }
     },
+
     callApiGetReviews: async (recipeId) => {
         try {
             const response = await fetch(`/api/getReviews?id=${recipeId}`);
@@ -73,10 +74,9 @@ const Api = {
             if (response.status !== 200) throw Error(body.message);
             return body;
         } catch (err) {
-            console.error("Error fetching ingredients:", err);
+            console.error("Error fetching reviews:", err);
         }
     },
-
 
     callApiUploadRecipe: async (recipeData) => {
         try {
@@ -101,6 +101,35 @@ const Api = {
             console.error("Error uploading recipe:", err);
         }
     },
+
+    callApiEditRecipe: async (payload) => {
+        try {
+            const response = await fetch('/api/editRecipe', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            const textBody = await response.text();
+            let body;
+            try {
+                body = JSON.parse(textBody);
+            } catch (e) {
+                console.error('Failed to parse JSON response:', textBody);
+                throw new Error('Invalid JSON from server');
+            }
+
+            if (!response.ok) {
+                console.error('Edit failed:', body);
+                throw new Error(body.error || 'Error editing recipe');
+            }
+
+            return body;
+        } catch (error) {
+            console.error('API callApiEditRecipe error:', error);
+            return { error: error.message || 'Unknown error' };
+        }
+    }
 };
 
 export default Api;
