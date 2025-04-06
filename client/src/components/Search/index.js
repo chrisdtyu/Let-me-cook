@@ -28,6 +28,7 @@ const Search = () => {
     const [selectedCategories, setSelectedCategories] = useState([]);
 
     const [maxTime, setMaxTime] = useState('');
+    const [restrictedIngredients, setRestrictedIngredients] = useState([]);
 
     const [recipes, setRecipes] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -96,6 +97,12 @@ const Search = () => {
                             setSelectedIngredients(prev => [...new Set([...prev, ...alwaysNames])]);
                         })
                         .catch(err => console.error('Error fetching alwaysAvailable ingredients:', err));
+                    
+                        Api.getUserSearchProfile(firebaseUid)
+                            .then(({ dietaryRestrictions }) => {
+                                setRestrictedIngredients(dietaryRestrictions || []);
+                        })
+                        .catch(err => console.error('Error fetching search dietary restrictions:', err));
                 }
             })
             .catch(err => console.error("Error in auto-login getUser:", err));
@@ -174,7 +181,9 @@ const Search = () => {
                 selectedCuisines,
                 selectedCategories,
                 budgetMode,
-                maxTimeInt
+                maxTimeInt,
+                userId,
+                restrictedIngredients // ← missing argument!
             );
 
             // Apply sorting after fetching recipes
@@ -383,6 +392,14 @@ const Search = () => {
                         )}
                         sx={{ width: 400, marginBottom: 2 }}
                     />
+
+                    {restrictedIngredients.length > 0 && (
+                        <Box sx={{ mt: 1 }}>
+                            <Typography variant="body2" color="error">
+                                <strong>Restricted Ingredients:</strong> {restrictedIngredients.join(', ')}
+                            </Typography>
+                        </Box>
+                    )}
     
                     <Typography variant="body2">
                         <strong>Filters:</strong>
