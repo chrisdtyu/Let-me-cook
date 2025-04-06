@@ -31,6 +31,8 @@ const Search = () => {
     const [selectedCategories, setSelectedCategories] = useState([]);
 
     const [maxTime, setMaxTime] = useState('');
+    const [restrictedIngredients, setRestrictedIngredients] = useState([]);
+
 
     const [recipes, setRecipes] = useState([]);
     const [loading, setLoading] = useState(false);
