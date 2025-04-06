@@ -54,7 +54,41 @@ const Api = {
             return [];
         }
     },
-
+    
+    getFilteredIngredients: async (selectedType) => {
+        console.log("selectedType:", selectedType);
+        console.log("in getFilteredIngredients");
+    
+        try {
+            // Use query parameters to send the selectedType
+            const response = await fetch(`/api/getFilteredIngredients?types=${encodeURIComponent(selectedType)}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+    
+            if (response.status === 403) {
+                throw new Error("API Forbidden (403): Check CORS or permissions");
+            }
+            if (!response.ok) {
+                throw new Error(`API Error: ${response.status} - ${response.statusText}`);
+            }
+    
+            const data = await response.json();
+            // Return data in the same format as getIngredients
+            return data.map(item => ({
+                ingredient_id: item.ingredient_id,
+                name: item.name,
+                type: item.type,
+                price: item.price
+            }));
+        } catch (err) {
+            console.error("Error fetching ingredients:", err);
+            return [];
+        }
+    },    
+    
     getCuisines: async () => {
         try {
             const response = await fetch('/api/getCuisines');
@@ -79,6 +113,21 @@ const Api = {
             return await response.json();
         } catch (err) {
             console.error("Error fetching categories:", err);
+            return [];
+        }
+    },
+
+    getIngTypes: async () => {
+        try {
+            const response = await fetch('/api/getIngredientTypes');
+            console.log("getIngTypes response:", response)
+            if (response.status === 403) {
+                throw new Error("API Forbidden (403): Check CORS or permissions");
+            }
+            if (!response.ok) throw new Error(`API Error: ${response.status} - ${response.statusText}`);
+            return await response.json();
+        } catch (err) {
+            console.error("Error fetching types:", err);
             return [];
         }
     },

@@ -714,6 +714,33 @@ app.get('/api/getCategories', (req, res) => {
     });
 });
 
+// get Food Type
+app.get('/api/getIngredientTypes', (req, res) => {
+    console.log("you are in get ingredinets type API now")
+    const sql = "SELECT DISTINCT type FROM ingredients ORDER BY type";
+    connection.query(sql, (error, results) => {
+        if (error) {
+            return res.status(500).json({ error: "Database error" });
+        }
+        let response = results.map(row => row.type);
+        res.json(response);
+    });
+});
+
+app.get('/api/getFilteredIngredients', (req, res) => {
+    console.log("you are in FILTEREDING API now");
+    const selectedTypes = req.query.types;
+    const typesArray = selectedTypes ? selectedTypes.split(',') : [];
+    const sql = "SELECT ingredient_id, name, type, price FROM ingredients WHERE type IN (?);";
+    connection.query(sql, [typesArray], (error, results) => {
+        if (error) {
+            console.error("Database error", error);
+            return res.status(500).json({ error: "Database error" });
+        }
+        res.json(results);
+    });
+});
+
 // get health goals
 app.get('/api/getHealthGoals', (req, res) => {
     const sql = "SELECT goal_id, goal_name FROM health_goals";
