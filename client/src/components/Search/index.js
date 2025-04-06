@@ -636,7 +636,7 @@ const Search = () => {
                                     borderRadius: '8px',
                                     padding: 2,
                                 }}>
-                                    <Typography variant="h6">
+                                    <Typography align="center "variant="h6">
                                         <Link onClick={() => navigate('/Recipe/' + recipe.recipe_id)}>
                                             {recipe.name}
                                         </Link>
