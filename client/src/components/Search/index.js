@@ -29,6 +29,7 @@ const Search = () => {
 
     const [maxTime, setMaxTime] = useState('');
     const [restrictedIngredients, setRestrictedIngredients] = useState([]);
+    //restricted ingredient use state
 
     const [recipes, setRecipes] = useState([]);
     const [loading, setLoading] = useState(false);
