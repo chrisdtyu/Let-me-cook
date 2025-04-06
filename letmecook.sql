@@ -186,3 +186,6 @@ CREATE TABLE user_favourites (
   FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
   FOREIGN KEY (recipe_id) REFERENCES recipes(recipe_id) ON DELETE CASCADE
 );
+
+ALTER TABLE user_ingredients
+ADD COLUMN expiration_date DATE NULL;

@@ -489,7 +489,6 @@ app.post('/api/recommendRecipes', (req, res) => {
             console.error('Error fetching recipes:', err);
             return res.status(500).json({ error: 'Database query failed' });
         }
-
         if (recipes.length === 0) {
             return res.json({ message: "No suitable recipes found" });
         }
@@ -504,27 +503,47 @@ app.post('/api/recommendRecipes', (req, res) => {
             WHERE ri.recipe_id IN (${recipeIDs.map(() => '?').join(',')})
             AND i.name NOT IN (${ingredients_placeholders});
         `;
+
         connection2.query(missingQuery, [...recipeIDs, ...ingredients], (err2, missingIngredients) => {
             if (err2) {
                 console.error('Error fetching missing ingredients:', err2);
                 return res.status(500).json({ error: 'Database query failed' });
             }
 
-            const alwaysAvailableQuery = `SELECT ingredient_id FROM user_ingredients WHERE user_id = ?`;
+            let recipeData = recipes.map(recipe => {
+                const allIngredients = recipe.recipe_ingredients.split(',');
+                const prices = recipe.ingredient_prices.split(',').map(parseFloat);
+                const ingredientsWithPrices = allIngredients.map((name, index) => ({
+                    name,
+                    price: prices[index] || null
+                }));
+                const missing = missingIngredients.filter(m => m.recipe_id === recipe.recipe_id);
+
+                return {
+                    ...recipe,
+                    ingredients: ingredientsWithPrices,
+                    missingIngredients: missing.map(m => ({
+                        name: m.missing_ingredient,
+                        suggestedSubstitute: budgetMode ? m.substitute_name : null,
+                        estimatedCost: budgetMode ? m.cost : null
+                    }))
+                };
+            });
+
+            let alwaysAvailableQuery = `SELECT ingredient_id FROM user_ingredients WHERE user_id = ?`;
             connection2.query(alwaysAvailableQuery, [userId], (err3, availableRows) => {
                 if (err3) {
                     console.error('Error fetching always available:', err3);
                     return res.status(500).json({ error: 'Database query failed' });
                 }
 
-                const availableIds = new Set(availableRows.map(row => row.ingredient_id));
-                const ingredientCostQuery = `
+                const availableIds = new Set(availableRows.map(r => r.ingredient_id));
+                let ingredientCostQuery = `
                     SELECT ri.recipe_id, i.ingredient_id, i.price
                     FROM recipe_ingredients ri
                     JOIN ingredients i ON ri.ingredient_id = i.ingredient_id
                     WHERE ri.recipe_id IN (${recipeIDs.map(() => '?').join(',')})
                 `;
-
                 connection2.query(ingredientCostQuery, recipeIDs, (err4, costRows) => {
                     if (err4) {
                         console.error('Error fetching ingredient prices:', err4);
@@ -539,28 +558,36 @@ app.post('/api/recommendRecipes', (req, res) => {
                         }
                     });
 
-                    let recipeData = recipes.map(recipe => {
-                        const allIngredients = recipe.recipe_ingredients.split(',');
-                        const prices = recipe.ingredient_prices.split(',').map(parseFloat);
-                        const ingredientsWithPrices = allIngredients.map((name, index) => ({
-                            name,
-                            price: prices[index] || null
-                        }));
-                        let missing = missingIngredients.filter(m => m.recipe_id === recipe.recipe_id);
-                        return {
-                            ...recipe,
-                            estimated_cost: parseFloat((costMap[recipe.recipe_id] || 0).toFixed(2)),
-                            ingredients: ingredientsWithPrices,
-                            missingIngredients: missing.map(m => ({
-                                name: m.missing_ingredient,
-                                suggestedSubstitute: budgetMode ? m.substitute_name : null,
-                                estimatedCost: budgetMode ? m.cost : null
-                            }))
-                        };
+                    recipeData.forEach(r => {
+                        r.estimated_cost = parseFloat((costMap[r.recipe_id] || 0).toFixed(2));
                     });
 
-                    res.json(recipeData);
-                    connection2.end();
+                    const goalsSql = `
+                    SELECT rg.recipe_id, hg.goal_name
+                    FROM recipe_goals rg
+                    JOIN health_goals hg ON rg.goal_id = hg.goal_id
+                    WHERE rg.recipe_id IN (${recipeIDs.map(() => '?').join(',')})
+                    `;
+                    connection2.query(goalsSql, recipeIDs, (errGoals, goalRows) => {
+                        if (errGoals) {
+                            console.error("Error fetching recipe goals in recommendRecipes:", errGoals);
+                            recipeData.forEach(r => { r.goal = null; });
+                            connection2.end();
+                            return res.json(recipeData);
+                        }
+
+                        const goalMap = {};
+                        goalRows.forEach(row => {
+                            goalMap[row.recipe_id] = row.goal_name;  
+                        });
+
+                        recipeData.forEach(r => {
+                            r.goal = goalMap[r.recipe_id] || null;
+                        });
+
+                        connection2.end();
+                        return res.json(recipeData);
+                    });
                 });
             });
         });
@@ -571,81 +598,98 @@ app.post('/api/recommendRecipes', (req, res) => {
 app.get('/api/getRecipe', (req, res) => {
     const recipeId = req.query.id;
     const firebase_uid = req.query.uid;
-    
+  
     if (!recipeId) {
-        return res.status(400).json({ error: "Missing recipe ID" });
+      return res.status(400).json({ error: "Missing recipe ID" });
     }
-
-    let connection3 = mysql.createConnection(config);
-    let sql = `SELECT * FROM recipes WHERE recipe_id = ?`;
-    let data = [recipeId];
-
-    connection3.query(sql, data, (error, results, fields) => {
-        if (error) {
-            console.error("Database Error:", error);
-            connection3.end();
-            return res.status(500).json({ error: "Database query failed" });
+  
+    const connection3 = mysql.createConnection(config);
+    const sql = `SELECT * FROM recipes WHERE recipe_id = ?`;
+    const data = [recipeId];
+  
+    connection3.query(sql, data, (error, results) => {
+      if (error) {
+        console.error("Database Error:", error);
+        connection3.end();
+        return res.status(500).json({ error: "Database query failed" });
+      }
+  
+      if (!results || results.length === 0) {
+        connection3.end();
+        return res.status(404).json({ error: "Recipe not found" });
+      }
+  
+      const recipe = results[0];
+  
+      const goalsSql = `
+        SELECT hg.goal_name
+        FROM recipe_goals rg
+        JOIN health_goals hg ON rg.goal_id = hg.goal_id
+        WHERE rg.recipe_id = ?
+      `;
+  
+      connection3.query(goalsSql, [recipeId], (errGoals, goalRows) => {
+        if (errGoals) {
+          console.error("Error fetching recipe goals:", errGoals);
+          recipe.goals = [];
+        } else {
+          recipe.goals = goalRows.map(row => row.goal_name);
         }
-        if (!results || results.length === 0) {
-            connection3.end();
-            return res.status(404).json({ error: "Recipe not found" });
-        }
-        let recipe = results[0];
-
+  
         const ingredientSql = `
-            SELECT i.ingredient_id, i.price
-            FROM recipe_ingredients ri
-            JOIN ingredients i ON ri.ingredient_id = i.ingredient_id
-            WHERE ri.recipe_id = ?
+          SELECT i.ingredient_id, i.price
+          FROM recipe_ingredients ri
+          JOIN ingredients i ON ri.ingredient_id = i.ingredient_id
+          WHERE ri.recipe_id = ?
         `;
-        
+  
         connection3.query(ingredientSql, [recipeId], (err2, ingredientRows) => {
-            if (err2) {
-                console.error("Error fetching ingredients:", err2);
-                connection3.end();
-                recipe.estimated_cost = null;
-                return res.json(recipe);
+          if (err2) {
+            console.error("Error fetching ingredients:", err2);
+            recipe.estimated_cost = null;
+            connection3.end();
+            return res.json(recipe);
+          }
+  
+          if (!firebase_uid) {
+            const total = ingredientRows.reduce((sum, i) => sum + (i.price || 0), 0);
+            recipe.estimated_cost = parseFloat(total.toFixed(2));
+            connection3.end();
+            return res.json(recipe);
+          }
+  
+          const availableSql = `
+            SELECT i.ingredient_id
+            FROM user_ingredients ui
+            JOIN users u ON ui.user_id = u.user_id
+            JOIN ingredients i ON ui.ingredient_id = i.ingredient_id
+            WHERE u.firebase_uid = ?
+          `;
+  
+          connection3.query(availableSql, [firebase_uid], (err3, availableRows) => {
+            if (err3) {
+              console.error("Error fetching available ingredients:", err3);
+              recipe.estimated_cost = null;
+              connection3.end();
+              return res.json(recipe);
             }
-
-            if (!firebase_uid) {
-                const total = ingredientRows.reduce((sum, i) => sum + (i.price || 0), 0);
-                recipe.estimated_cost = parseFloat(total.toFixed(2));
-                connection3.end();
-                return res.json(recipe);
-            }
-
-            // Get alwaysAvailable based on firebase_uid
-            const availableSql = `
-                SELECT i.ingredient_id
-                FROM user_ingredients ui
-                JOIN users u ON ui.user_id = u.user_id
-                JOIN ingredients i ON ui.ingredient_id = i.ingredient_id
-                WHERE u.firebase_uid = ?
-            `;
-            connection3.query(availableSql, [firebase_uid], (err3, availableRows) => {
-                if (err3) {
-                    console.error("Error fetching always available ingredients:", err3);
-                    recipe.estimated_cost = null;
-                    connection3.end();
-                    return res.json(recipe);
-                }
-
-                const availableSet = new Set(availableRows.map(r => r.ingredient_id));
-                const total = ingredientRows.reduce((sum, i) => {
-                    if (!availableSet.has(i.ingredient_id)) {
-                        return sum + (i.price || 0);
-                    }
-                    return sum;
-                }, 0);
-
-                recipe.estimated_cost = parseFloat(total.toFixed(2));
-                connection3.end();
-                res.json(recipe);
-            });
+  
+            const availableSet = new Set(availableRows.map(r => r.ingredient_id));
+            const total = ingredientRows.reduce((sum, i) => {
+              return !availableSet.has(i.ingredient_id)
+                ? sum + (i.price || 0)
+                : sum;
+            }, 0);
+  
+            recipe.estimated_cost = parseFloat(total.toFixed(2));
+            connection3.end();
+            res.json(recipe);
+          });
         });
+      });
     });
-});
-
+  });
+  
 // getRecipeIngredients
 app.get('/api/getRecipeIngredients', (req, res) => {
     let connection4 = mysql.createConnection(config);

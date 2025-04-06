@@ -557,6 +557,10 @@ const Search = () => {
                                         </Typography>
                                         <Typography variant="body2"><strong>Type:</strong> {recipe.type}</Typography>
                                         <Typography variant="body2"><strong>Category:</strong> {recipe.category}</Typography>
+                                        <Typography variant="body2">
+                                        <strong>Target Goal:</strong> {recipe.goal || "N/A"}
+                                        </Typography>
+
                                         <Typography variant="body2"><strong>Time:</strong> {recipe.prep_time} mins</Typography>
                                         {budgetMode && recipe.estimated_cost && (
                                             <Typography variant="body2">
