@@ -53,43 +53,56 @@ const Search = () => {
         const firebaseUid = localStorage.getItem('firebase_uid');
         if (firebaseUid) {
             setIsUserLoggedIn(true);
+
             fetch('/api/getUser', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ firebase_uid: firebaseUid }),
             })
-                .then((res) => {
-                    if (!res.ok) throw new Error("Failed to fetch user from MySQL");
-                    return res.json();
-                })
-                .then((data) => {
-                    let parsed;
-                    if (data.express) {
-                        parsed = JSON.parse(data.express);
-                    } else {
-                        parsed = data;
-                    }
-                    if (parsed && parsed.user_id) {
-                        setUserId(parsed.user_id);
-                        fetch('/api/getUserRecipes', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ user_id: parsed.user_id }),
+            .then((res) => {
+                if (!res.ok) throw new Error("Failed to fetch user from MySQL");
+                return res.json();
+            })
+            .then((data) => {
+                let parsed;
+                if (data.express) {
+                    parsed = JSON.parse(data.express);
+                } else {
+                    parsed = data;
+                }
+
+                if (parsed && parsed.user_id) {
+                    setUserId(parsed.user_id);
+
+                    fetch('/api/getUserRecipes', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: parsed.user_id }),
+                    })
+                    .then(r => r.json())
+                    .then((info) => {
+                        const triedSet = new Set(info.tried?.map(r => r.recipe_id));
+                        const favSet = new Set(info.favourites?.map(r => r.recipe_id));
+                        setTriedRecipes(triedSet);
+                        setFavRecipes(favSet);
+                    });
+
+                    // 🔥 Fetch alwaysAvailable ingredients
+                    Api.getUserProfile(firebaseUid)
+                        .then((alwaysAvailable) => {
+                            const alwaysNames = alwaysAvailable
+                                .map(item => item.ingredient_name)
+                                .filter(Boolean);
+                            setSelectedIngredients(prev => [...new Set([...prev, ...alwaysNames])]);
                         })
-                            .then(r => r.json())
-                            .then((info) => {
-                                const triedSet = new Set(info.tried?.map(r => r.recipe_id));
-                                const favSet = new Set(info.favourites?.map(r => r.recipe_id));
-                                setTriedRecipes(triedSet);
-                                setFavRecipes(favSet);
-                            });
-                    }
-                })
-                .catch(err => console.error("Error in auto-login getUser:", err));
+                        .catch(err => console.error('Error fetching alwaysAvailable ingredients:', err));
+                }
+            })
+            .catch(err => console.error("Error in auto-login getUser:", err));
         }
     }, []);
 
-    // Fetch ingredients from the database on component mount
+    // Fetch data: Ingredients, Cuisines, Categories
     useEffect(() => {
         const fetchIngredients = async () => {
             try {

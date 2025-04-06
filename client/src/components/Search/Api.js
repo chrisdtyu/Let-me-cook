@@ -10,6 +10,22 @@ const Api = {
         }
     },
 
+    getUserProfile: async (firebase_uid) => {
+        try {
+            const response = await fetch('/api/getUserProfile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ firebase_uid }),
+            });
+            if (!response.ok) throw new Error(`API Error: ${response.status} - ${response.statusText}`);
+            const data = await response.json();
+            return data.alwaysAvailable || [];
+        } catch (err) {
+            console.error("Error fetching user profile:", err);
+            return [];
+        }
+    },
+
     callApiRecommendRecipes: async (ingredients, cuisines, categories, budgetMode, maxTime, userId) => {
         try {
             const response = await fetch('/api/recommendRecipes', {
