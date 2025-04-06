@@ -621,7 +621,6 @@ app.get('/api/getRecipe', (req, res) => {
   
       const recipe = results[0];
   
-      // 1) Fetch recipe's goals
       const goalsSql = `
         SELECT hg.goal_name
         FROM recipe_goals rg
@@ -637,7 +636,6 @@ app.get('/api/getRecipe', (req, res) => {
           recipe.goals = goalRows.map(row => row.goal_name);
         }
   
-        // 2) Fetch ingredients to compute estimated_cost
         const ingredientSql = `
           SELECT i.ingredient_id, i.price
           FROM recipe_ingredients ri
@@ -653,7 +651,6 @@ app.get('/api/getRecipe', (req, res) => {
             return res.json(recipe);
           }
   
-          // No user: sum all ingredient costs
           if (!firebase_uid) {
             const total = ingredientRows.reduce((sum, i) => sum + (i.price || 0), 0);
             recipe.estimated_cost = parseFloat(total.toFixed(2));
@@ -661,7 +658,6 @@ app.get('/api/getRecipe', (req, res) => {
             return res.json(recipe);
           }
   
-          // With user: subtract available ingredients
           const availableSql = `
             SELECT i.ingredient_id
             FROM user_ingredients ui
