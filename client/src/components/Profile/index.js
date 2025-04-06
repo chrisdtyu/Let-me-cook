@@ -73,7 +73,7 @@ const Profile = () => {
     email: '',
     dietaryPreferences: [],
     dietaryRestrictions: [],
-    alwaysAvailable: [],
+    alwaysAvailable: [],  
     healthGoals: [],
     weeklyBudget: '',
   });
@@ -86,6 +86,7 @@ const Profile = () => {
   const [triedRecipes, setTriedRecipes] = React.useState([]);
   const [favRecipes, setFavRecipes] = React.useState([]);
 
+  // For controlling field errors
   const [didSubmitErrors, setDidSubmitErrors] = React.useState([]);
 
   React.useEffect(() => {
@@ -96,6 +97,7 @@ const Profile = () => {
       return;
     }
 
+    // get user
     fetch('/api/getUser', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -123,6 +125,7 @@ const Profile = () => {
         }));
 
         if (parsed && parsed.user_id) {
+          // get user recipes
           fetch('/api/getUserRecipes', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -138,6 +141,7 @@ const Profile = () => {
       })
       .catch((err) => console.error('Error fetching user:', err));
 
+    // get user profile
     fetch('/api/getUserProfile', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -161,7 +165,7 @@ const Profile = () => {
             ? ''
             : user.weekly_budget || '';
 
-          let finalAlways = alwaysAvailable && alwaysAvailable.length > 0
+          const finalAlways = (alwaysAvailable && alwaysAvailable.length > 0)
             ? alwaysAvailable
             : [{ ingredient_name: '' }];
 
@@ -178,6 +182,7 @@ const Profile = () => {
       })
       .catch((err) => console.error('Error fetching full user profile:', err));
 
+    // fetch lists
     fetch('/api/getDietaryPreferences')
       .then((res) => res.json())
       .then((data) => setDietaryPreferencesList(data))
@@ -200,7 +205,6 @@ const Profile = () => {
 
   }, [navigate]);
 
-  // memoized filter operations
   const selectedPreferenceObjects = React.useMemo(() => {
     return dietaryPreferencesList.filter((p) =>
       profile.dietaryPreferences.includes(p.preference_id)
@@ -219,21 +223,22 @@ const Profile = () => {
     );
   }, [goalsList, profile.healthGoals]);
 
-  // handleSubmit
   const handleSubmit = async () => {
+    // track errors
     const ingredientErrors = profile.alwaysAvailable.map(item => !item.ingredient_name);
     setDidSubmitErrors(ingredientErrors);
 
+    // check for duplicates
     const allNames = profile.alwaysAvailable
       .map(item => item.ingredient_name.trim().toLowerCase())
       .filter(n => n);
     const hasDuplicate = allNames.length !== new Set(allNames).size;
-
     if (hasDuplicate) {
       alert('You have duplicate ingredients. Please remove duplicates before updating your profile.');
       return;
     }
 
+    // check for missing required fields
     if (ingredientErrors.some(e => e)) {
       alert('Please fill out all required ingredient fields before submitting.');
       return;
@@ -368,7 +373,6 @@ const Profile = () => {
                     const matchedIng = ingredientsList.find(
                       ing => ing.name === item.ingredient_name
                     ) || null;
-
                     const showError = didSubmitErrors[idx];
 
                     return (
@@ -389,7 +393,7 @@ const Profile = () => {
                           renderInput={(params) => (
                             <TextField
                               {...params}
-                              label="Ingredient *"
+                              label="Ingredient"
                               required
                               error={showError}
                               helperText={showError ? "Please fill out this field" : ""}
