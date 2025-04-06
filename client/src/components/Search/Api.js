@@ -26,12 +26,43 @@ const Api = {
         }
     },
 
-    callApiRecommendRecipes: async (ingredients, cuisines, categories, budgetMode, maxTime, userId) => {
+    getUserSearchProfile: async (firebase_uid) => {
+        try {
+            const response = await fetch('/api/getUserSearchProfile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ firebase_uid }),
+            });
+            if (!response.ok) throw new Error(`API Error: ${response.status} - ${response.statusText}`);
+            return await response.json(); // { alwaysAvailable: [...], dietaryRestrictions: [...] }
+        } catch (err) {
+            console.error("Error fetching user search profile:", err);
+            return { alwaysAvailable: [], dietaryRestrictions: [] };
+        }
+    },
+
+    callApiRecommendRecipes: async (
+        ingredients,
+        cuisines,
+        categories,
+        budgetMode,
+        maxTime,
+        userId,
+        restrictedIngredients = [] // optional argument with default
+    ) => {
         try {
             const response = await fetch('/api/recommendRecipes', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ingredients, cuisines, categories, budgetMode, maxTime, userId })
+                body: JSON.stringify({
+                    ingredients,
+                    cuisines,
+                    categories,
+                    budgetMode,
+                    maxTime,
+                    userId,
+                    restrictedIngredients
+                })
             });
             if (!response.ok) throw new Error(`API Error: ${response.status} - ${response.statusText}`);
             return await response.json();
