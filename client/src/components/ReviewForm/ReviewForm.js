@@ -14,7 +14,7 @@ const MainGridContainer = styled(Grid)(({ theme }) => ({
   margin: theme.spacing(4),
 }));
 
-const Review = ({ recipeId, reviewSubmitted }) => {
+const ReviewForm = ({ recipeId, reviewSubmitted }) => {
   const [enteredTitle, setEnteredTitle] = React.useState('');
   const [enteredReview, setEnteredReview] = React.useState('');
   const [selectedRating, setSelectedRating] = React.useState(0);
@@ -60,6 +60,8 @@ const Review = ({ recipeId, reviewSubmitted }) => {
   }, [navigate]);
 
   const handleSubmit = (event) => {
+    event.preventDefault(); // Prevent the default form submission
+
     console.log("Entered title:", enteredTitle);
     console.log("Entered review:", enteredReview);
     console.log("Selected rating:", selectedRating);
@@ -100,10 +102,10 @@ const Review = ({ recipeId, reviewSubmitted }) => {
       Api.callApiAddReview(reviewData)
         .then((res) => {
           console.log('Review submitted:', res.body);
-          setSubmitSuccess(true);
+          setSubmitSuccess(true); // Handle success state, you may want to display a success message
           setTimeout(() => {
-            reviewSubmitted();
-          }, 1000);
+            reviewSubmitted();  // Trigger re-fetch of the reviews list
+          }, 1000); // Ensure the review is successfully processed before re-fetching
         })
         .catch((error) => {
           console.error('Error submitting review:', error);
@@ -155,4 +157,4 @@ const Review = ({ recipeId, reviewSubmitted }) => {
   );
 };
 
-export default Review;
+export default ReviewForm;

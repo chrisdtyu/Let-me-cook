@@ -12,8 +12,8 @@ import MenuItem from '@mui/material/MenuItem';
 import Button from '@mui/material/Button';
 import Api from './Api';
 import LetmecookAppBar from '../AppBar';
-import ReviewList from '../ReviewList';
-import Review from '../Review';
+import ReviewList from '../ReviewList/ReviewList';
+import Review from '../ReviewForm';
 import Note from '../Notes/Notes';
 import PriceDisplay from '../Budget/PriceDisplay';
 import { useBudget } from '../Budget/BudgetContext';
@@ -45,17 +45,31 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
   const [userData, setUserData] = useState(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const { budgetMode, weeklySpent, addedRecipes, addMealCost } = useBudget();
-
-  // Note submission state
   const [noteSubmittedFlag, setNoteSubmittedFlag] = useState(false);
+  const [reviews, setReviews] = useState([]);
+  const [averageRating, setAverageRating] = React.useState(null);
 
   useEffect(() => {
     getRecipe(id);
   }, [id, getRecipe]);
 
   useEffect(() => {
-    console.log("Loaded recipe:", recipe);
-  }, [recipe]);
+    if (id) {
+      getReviews(id);
+    }
+  }, [id]);
+
+  const getReviews = React.useCallback(async (recipe_id) => {
+    try {
+      const response = await Api.callApiGetReviews(recipe_id);
+      const reviews = response.reviews || [];
+      setReviews(reviews);
+      setAverageRating(response.average_rating);
+    } catch (error) {
+      console.error("Error fetching review:", error);
+    }
+  }, []);
+
 
   useEffect(() => {
     if (ingredients.length > 0) {
@@ -111,6 +125,22 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
     setBaseIngredientId(event.target.value);
     setScaleFactor(1);
   };
+
+  const handleReviewSubmitted = (newReview) => {
+    // First, update the reviews state
+    setReviews((prevReviews) => [...prevReviews, newReview]);
+  
+    // Return a Promise that resolves once the state has been updated
+    return new Promise((resolve, reject) => {
+      // Use setTimeout to wait for the state to be updated before calling getReviews
+      setTimeout(() => {
+        getReviews(id)  // Call getReviews after state update
+          .then(() => resolve())  // Resolve once getReviews is completed
+          .catch((error) => reject(error));  // Reject if there's an error
+      }, 0); // Small delay to allow React to complete the state update
+    });
+  };
+
   const handleNoteSubmitted = () => {
     setNoteSubmittedFlag(true);
     console.log('Note was successfully submitted');
@@ -127,16 +157,14 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
     <>
       <LetmecookAppBar page={`Recipe: ${recipe ? recipe.name : ''}`} />
       <MainGridContainer container direction="column" alignItems="center">
-        {/* Recipe Name */}
         <Typography variant="h4" sx={{ textAlign: 'center' }}>
           <b>{recipe.name}</b>
         </Typography>
         <Grid container spacing={2} alignItems="flex-start" justifyContent="center">
-          <Grid item xs={12} sm={4} sx={{ display: 'flex', justifyContent: 'center' }}>
-            <Box sx={{ textAlign: 'center' }}>
-            </Box>
+          <Grid item xs={12} sm={4}>
+            <Box sx={{ textAlign: 'center' }} />
           </Grid>
-          <Grid item xs={12} sm={4} sx={{ display: 'flex', justifyContent: 'center' }}>
+          <Grid item xs={12} sm={4}>
             <ImageContainer>
               {recipe.image && (
                 <img
@@ -147,14 +175,16 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
               )}
             </ImageContainer>
           </Grid>
-          <Grid item xs={12} sm={4} sx={{ display: 'flex', justifyContent: 'center' }}>
+          <Grid item xs={12} sm={4}>
             <Note recipeId={id} noteSubmitted={handleNoteSubmitted} />
           </Grid>
         </Grid>
+
         <Typography variant="h6">
           Category: {recipe.category} | Type: {recipe.type}
         </Typography>
         <Typography variant="h6">Time: {recipe.prep_time} mins</Typography>
+
         {budgetMode && (
           <>
             <Typography variant="h6">
@@ -168,7 +198,7 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
                 if (recipe.estimated_cost) {
                   addMealCost(recipe.recipe_id, recipe.estimated_cost);
                   setSnackbarOpen(true);
-                }                
+                }
               }}
             >
               Add to This Week's Meals
@@ -176,34 +206,29 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
           </>
         )}
 
-        <Typography variant="h5" sx={{ mt: 2 }}>
-          <b>Ingredients:</b>
-        </Typography>
-        <Typography variant="h10" sx={{ mt: 2 }}>
-          required = *
-        </Typography>
-
+        <Typography variant="h5" sx={{ mt: 2 }}><b>Ingredients:</b></Typography>
+        <Typography variant="h10" sx={{ mt: 2 }}>required = *</Typography>
         <ul style={{ marginTop: '40px' }}>
           {ingredients.map((ing) => {
             let displayQuantity = ing.quantity;
             let isScaled = false;
             if (ing.required === 1 && baseQuantity[ing.ingredient_id] && baseIngredientId) {
-              const baseScale = baseIngredientId === ing.ingredient_id ? sliderValue / baseQuantity[baseIngredientId] : scaleFactor;
+              const baseScale = baseIngredientId === ing.ingredient_id
+                ? sliderValue / baseQuantity[baseIngredientId]
+                : scaleFactor;
               displayQuantity = baseQuantity[ing.ingredient_id] * baseScale;
               isScaled = true;
             }
 
-            let formattedQuantity;
-            if (ing.quantity_type === null || ing.quantity_type === '') {
-              formattedQuantity = isScaled ? Math.round(displayQuantity) : Math.round(displayQuantity);
-            } else {
-              formattedQuantity = isScaled ? displayQuantity.toFixed(1) : Math.round(displayQuantity);
-            }
+            let formattedQuantity = ing.quantity_type
+              ? displayQuantity.toFixed(1)
+              : Math.round(displayQuantity);
 
             return (
               <li key={ing.ingredient_id}>
-                {formattedQuantity} {ing.quantity_type ? ing.quantity_type + ' ' : ''}{ing.name} {ing.required === 1 ? '*' : ''}
-                <PriceDisplay 
+                {formattedQuantity} {ing.quantity_type ? ing.quantity_type + ' ' : ''}
+                {ing.name} {ing.required === 1 ? '*' : ''}
+                <PriceDisplay
                   price={ing.price}
                   ingredientId={ing.ingredient_id}
                   alwaysAvailable={userData?.alwaysAvailable?.map(item => item.ingredient_id)}
@@ -215,9 +240,7 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
 
         {/* Ingredient Scaling */}
         <Box sx={{ mt: 2, width: 300 }}>
-          <Typography variant="h6">
-            <b>Scale Ingredients:</b>
-          </Typography>
+          <Typography variant="h6"><b>Scale Ingredients:</b></Typography>
           <Slider
             value={sliderValue}
             onChange={handleScaleChange}
@@ -236,9 +259,7 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
             value={baseIngredientId || ''}
             onChange={handleBaseIngredientChange}
             renderValue={(selected) => {
-              if (!selected) {
-                return <em>Select an ingredient</em>;
-              }
+              if (!selected) return <em>Select an ingredient</em>;
               const selectedIngredient = ingredients.find((ing) => ing.ingredient_id === selected);
               return selectedIngredient ? selectedIngredient.name : 'Select an ingredient';
             }}
@@ -252,34 +273,38 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
               ))}
           </Select>
         </FormControl>
-        <Typography variant="h5" sx={{ mt: 2 }}>
-          <b>Instructions:</b>
-        </Typography>
+
+        <Typography variant="h5" sx={{ mt: 2 }}><b>Instructions:</b></Typography>
         <ul>
           {recipe.instructions
             ? recipe.instructions.split('.').map((step, index) => <li key={index}>{step.trim()}</li>)
             : ''}
         </ul>
+
         {recipe.video && (
           <Box sx={{ mt: 2 }}>
-            <Typography variant="h6">
-              <b>Video:</b>
-            </Typography>
+            <Typography variant="h6"><b>Video:</b></Typography>
             <iframe width="560" height="315" src={recipe.video} title="Recipe Video" allowFullScreen></iframe>
           </Box>
         )}
+
         {userData && (
           <Box sx={{ mt: 2 }}>
-            <Typography variant="h6">
-              <b>User Information:</b>
-            </Typography>
+            <Typography variant="h6"><b>User Information:</b></Typography>
             <Typography variant="body1">Name: {userData.name}</Typography>
             <Typography variant="body1">Email: {userData.email}</Typography>
           </Box>
         )}
 
-        {userId && <Review recipeId={id} reviewSubmitted={() => { }} userId={userId} />}
-        <ReviewList recipeId={id} />
+        {userId && (
+          <Review
+            recipeId={id}
+            reviewSubmitted={handleReviewSubmitted}
+            userId={userId}
+          />
+        )}
+
+        <ReviewList recipeId={id} reviews={reviews} averageRating={averageRating} getReviews={getReviews} />
       </MainGridContainer>
 
       <Snackbar
@@ -293,7 +318,6 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
         </MuiAlert>
       </Snackbar>
     </>
-    
   );
 };
 

@@ -3,19 +3,42 @@ import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Grid';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
 import { styled } from '@mui/material/styles';
-import Review from '../Review';
-import Api from './Api';
+import Review from '../ReviewForm';
 
 const MainGridContainer = styled(Grid)(({ theme }) => ({
   margin: theme.spacing(4),
 }));
 
 const ReviewList = ({ recipeId, reviews, averageRating, getReviews }) => {
-  const [showReview, setShowReview] = React.useState(false);
+  const [isReviewDialogOpen, setIsReviewDialogOpen] = React.useState(false);
 
-  const toggleReview = () => {
-    setShowReview(!showReview);
+  // Open Review Dialog
+  const handleReviewDialogOpen = () => {
+    setIsReviewDialogOpen(true);
+  };
+
+  // Close Review Dialog
+  const handleReviewDialogClose = () => {
+    setIsReviewDialogOpen(false);
+
+    // Return a promise that waits for reviews to be fetched
+    new Promise((resolve, reject) => {
+      getReviews(recipeId)  // Pass the recipeId to fetch reviews
+        .then(() => resolve())  // Resolves once the reviews are updated
+        .catch((error) => reject(error));  // Reject if error occurs
+    })
+    .then(() => {
+      // Handle further actions after reviews have been updated
+      console.log("Reviews have been successfully updated.");
+    })
+    .catch((error) => {
+      console.error("Failed to fetch reviews:", error);
+    });
   };
 
   return (
@@ -34,19 +57,30 @@ const ReviewList = ({ recipeId, reviews, averageRating, getReviews }) => {
         <b>Average Rating: </b>{averageRating ? `⭐ ${averageRating.toFixed(1)}` : "N/A"}
       </Typography>
 
+      {/* Leave a Review Button */}
       <Button
         variant="contained"
         color="primary"
         sx={{ mb: 2, px: 4, py: 1.5, fontSize: "1rem", borderRadius: "8px" }}
-        onClick={toggleReview}
+        onClick={handleReviewDialogOpen}
       >
-        {showReview ? "Cancel Review" : "Leave a Review"}
+        Leave a Review
       </Button>
 
-      {showReview && 
-        <Review recipeId={recipeId} reviewSubmitted={toggleReview} />
-      }
+      {/* Dialog for Review */}
+      <Dialog open={isReviewDialogOpen} onClose={handleReviewDialogClose}>
+        <DialogTitle>Leave a Review</DialogTitle>
+        <DialogContent>
+          <Review recipeId={recipeId} reviewSubmitted={handleReviewDialogClose} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleReviewDialogClose} color="secondary">
+            Cancel
+          </Button>
+        </DialogActions>
+      </Dialog>
 
+      {/* Display Reviews */}
       <Grid container spacing={2} justifyContent="center">
         {reviews?.map((item, index) => (
           <Grid item xs={12} sm={8} key={index}>
@@ -57,6 +91,7 @@ const ReviewList = ({ recipeId, reviews, averageRating, getReviews }) => {
     </MainGridContainer>
   );
 };
+
 
 const Item = ({ item }) => {
   return (

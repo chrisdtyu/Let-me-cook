@@ -67,6 +67,17 @@ const Api = {
         }
     },
 
+    callApiGetReviews: async (recipeId) => {
+        try {
+            const response = await fetch(`/api/getReviews?id=${recipeId}`);
+            const body = await response.json();
+            if (response.status !== 200) throw Error(body.message);
+            return body;
+        } catch (err) {
+            console.error("Error fetching reviews:", err);
+        }
+    },
+
     callApiUploadRecipe: async (recipeData) => {
         try {
             const response = await fetch('/api/uploadRecipe', {
@@ -91,36 +102,34 @@ const Api = {
         }
     },
 
-    // ✅ NEW: callApiEditRecipe for handling recipe edits
     callApiEditRecipe: async (payload) => {
         try {
-          const response = await fetch('/api/editRecipe', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          });
-      
-          const textBody = await response.text();
-          let body;
-          try {
-            body = JSON.parse(textBody);
-          } catch (e) {
-            console.error('Failed to parse JSON response:', textBody);
-            throw new Error('Invalid JSON from server');
-          }
-      
-          if (!response.ok) {
-            console.error('Edit failed:', body);
-            throw new Error(body.error || 'Error editing recipe');
-          }
-      
-          return body;
+            const response = await fetch('/api/editRecipe', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            const textBody = await response.text();
+            let body;
+            try {
+                body = JSON.parse(textBody);
+            } catch (e) {
+                console.error('Failed to parse JSON response:', textBody);
+                throw new Error('Invalid JSON from server');
+            }
+
+            if (!response.ok) {
+                console.error('Edit failed:', body);
+                throw new Error(body.error || 'Error editing recipe');
+            }
+
+            return body;
         } catch (error) {
-          console.error('API callApiEditRecipe error:', error);
-          return { error: error.message || 'Unknown error' };
+            console.error('API callApiEditRecipe error:', error);
+            return { error: error.message || 'Unknown error' };
         }
     }
-      
 };
 
 export default Api;
