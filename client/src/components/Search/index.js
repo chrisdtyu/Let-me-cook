@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef  } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LetmecookAppBar from '../AppBar';
 import Api from './Api';
@@ -18,9 +18,12 @@ import { useBudget } from '../Budget/BudgetContext';
 const Search = () => {
     const navigate = useNavigate();
 
+    const [allIngTypes, setAllIngTypes] = useState([]);
+    const [selectedType, setSelectedType] = useState([]);
     const [allIngredients, setAllIngredients] = useState([]);
     const [selectedIngredients, setSelectedIngredients] = useState([]);
     const [manualIngredient, setManualIngredient] = useState("");
+    const [filteredIngredients, setFilteredIngredients] = useState([])
 
     const [allCuisines, setAllCuisines] = useState([]);
     const [selectedCuisines, setSelectedCuisines] = useState([]);
@@ -59,48 +62,50 @@ const Search = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ firebase_uid: firebaseUid }),
             })
-            .then((res) => {
-                if (!res.ok) throw new Error("Failed to fetch user from MySQL");
-                return res.json();
-            })
-            .then((data) => {
-                let parsed;
-                if (data.express) {
-                    parsed = JSON.parse(data.express);
-                } else {
-                    parsed = data;
-                }
+                .then((res) => {
+                    if (!res.ok) throw new Error("Failed to fetch user from MySQL");
+                    return res.json();
+                })
+                .then((data) => {
+                    let parsed;
+                    if (data.express) {
+                        parsed = JSON.parse(data.express);
+                    } else {
+                        parsed = data;
+                    }
 
-                if (parsed && parsed.user_id) {
-                    setUserId(parsed.user_id);
+                    if (parsed && parsed.user_id) {
+                        setUserId(parsed.user_id);
 
-                    fetch('/api/getUserRecipes', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ user_id: parsed.user_id }),
-                    })
-                    .then(r => r.json())
-                    .then((info) => {
-                        const triedSet = new Set(info.tried?.map(r => r.recipe_id));
-                        const favSet = new Set(info.favourites?.map(r => r.recipe_id));
-                        setTriedRecipes(triedSet);
-                        setFavRecipes(favSet);
-                    });
-
-                    // 🔥 Fetch alwaysAvailable ingredients
-                    Api.getUserProfile(firebaseUid)
-                        .then((alwaysAvailable) => {
-                            const alwaysNames = alwaysAvailable
-                                .map(item => item.ingredient_name)
-                                .filter(Boolean);
-                            setSelectedIngredients(prev => [...new Set([...prev, ...alwaysNames])]);
+                        fetch('/api/getUserRecipes', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ user_id: parsed.user_id }),
                         })
-                        .catch(err => console.error('Error fetching alwaysAvailable ingredients:', err));
-                }
-            })
-            .catch(err => console.error("Error in auto-login getUser:", err));
+                            .then(r => r.json())
+                            .then((info) => {
+                                const triedSet = new Set(info.tried?.map(r => r.recipe_id));
+                                const favSet = new Set(info.favourites?.map(r => r.recipe_id));
+                                setTriedRecipes(triedSet);
+                                setFavRecipes(favSet);
+                            });
+
+                        // Fetch alwaysAvailable ingredients
+                        Api.getUserProfile(firebaseUid)
+                            .then((alwaysAvailable) => {
+                                const alwaysNames = alwaysAvailable
+                                    .map(item => item.ingredient_name)
+                                    .filter(Boolean);
+                                setSelectedIngredients(prev => [...new Set([...prev, ...alwaysNames])]);
+                            })
+                            .catch(err => console.error('Error fetching alwaysAvailable ingredients:', err));
+                    }
+                })
+                .catch(err => console.error("Error in auto-login getUser:", err));
         }
     }, []);
+
+    const isFirstRender = useRef(true);
 
     // Fetch data: Ingredients, Cuisines, Categories
     useEffect(() => {
@@ -132,10 +137,42 @@ const Search = () => {
                 setError("Failed to load Categories.");
             }
         };
+        const fetchIngTypes = async () => {
+            try {
+                const types = await Api.getIngTypes();
+                setAllIngTypes(types);
+            } catch (err) {
+                console.error("Error fetching Categories:", err);
+                setError("Failed to load Categories.");
+            }
+        };
+        fetchIngTypes();
         fetchIngredients();
         fetchCuisines();
         fetchCategories();
     }, []);
+
+    useEffect(() => {
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return;
+        }
+    
+        const fetchFilteredIngredients = async () => {
+            try {
+                const data = await Api.getFilteredIngredients(selectedType);
+                const ingredients = data.map((i) => i.name);
+                setFilteredIngredients(ingredients);
+            } catch (err) {
+                console.error("Error fetching Filtered Ingredient:", err);
+                setError("Failed to Filtered Ingredient.");
+            }
+        };
+        fetchFilteredIngredients();
+        console.log(filteredIngredients)
+    }, [selectedType]);
+
+
 
     // Add ingredient manually when user types and presses "Add"
     const handleManualAdd = () => {
@@ -278,7 +315,7 @@ const Search = () => {
     const sortRecipes = (recipes) => {
         let sortedRecipes = [...recipes];
         const isAscending = selectedSortOrder === "ascending";
-    
+
         if (selectedSortOption === "missingIngredients") {
             sortedRecipes.sort((a, b) =>
                 isAscending
@@ -335,7 +372,7 @@ const Search = () => {
                 <Typography variant="h4" fontWeight="bold" color="text.primary">
                     Find a Recipe!
                 </Typography>
-    
+
                 {/* Box 1: Search Filters */}
                 <Box
                     sx={{
@@ -361,11 +398,21 @@ const Search = () => {
                             Add
                         </Button>
                     </Box>
-    
+
+                    {/* chose ingredient type if you want to */}
+                    <Autocomplete
+                        multiple
+                        options={allIngTypes}
+                        value={selectedType}
+                        onChange={(event, newValue) => setSelectedType(newValue || [])}
+                        renderInput={(params) => <TextField {...params} label="Ingredient Type" />}
+                    />
+
+
                     {/* Box 2: Select from Preset Ingredients */}
                     <Autocomplete
                         multiple
-                        options={allIngredients} // Predefined ingredient list
+                        options={selectedType.length > 0 ? filteredIngredients : allIngredients}
                         value={selectedIngredients}
                         onChange={handleIngredientChange}
                         renderTags={(value, getTagProps) =>
@@ -383,7 +430,7 @@ const Search = () => {
                         )}
                         sx={{ width: 400, marginBottom: 2 }}
                     />
-    
+
                     <Typography variant="body2">
                         <strong>Filters:</strong>
                     </Typography>
@@ -403,7 +450,7 @@ const Search = () => {
                         renderInput={(params) => <TextField {...params} label="Categories" />}
                         sx={{ width: 400, marginBottom: 2 }}
                     />
-    
+
                     <TextField
                         label="Max Time (minutes)"
                         variant="outlined"
@@ -412,7 +459,7 @@ const Search = () => {
                         onChange={(e) => setMaxTime(e.target.value)}
                         sx={{ width: 400, marginBottom: 2 }}
                     />
-    
+
                     {/* Budget Mode Toggle */}
                     <Button
                         variant="contained"
@@ -422,7 +469,7 @@ const Search = () => {
                     >
                         {budgetMode ? "Disable Budget Mode" : "Enable Budget Mode"}
                     </Button>
-    
+
                     {/* Search Button */}
                     <Button
                         variant="contained"
@@ -432,10 +479,10 @@ const Search = () => {
                     >
                         {loading ? <CircularProgress size={24} /> : "Find Recipes"}
                     </Button>
-    
+
                     {/* Error Message */}
                     {error && <Typography color="error">{error}</Typography>}
-    
+
                     {/* Sort By Option */}
                     <TextField
                         select
@@ -452,9 +499,9 @@ const Search = () => {
                         <option value="time">Preparation Time</option>
                         <option value="rating">Rating</option>
                         <option value="rating">Estimated Cost</option>
-                        <option value="tried">Tried</option>     
+                        <option value="tried">Tried</option>
                     </TextField>
-    
+
                     {/* Sort Order Option */}
                     <TextField
                         select
@@ -470,7 +517,7 @@ const Search = () => {
                         <option value="descending">Descending</option>
                     </TextField>
                 </Box>
-    
+
                 {/* Recipe Results */}
                 <Grid
                     container
@@ -520,7 +567,7 @@ const Search = () => {
                                             <strong>Average Rating:</strong>{' '}
                                             {recipe.average_rating ? `⭐ ${recipe.average_rating.toFixed(1)}` : 'N/A'}
                                         </Typography>
-    
+
                                         {/* Missing Ingredients */}
                                         {recipe.missingIngredients?.length > 0 && (
                                             <>
@@ -544,7 +591,7 @@ const Search = () => {
                                                 </Typography>
                                             </>
                                         )}
-    
+
                                         {/* Tried & Favourite Buttons */}
                                         {isUserLoggedIn && userId && (
                                             <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
