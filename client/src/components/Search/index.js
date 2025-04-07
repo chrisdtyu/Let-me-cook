@@ -14,6 +14,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Snackbar from '@mui/material/Snackbar';
 import MuiAlert from '@mui/material/Alert';
 import { useBudget } from '../Budget/BudgetContext';
+import MenuItem from '@mui/material/MenuItem';
 
 const Search = () => {
   const navigate = useNavigate();
@@ -88,6 +89,7 @@ const Search = () => {
 
             Api.getUserSearchProfile(firebaseUid)
               .then(({ dietaryRestrictions }) => {
+                console.log("Search profile data:", data);
                 setRestrictedIngredients(dietaryRestrictions || []);
               });
           }
@@ -300,10 +302,10 @@ const Search = () => {
             variant="contained"
             onClick={toggleBudgetMode}
             sx={{
-              backgroundColor: '#8E4D63',
+              backgroundColor: '#F4C542',
               color: 'white', // optional, in case you want to make the text readable
               '&:hover': {
-                backgroundColor: '#c0a35e', // optional hover effect
+                backgroundColor: '#D98C3F', // optional hover effect
               },
             }}
           >
@@ -327,7 +329,7 @@ const Search = () => {
               flex: 1,
               minWidth: '300px',
               padding: '1.5rem',
-              backgroundColor: '#D29B59',
+              backgroundColor: '#D98C3F',
               borderRadius: '8px',
               boxShadow: 2,
               display: 'flex',
@@ -390,7 +392,7 @@ const Search = () => {
               flex: 1,
               minWidth: '300px',
               padding: '1.5rem',
-              backgroundColor: '#D29B59',
+              backgroundColor: '#D98C3F',
               borderRadius: '8px',
               boxShadow: 2,
               display: 'flex',
@@ -464,12 +466,12 @@ const Search = () => {
             data-cy="sort-select"
             sx={{ width: 300 }}
           >
-            <option value="none">None</option>
-            <option value="missingIngredients">Number of Missing Ingredients</option>
-            <option value="time">Preparation Time</option>
-            <option value="rating">Rating</option>
-            <option value="estimatedCost">Estimated Cost</option>
-            <option value="tried">Tried</option>
+            <MenuItem value="none">None</MenuItem>
+            <MenuItem value="missingIngredients">Number of Missing Ingredients</MenuItem>
+            <MenuItem value="time">Preparation Time</MenuItem>
+            <MenuItem value="rating">Rating</MenuItem>
+            <MenuItem value="estimatedCost">Estimated Cost</MenuItem>
+            <MenuItem value="tried">Tried</MenuItem>
           </TextField>
           <TextField
             select
