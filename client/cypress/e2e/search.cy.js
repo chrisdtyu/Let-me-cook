@@ -24,7 +24,7 @@ describe('Recipe Search Page', () => {
         cy.visit('http://localhost:3000/search');
     });
 
-    it('allows user to add ingredient, cuisine, and category, and search for recipes', () => {
+    it('allows user to add ingredient and search for recipes', () => {
         cy.wait('@getIngredients');
         // cy.wait('@getCuisines');
         // cy.wait('@getCategories');
