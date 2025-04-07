@@ -635,60 +635,81 @@ app.get('/api/getRecipe', (req, res) => {
         } else {
           recipe.goals = goalRows.map(row => row.goal_name);
         }
-  
-        const ingredientSql = `
-          SELECT i.ingredient_id, i.price
-          FROM recipe_ingredients ri
-          JOIN ingredients i ON ri.ingredient_id = i.ingredient_id
-          WHERE ri.recipe_id = ?
-        `;
-  
-        connection3.query(ingredientSql, [recipeId], (err2, ingredientRows) => {
-          if (err2) {
-            console.error("Error fetching ingredients:", err2);
-            recipe.estimated_cost = null;
-            connection3.end();
-            return res.json(recipe);
+
+        const recipeSql = `
+        SELECT 
+          r.recipe_id, r.name, r.category, r.type, r.instructions, r.image, r.video, r.prep_time,
+          i.ingredient_id AS main_ing_id, i.name AS main_ing_name, i.price AS main_ing_price,
+          ri.quantity, ri.quantity_type, ri.required,
+          s.ingredient_id AS sub_ing_id, s.name AS sub_ing_name
+        FROM recipes r
+        JOIN recipe_ingredients ri ON r.recipe_id = ri.recipe_id
+        JOIN ingredients i ON ri.ingredient_id = i.ingredient_id
+        LEFT JOIN ingredient_substitutes sub ON i.ingredient_id = sub.ingredient_id
+        LEFT JOIN ingredients s ON sub.substitute_id = s.ingredient_id
+        WHERE r.recipe_id = ?
+      `;
+
+      connection3.query(recipeSql, [recipeId], (err, rows) => {
+        if (err) {
+          console.error("Error fetching recipe with substitutes:", err);
+          connection3.end();
+          return res.status(500).json({ error: "Database query failed" });
+        }
+
+        if (!rows || rows.length === 0) {
+          connection3.end();
+          return res.status(404).json({ error: "Recipe not found" });
+        }
+
+        const recipeInfo = {
+          recipe_id: rows[0].recipe_id,
+          name: rows[0].name,
+          category: rows[0].category,
+          type: rows[0].type,
+          instructions: rows[0].instructions,
+          image: rows[0].image,
+          video: rows[0].video,
+          prep_time: rows[0].prep_time,
+          goals: recipe.goals || []
+        };
+
+        const ingMap = {};
+
+        rows.forEach(row => {
+          const mainId = row.main_ing_id;
+
+          if (!ingMap[mainId]) {
+            ingMap[mainId] = {
+              ingredient_id: mainId,
+              name: row.main_ing_name,
+              price: row.main_ing_price,
+              quantity: row.quantity,
+              quantity_type: row.quantity_type,
+              required: row.required,
+              substitutes: []
+            };
           }
-  
-          if (!firebase_uid) {
-            const total = ingredientRows.reduce((sum, i) => sum + (i.price || 0), 0);
-            recipe.estimated_cost = parseFloat(total.toFixed(2));
-            connection3.end();
-            return res.json(recipe);
+
+          if (row.sub_ing_id) {
+            ingMap[mainId].substitutes.push({
+              ingredient_id: row.sub_ing_id,
+              name: row.sub_ing_name
+            });
           }
-  
-          const availableSql = `
-            SELECT i.ingredient_id
-            FROM user_ingredients ui
-            JOIN users u ON ui.user_id = u.user_id
-            JOIN ingredients i ON ui.ingredient_id = i.ingredient_id
-            WHERE u.firebase_uid = ?
-          `;
-  
-          connection3.query(availableSql, [firebase_uid], (err3, availableRows) => {
-            if (err3) {
-              console.error("Error fetching available ingredients:", err3);
-              recipe.estimated_cost = null;
-              connection3.end();
-              return res.json(recipe);
-            }
-  
-            const availableSet = new Set(availableRows.map(r => r.ingredient_id));
-            const total = ingredientRows.reduce((sum, i) => {
-              return !availableSet.has(i.ingredient_id)
-                ? sum + (i.price || 0)
-                : sum;
-            }, 0);
-  
-            recipe.estimated_cost = parseFloat(total.toFixed(2));
-            connection3.end();
-            res.json(recipe);
-          });
         });
+
+        const finalRecipe = {
+          ...recipeInfo,
+          ingredients: Object.values(ingMap)
+        };
+
+        connection3.end();
+        return res.json(finalRecipe);
       });
     });
   });
+});
   
 // getRecipeIngredients
 app.get('/api/getRecipeIngredients', (req, res) => {

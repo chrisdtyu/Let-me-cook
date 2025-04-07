@@ -209,36 +209,83 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
 
         <Typography variant="h5" sx={{ mt: 2 }}><b>Ingredients:</b></Typography>
         <Typography variant="h10" sx={{ mt: 2 }}>required = *</Typography>
-        <ul style={{ marginTop: '40px' }}>
-          {ingredients.map((ing) => {
+
+        <Box sx={{ marginTop: '40px' }}>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              fontWeight: 'bold',
+              marginBottom: '0.5rem',
+              borderBottom: '2px solid #000',
+              paddingBottom: '0.5rem',
+            }}
+          >
+            <Box sx={{ width: '50%' }}>
+              <Typography variant="body1">Ingredient</Typography>
+            </Box>
+            <Box sx={{ width: '50%', textAlign: 'right' }}>
+              <Typography variant="body1">Substitutes</Typography>
+            </Box>
+          </Box>
+          {/* Ingredient list */}
+          {recipe.ingredients?.map((ing) => {
             let displayQuantity = ing.quantity;
-            let isScaled = false;
-
             if (ing.required === 1 && baseQuantity[ing.ingredient_id] && baseIngredientId) {
-              const baseScale = baseIngredientId === ing.ingredient_id
-                ? sliderValue / baseQuantity[baseIngredientId]
-                : scaleFactor;
+              const baseScale =
+                baseIngredientId === ing.ingredient_id
+                  ? sliderValue / baseQuantity[ing.ingredient_id]
+                  : scaleFactor;
               displayQuantity = baseQuantity[ing.ingredient_id] * baseScale;
-              isScaled = true;
             }
-
-            let formattedQuantity = ing.quantity_type
+            const formattedQuantity = ing.quantity_type
               ? displayQuantity.toFixed(1)
               : Math.round(displayQuantity);
 
+            const subList =
+              ing.substitutes && ing.substitutes.length > 0
+                ? ing.substitutes.map((sub) => sub.name).join(', ')
+                : '(No known substitutes)';
+
             return (
-              <li key={ing.ingredient_id}>
-                {formattedQuantity} {ing.quantity_type ? ing.quantity_type + ' ' : ''}
-                {ing.name} {ing.required === 1 ? '*' : ''}
-                <PriceDisplay
-                  price={ing.price}
-                  ingredientId={ing.ingredient_id}
-                  alwaysAvailable={userData?.alwaysAvailable?.map(item => item.ingredient_id)}
-                />
-              </li>
+              <Box
+                key={ing.ingredient_id}
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  marginBottom: '0.5rem',
+                  borderBottom: '1px solid #ccc',
+                  paddingBottom: '0.5rem',
+                }}
+              >
+                {/* Left Column: Ingredient */}
+                <Box sx={{ width: '50%' }}>
+                  <Typography variant="body1">
+                    {formattedQuantity}{' '}
+                    {ing.quantity_type ? `${ing.quantity_type} ` : ''}
+                    {ing.name} {ing.required === 1 ? '*' : ''}
+                  </Typography>
+                  <PriceDisplay
+                    price={ing.price}
+                    ingredientId={ing.ingredient_id}
+                    alwaysAvailable={userData?.alwaysAvailable?.map(
+                      (item) => item.ingredient_id
+                    )}
+                  />
+                </Box>
+
+                {/* Right Column: Substitutes */}
+                <Box sx={{ width: '50%', textAlign: 'right' }}>
+                  <Typography variant="body2" sx={{ color: '#555' }}>
+                    {subList}
+                  </Typography>
+                </Box>
+              </Box>
             );
           })}
-        </ul>
+        </Box>
 
         {/* Ingredient Scaling */}
         <Box sx={{ mt: 2, width: 300 }}>
