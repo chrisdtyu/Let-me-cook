@@ -42,7 +42,6 @@ describe('Search Component (Expanded)', () => {
       target: { value: 'Chicken' },
     });
     fireEvent.click(screen.getByRole('button', { name: /Add/i }));
-
     fireEvent.click(screen.getByRole('button', { name: /Find Recipes/i }));
 
     await waitFor(() => {
@@ -101,10 +100,7 @@ describe('Search Component (Expanded)', () => {
 
     const budgetButton = screen.getByRole('button', { name: /Enable Budget Mode/i });
     expect(budgetButton).toBeInTheDocument();
-
     fireEvent.click(budgetButton);
-
-    // Simulated toggle — value remains same since mocked
   });
 
   it('lets user select cuisines and categories', async () => {
@@ -121,12 +117,11 @@ describe('Search Component (Expanded)', () => {
 
     const cuisineInput = screen.getByLabelText(/Cuisines/i);
     const categoryInput = screen.getByLabelText(/Categories/i);
-
     expect(cuisineInput).toBeInTheDocument();
     expect(categoryInput).toBeInTheDocument();
   });
 
-  it('changes sort option and order', () => {
+  it('changes sort option and order', async () => {
     render(
       <MemoryRouter>
         <Search />
@@ -134,12 +129,14 @@ describe('Search Component (Expanded)', () => {
     );
 
     const sortOption = screen.getByLabelText(/Sort By/i);
+    fireEvent.mouseDown(sortOption); 
+    const ratingOption = await screen.findByText('Rating');
+    fireEvent.click(ratingOption);
+ 
+    expect(sortOption).toHaveTextContent('Rating');
+
     const sortOrder = screen.getByLabelText(/Sort Order/i);
-
-    fireEvent.change(sortOption, { target: { value: 'rating' } });
     fireEvent.change(sortOrder, { target: { value: 'descending' } });
-
-    expect(sortOption.value).toBe('rating');
     expect(sortOrder.value).toBe('descending');
   });
 });
