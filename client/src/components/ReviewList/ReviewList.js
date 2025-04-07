@@ -16,6 +16,7 @@ const MainGridContainer = styled(Grid)(({ theme }) => ({
 
 const ReviewList = ({ recipeId, reviews, averageRating, getReviews }) => {
   const [isReviewDialogOpen, setIsReviewDialogOpen] = React.useState(false);
+  const [showReviews, setShowReviews] = React.useState(false);
 
   // Open Review Dialog
   const handleReviewDialogOpen = () => {
@@ -49,23 +50,26 @@ const ReviewList = ({ recipeId, reviews, averageRating, getReviews }) => {
       direction="column"
       alignItems="center"
     >
-      <Typography variant="h4" gutterBottom>
-        <b>Reviews</b> {(!reviews || reviews.length === 0) && "- No reviews yet"}
-      </Typography>
-
-      <Typography variant="h6" gutterBottom>
-        <b>Average Rating: </b>{averageRating ? `⭐ ${averageRating.toFixed(1)}` : "N/A"}
-      </Typography>
 
       {/* Leave a Review Button */}
       <Button
         variant="contained"
         color="primary"
-        sx={{ mb: 2, px: 4, py: 1.5, fontSize: "1rem", borderRadius: "8px" }}
         onClick={handleReviewDialogOpen}
+        sx={{ borderRadius: 10, mr: 2 }}
       >
         Leave a Review
       </Button>
+
+      {/* Toggle Show Reviews */}
+      {reviews?.length > 0 && (
+        <Typography
+          onClick={() => setShowReviews(prev => !prev)}
+          sx={{ cursor: 'pointer', mb: 2, textDecoration: 'underline', textTransform: 'none', fontWeight: 500, mt: 2 }}
+        >
+          {'View'} {reviews.length} {reviews.length === 1 ? 'Review' : 'Reviews'}
+        </Typography>
+      )}
 
       {/* Dialog for Review */}
       <Dialog open={isReviewDialogOpen} onClose={handleReviewDialogClose}>
@@ -81,17 +85,18 @@ const ReviewList = ({ recipeId, reviews, averageRating, getReviews }) => {
       </Dialog>
 
       {/* Display Reviews */}
-      <Grid container spacing={2} justifyContent="center">
-        {reviews?.map((item, index) => (
-          <Grid item xs={12} sm={8} key={index}>
-            <Item item={item} />
-          </Grid>
-        ))}
-      </Grid>
+      {showReviews && ( 
+        <Grid container spacing={2} justifyContent="flex-start">
+          {reviews?.map((item, index) => (
+            <Grid item xs={12} sm={8} md={4} key={index}>
+              <Item item={item} />
+            </Grid>
+          ))}
+        </Grid>
+      )}
     </MainGridContainer>
   );
 };
-
 
 const Item = ({ item }) => {
   return (
@@ -99,9 +104,9 @@ const Item = ({ item }) => {
       sx={{
         p: 2,
         borderRadius: 2,
-        backgroundColor: "#f5f5f5",
         boxShadow: "0px 4px 10px rgba(0,0,0,0.1)",
         border: "1px solid #ddd",
+        height: '100%',
       }}
     >
       <Box sx={{ textAlign: "center", width: "100%" }}>
