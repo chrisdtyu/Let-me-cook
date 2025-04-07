@@ -98,7 +98,6 @@ const ReviewList = ({ recipeId, reviews, averageRating, getReviews }) => {
   );
 };
 
-
 const Item = ({ item }) => {
   return (
     <Box
