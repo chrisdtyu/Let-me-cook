@@ -78,6 +78,5 @@ describe('Show Recipe details', () => {
         cy.contains("Submit").click();
         cy.wait('@addReview'); 
         cy.contains("Your review has been received!").should('exist');
-
     });
 });
