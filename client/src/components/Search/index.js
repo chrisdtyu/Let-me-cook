@@ -340,6 +340,7 @@ const Search = () => {
                 fullWidth
                 label="Enter an ingredient"
                 variant="outlined"
+                inputProps={{ 'data-cy': 'manual-ingredient-input' }}
                 value={manualIngredient}
                 onChange={(e) => setManualIngredient(e.target.value)}
                 sx={{ backgroundColor: 'white', borderRadius: 1 }}
@@ -403,7 +404,16 @@ const Search = () => {
               options={allCuisines}
               value={selectedCuisines}
               onChange={(e, newValue) => handleMultiSelectChange(e, newValue, "cuisines")}
-              renderInput={(params) => <TextField {...params} label="Cuisines" />}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Cuisines"
+                  inputProps={{
+                    ...params.inputProps,
+                    'data-cy': 'cuisines-autocomplete'
+                  }}
+                />
+              )}
               sx={{ backgroundColor: 'white', borderRadius: 1 }}
             />
             <Autocomplete
@@ -411,7 +421,16 @@ const Search = () => {
               options={allCategories}
               value={selectedCategories}
               onChange={(e, newValue) => handleMultiSelectChange(e, newValue, "categories")}
-              renderInput={(params) => <TextField {...params} label="Categories" />}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Categories"
+                  inputProps={{
+                    ...params.inputProps,
+                    'data-cy': 'categories-autocomplete'
+                  }}
+                />
+              )}
               sx={{ backgroundColor: 'white', borderRadius: 1 }}
             />
             <TextField
