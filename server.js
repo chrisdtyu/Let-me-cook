@@ -87,6 +87,65 @@ app.post('/api/getUser', (req, res) => {
     });
 });
 
+app.post('/api/getUserSearchProfile', (req, res) => {
+    const { firebase_uid } = req.body;
+
+    if (!firebase_uid) {
+        return res.status(400).json({ error: "Missing firebase_uid" });
+    }
+
+    const getUserIdSql = `SELECT user_id FROM users WHERE firebase_uid = ?`;
+
+    connection.query(getUserIdSql, [firebase_uid], (err, results) => {
+        if (err) {
+            console.error("Error fetching user ID:", err);
+            return res.status(500).json({ error: "Database error" });
+        }
+
+        if (!results.length) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        const userId = results[0].user_id;
+
+        const alwaysAvailableSql = `
+            SELECT i.name
+            FROM user_ingredients ui
+            JOIN ingredients i ON ui.ingredient_id = i.ingredient_id
+            WHERE ui.user_id = ?
+        `;
+
+        const restrictionsSql = `
+            SELECT i.name
+            FROM user_restrictions ur
+            JOIN ingredients i ON ur.dietary_id = i.ingredient_id
+            WHERE ur.user_id = ?
+        `;
+
+        connection.query(alwaysAvailableSql, [userId], (err1, alwaysRows) => {
+            if (err1) {
+                console.error("Error fetching always available ingredients:", err1);
+                return res.status(500).json({ error: "Database error" });
+            }
+
+            connection.query(restrictionsSql, [userId], (err2, restrictRows) => {
+                if (err2) {
+                    console.error("Error fetching dietary restrictions:", err2);
+                    return res.status(500).json({ error: "Database error" });
+                }
+
+                const alwaysAvailable = alwaysRows.map(row => row.name).filter(Boolean);
+                const dietaryRestrictions = restrictRows.map(row => row.name).filter(Boolean);
+
+                return res.json({
+                    alwaysAvailable,
+                    dietaryRestrictions
+                });
+            });
+        });
+    });
+});
+
 // get user profile
 app.post('/api/getUserProfile', (req, res) => {
     const { firebase_uid } = req.body;
@@ -427,7 +486,7 @@ app.post('/api/getUserRecipes', (req, res) => {
     });
 });
 
-// recommendRecipes
+// recommendRecipes with dietary restrcitions
 app.post('/api/recommendRecipes', (req, res) => {
     let connection2 = mysql.createConnection(config);
     let { ingredients, cuisines, categories, userId, budgetMode, maxTime } = req.body;
@@ -771,7 +830,7 @@ app.get('/api/getCategories', (req, res) => {
 
 // get Food Type
 app.get('/api/getIngredientTypes', (req, res) => {
-    console.log("you are in get ingredinets type API now")
+    console.log("you are in get ingredient type API now")
     const sql = "SELECT DISTINCT type FROM ingredients ORDER BY type";
     connection.query(sql, (error, results) => {
         if (error) {
@@ -1087,3 +1146,5 @@ app.post('/api/getMyRecipes', (req, res) => {
 });
 
 app.listen(port, () => console.log(`Listening on port ${port}`));
+
+// server.js is completed
