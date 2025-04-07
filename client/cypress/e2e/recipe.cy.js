@@ -19,7 +19,6 @@ describe('Show Recipe details', () => {
 
         cy.visit('http://localhost:3000/Recipe/1');
         cy.wait('@getRecipe');
-
         cy.contains("Integration Test Recipe 1");
         cy.contains("this is a test");
         cy.contains("Step two here");

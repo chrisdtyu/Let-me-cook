@@ -112,11 +112,11 @@ describe('Recipe Search Page', () => {
         // cy.get('ul[role="listbox"]').contains('Preparation Time').click();
         cy.get('[data-cy="spinner"]').should('not.exist');
 
-        // Confirm sorting applied - Quick Italian Chicken (25 min) should come before Classic Chicken Alfredo (35 min)
+        // Confirm sorting applied
         cy.get('[data-cy="recipe-card"]').first().should('contain.text', 'Quick Italian Chicken');
         cy.get('[data-cy="recipe-card"]').eq(1).should('contain.text', 'Classic Chicken Alfredo');
 
-        // Either spinner appears or results
+        // Spinner appears or results
         cy.get('body').then(($body) => {
             if ($body.find('.MuiCircularProgress-root').length) {
                 // Wait for loading to disappear
