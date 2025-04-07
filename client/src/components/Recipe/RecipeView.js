@@ -163,80 +163,100 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
   return (
     <>
       <LetmecookAppBar page={`Recipe: ${recipe ? recipe.name : ''}`} />
-      <MainGridContainer container direction="column" alignItems="center">
-        <Typography variant="h4" sx={{ textAlign: 'center' }}>
-          <b>{recipe.name}</b>
-        </Typography>
-        
-        <Grid container spacing={2} alignItems="flex-start" justifyContent="center" sx={{ mt: 3 }}>
-          {/* Image + Ingredients + Scaling + Cost */}
-          <Grid item xs={12} md={5}>
-            <Box
-              sx={{
-                borderRadius: 4,
-                boxShadow: 3,
-                p: 3,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-              }}
-            >
-              {/* Image */}
-              {recipe.image && (
-                <img
-                  src={recipe.image}
-                  alt="Recipe"
-                  style={{ width: '100%', maxWidth: '400px', borderRadius: 8, marginBottom: 16 }}
-                />
-              )}
+      <MainGridContainer container direction="column">
+      <Grid container spacing={4}>
 
-              {/* Ingredients */}
-              <Box sx={{ width: '100%' }}>
-                <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-                  Ingredients <Typography variant="caption">(required **)</Typography>
-                </Typography>
+        {/* LEFT COLUMN */}
+        <Grid item xs={12} md={5}>
+          {/* Image */}
+          {recipe.image && (
+            <Box sx={{ borderRadius: 4, overflow: 'hidden', boxShadow: 3, mb: 2 }}>
+              <img
+                src={recipe.image}
+                alt="Recipe"
+                style={{ width: '100%', height: 'auto', display: 'block' }}
+              />
+            </Box>
+          )}
 
-                {ingredients.map((ing) => {
-                  let displayQuantity = ing.quantity;
-                  if (ing.required === 1 && baseQuantity[ing.ingredient_id] && baseIngredientId) {
-                    const baseScale = baseIngredientId === ing.ingredient_id
-                      ? sliderValue / baseQuantity[baseIngredientId]
-                      : scaleFactor;
-                    displayQuantity = baseQuantity[ing.ingredient_id] * baseScale;
+          {/* Budget Mode */}
+          <Button variant="contained" color="secondary" onClick={toggleBudgetMode} sx={{ borderRadius: 10, mr: 2 }}>
+            {budgetMode ? 'Disable Budget Mode' : 'Enable Budget Mode'}
+          </Button>
+
+          {budgetMode && (
+            <>
+              <Button
+                variant="contained"
+                color="primary"
+                sx={{ borderRadius: 10, mt: { xs: 2, sm: 0 } }}
+                onClick={() => {
+                  if (recipe.estimated_cost) {
+                    addMealCost(recipe.recipe_id, recipe.estimated_cost);
+                    setSnackbarOpen(true);
                   }
+                }}
+              >
+                Add to This Week’s Meals
+              </Button>
+              <Typography variant="subtitle1" sx={{ mt: 2 }}>
+                <b>Estimated Cost:</b>{' '}
+                <span style={{ color: recipe.estimated_cost === 0 ? 'green' : 'black' }}>
+                  ${recipe.estimated_cost?.toFixed(2) || '0.00'}
+                </span>
+              </Typography>
+            </>
+          )}
 
-                  const formattedQuantity = ing.quantity_type
-                    ? displayQuantity.toFixed(1)
-                    : Math.round(displayQuantity);
+          {/* Video */}
+          {recipe.video && (
+            <Box sx={{ mb: 4, mt: 9 }}>
+              <Typography variant="h6"><b>Video:</b></Typography>
+              <iframe width="500" height="350" src={recipe.video} title="Recipe Video" allowFullScreen></iframe>
+            </Box>
+          )}
+        </Grid>
 
-                  return (
-                    <Box
-                      key={ing.ingredient_id}
-                      sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        mb: 1,
-                        fontSize: '1rem',
-                        px: 1,
-                      }}
-                    >
-                      <span>
-                        {formattedQuantity} {ing.quantity_type ? ing.quantity_type + ' ' : ''}
-                        {ing.name} {ing.required === 1 ? '*' : ''}
-                      </span>
-                      <PriceDisplay
-                        price={ing.price}
-                        ingredientId={ing.ingredient_id}
-                        alwaysAvailable={userData?.alwaysAvailable?.map(item => item.ingredient_id)}
-                      />
-                    </Box>
-                  );
-                })}
+        {/* RIGHT COLUMN */}
+        <Grid item xs={12} md={6}>
+          <Box sx={{ p: 3, borderRadius: 4, boxShadow: 3 }}>
+            {/* Details */}
+            <Typography variant="subtitle1" sx={{ mb: 2 }}>
+              <b>Category:</b> {recipe.category} |
+              <b> Type:</b> {recipe.type} |
+              <b> Target Goal:</b> {recipe.goals || 'N/A'} |
+              <b> Time:</b> {recipe.prep_time} mins | 
+              <b> Average Rating: </b>{averageRating ? `⭐ ${averageRating.toFixed(1)}` : "N/A"}
+            </Typography>
 
-                {/* Scaling */}
-                <Box sx={{ mt: 3, width: 300, mx: 'auto', textAlign: 'center' }}>
-                  <Typography variant="h6"><b>Adjust For Servings</b></Typography>
-                  <Slider
+            {/* Ingredients */}
+            <Typography variant="h6" fontWeight="bold" sx={{ mt: 2 }}>
+              Ingredients <Typography variant="caption">(required **)</Typography>
+            </Typography>
+            {ingredients.map((ing) => {
+              let displayQuantity = ing.quantity;
+              if (ing.required === 1 && baseQuantity[ing.ingredient_id] && baseIngredientId) {
+                const baseScale = baseIngredientId === ing.ingredient_id
+                  ? sliderValue / baseQuantity[baseIngredientId]
+                  : scaleFactor;
+                displayQuantity = baseQuantity[ing.ingredient_id] * baseScale;
+              }
+              const formattedQuantity = ing.quantity_type
+                ? displayQuantity.toFixed(1)
+                : Math.round(displayQuantity);
+
+              return (
+                <Box key={ing.ingredient_id} sx={{ display: 'flex', justifyContent: 'space-between', my: 1 }}>
+                  <span>{formattedQuantity} {ing.quantity_type} {ing.name} {ing.required === 1 ? '*' : ''}</span>
+                  <PriceDisplay price={ing.price} ingredientId={ing.ingredient_id} alwaysAvailable={userData?.alwaysAvailable?.map(item => item.ingredient_id)} />
+                </Box>
+              );
+            })}
+
+            {/* Scale */}
+            <Box sx={{ mt: 3, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+              <Typography variant="h6" sx={{ whiteSpace: 'nowrap' }}><b>Scale:</b></Typography>
+                <Box sx={{width: 250}}><Slider
                     value={sliderValue}
                     onChange={handleScaleChange}
                     step={1}
@@ -246,93 +266,28 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
                     valueLabelDisplay="auto"
                   />
                 </Box>
-
-                <FormControl fullWidth >
-                  <InputLabel id="base-ingredient-label">Base Ingredient</InputLabel>
-                  <Select
-                    labelId="base-ingredient-label"
-                    value={baseIngredientId || ''}
-                    onChange={handleBaseIngredientChange}
-                  >
-                    {ingredients
-                      .filter((ing) => ing.required === 1)
-                      .map((ing) => (
-                        <MenuItem key={ing.ingredient_id} value={ing.ingredient_id}>
-                          {ing.name}
-                        </MenuItem>
-                      ))}
-                  </Select>
-                </FormControl>
-
-                {/* Buttons */}
-                <Box sx={{ mt: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                  <Button
-                    variant="contained"
-                    color="secondary"
-                    onClick={toggleBudgetMode}
-                  >
-                    {budgetMode ? "Disable Budget Mode" : "Enable Budget Mode"}
-                  </Button>
-
-                  {budgetMode && (
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      onClick={() => {
-                        if (recipe.estimated_cost) {
-                          addMealCost(recipe.recipe_id, recipe.estimated_cost);
-                          setSnackbarOpen(true);
-                        }
-                      }}
-                    >
-                      Add to This Week's Meals
-                    </Button>
-                  )}
-                </Box>
-                {budgetMode && <Box sx={{ borderTop: '1px solid #ddd', my: 3 }} /> }
-                {/* Estimated Cost */}
-                {budgetMode && (
-                  <Typography variant="subtitle1">
-                    <b>Estimated Cost:</b>{' '}
-                    <span style={{ color: recipe.estimated_cost === 0 ? 'green' : 'black' }}>
-                      ${recipe.estimated_cost?.toFixed(2) || '0.00'}
-                    </span>
-                  </Typography>
-                )}
-              </Box>
+              <FormControl sx={{ minWidth: 200 }}>
+                <InputLabel id="base-ingredient-label">Base Ingredient</InputLabel>
+                <Select
+                  labelId="base-ingredient-label"
+                  value={baseIngredientId || ''}
+                  onChange={handleBaseIngredientChange}
+                >
+                  {ingredients
+                    .filter((ing) => ing.required === 1)
+                    .map((ing) => (
+                      <MenuItem key={ing.ingredient_id} value={ing.ingredient_id}>
+                        {ing.name}
+                      </MenuItem>
+                    ))}
+                </Select>
+              </FormControl>
+            </Box>
           </Box>
-        </Grid>
 
-        {/* Ratings + Leave a Note */}
-        <Grid item xs={12} md={5}>
-        <Box
-          sx={{
-            borderRadius: 4,
-            p: 3,
-            height: '100%',
-          }}
-        >
-        <ReviewList
-          recipeId={id}
-          reviews={reviews}
-          averageRating={averageRating}
-          getReviews={getReviews}
-        />
-        <Note recipeId={id} noteSubmitted={handleNoteSubmitted} />
-        </Box>
-        </Grid>
-      </Grid>
-      
-      {/* Instructions */}
-      <Grid container spacing={3} justifyContent="center" alignItems="flex-start" sx={{ mt: 1 }}>
-        <Grid item xs={12} md={9}>
+          {/* Instructions */}
           <Box
-            sx={{
-              borderRadius: 4,
-              boxShadow: 3,
-              p: 3,
-              position: 'relative',
-            }}
+            sx={{ p: 3, borderRadius: 4, boxShadow: 3, mt: 4 }}
           >
             <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
               Instructions
@@ -374,15 +329,13 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
               </Box>
             )}
           </Box>
-        </Grid>
-      </Grid>
 
-        {recipe.video && (
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="h6"><b>Video:</b></Typography>
-            <iframe width="560" height="315" src={recipe.video} title="Recipe Video" allowFullScreen></iframe>
-          </Box>
-        )}
+          {/* Reviews and notes */}
+          <Note recipeId={id} noteSubmitted={handleNoteSubmitted} />
+        </Grid>
+
+        <ReviewList recipeId={id} reviews={reviews} averageRating={averageRating} getReviews={getReviews} />
+      </Grid>
       </MainGridContainer>
 
       <Snackbar

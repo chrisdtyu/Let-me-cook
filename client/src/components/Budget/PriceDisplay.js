@@ -12,7 +12,7 @@ const PriceDisplay = ({ price, ingredientId, alwaysAvailable }) => {
     return null;
   }
 
-  return <span> - ${price.toFixed(2)}</span>;
+  return <span> ${price.toFixed(2)}</span>;
 };
 
 export default PriceDisplay;
