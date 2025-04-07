@@ -230,7 +230,7 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
               <b> Average Rating: </b>{averageRating ? `⭐ ${averageRating.toFixed(1)}` : "N/A"}
             </Typography>
 
-            {/* Ingredients */}
+            {/* Ingredients & substitutes */}
             <Typography variant="h6" fontWeight="bold" sx={{ mt: 2 }}>
               Ingredients <Typography variant="caption">(required **)</Typography>
             </Typography>
