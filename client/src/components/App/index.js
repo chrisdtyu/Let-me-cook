@@ -12,13 +12,31 @@ import MyRecipes from '../Recipe/MyRecipes';
 const theme = createTheme({
   palette: {
     mode: 'light',
-    primary: { main: '#A24F46' },
+    primary: {
+      main: '#A24F46',
+    },
+    secondary: {
+      main: '#D98C3F',
+    },
+    warning: {
+      main: '#D3B66E',
+    },
+    success: {
+      main: '#8CA653',
+    },
+    info: {
+      main: '#39244F',
+    },
     background: {
-      default: '#fffbf0',
+      default: '#FFF8EE',
+      paper: '#FFF3E5',
+    },
+    text: {
+      primary: '#3B2A2A',
     },
   },
   typography: {
-    fontFamily: `Helvetica`,
+    fontFamily: 'Helvetica',
   },
   components: {
     MuiButton: {
