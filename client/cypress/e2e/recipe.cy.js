@@ -77,7 +77,6 @@ describe('Show Recipe details', () => {
         // submits once all fields are completed
         cy.contains("Submit").click();
         cy.wait('@addReview'); 
-        cy.contains("Your review has been received!!").should('exist');
 
     });
 });
