@@ -34,7 +34,7 @@ const Api = {
                 body: JSON.stringify({ firebase_uid }),
             });
             if (!response.ok) throw new Error(`API Error: ${response.status} - ${response.statusText}`);
-            return await response.json(); // { alwaysAvailable: [...], dietaryRestrictions: [...] }
+            return await response.json();
         } catch (err) {
             console.error("Error fetching user search profile:", err);
             return { alwaysAvailable: [], dietaryRestrictions: [] };
@@ -48,7 +48,7 @@ const Api = {
         budgetMode,
         maxTime,
         userId,
-        restrictedIngredients = [] // optional argument with default
+        restrictedIngredients = []
     ) => {
         try {
             const response = await fetch('/api/recommendRecipes', {
@@ -75,9 +75,7 @@ const Api = {
     getIngredients: async () => {
         try {
             const response = await fetch('/api/getIngredients');
-            if (response.status === 403) {
-                throw new Error("API Forbidden (403): Check CORS or permissions");
-            }
+            if (response.status === 403) throw new Error("API Forbidden (403): Check CORS or permissions");
             if (!response.ok) throw new Error(`API Error: ${response.status} - ${response.statusText}`);
             return await response.json();
         } catch (err) {
@@ -85,29 +83,18 @@ const Api = {
             return [];
         }
     },
-    
+
     getFilteredIngredients: async (selectedType) => {
         console.log("selectedType:", selectedType);
         console.log("in getFilteredIngredients");
-    
         try {
-            // Use query parameters to send the selectedType
             const response = await fetch(`/api/getFilteredIngredients?types=${encodeURIComponent(selectedType)}`, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
             });
-    
-            if (response.status === 403) {
-                throw new Error("API Forbidden (403): Check CORS or permissions");
-            }
-            if (!response.ok) {
-                throw new Error(`API Error: ${response.status} - ${response.statusText}`);
-            }
-    
+            if (response.status === 403) throw new Error("API Forbidden (403): Check CORS or permissions");
+            if (!response.ok) throw new Error(`API Error: ${response.status} - ${response.statusText}`);
             const data = await response.json();
-            // Return data in the same format as getIngredients
             return data.map(item => ({
                 ingredient_id: item.ingredient_id,
                 name: item.name,
@@ -118,14 +105,12 @@ const Api = {
             console.error("Error fetching ingredients:", err);
             return [];
         }
-    },    
-    
+    },
+
     getCuisines: async () => {
         try {
             const response = await fetch('/api/getCuisines');
-            if (response.status === 403) {
-                throw new Error("API Forbidden (403): Check CORS or permissions");
-            }
+            if (response.status === 403) throw new Error("API Forbidden (403): Check CORS or permissions");
             if (!response.ok) throw new Error(`API Error: ${response.status} - ${response.statusText}`);
             return await response.json();
         } catch (err) {
@@ -137,9 +122,7 @@ const Api = {
     getCategories: async () => {
         try {
             const response = await fetch('/api/getCategories');
-            if (response.status === 403) {
-                throw new Error("API Forbidden (403): Check CORS or permissions");
-            }
+            if (response.status === 403) throw new Error("API Forbidden (403): Check CORS or permissions");
             if (!response.ok) throw new Error(`API Error: ${response.status} - ${response.statusText}`);
             return await response.json();
         } catch (err) {
@@ -151,10 +134,8 @@ const Api = {
     getIngTypes: async () => {
         try {
             const response = await fetch('/api/getIngredientTypes');
-            console.log("getIngTypes response:", response)
-            if (response.status === 403) {
-                throw new Error("API Forbidden (403): Check CORS or permissions");
-            }
+            console.log("getIngTypes response:", response);
+            if (response.status === 403) throw new Error("API Forbidden (403): Check CORS or permissions");
             if (!response.ok) throw new Error(`API Error: ${response.status} - ${response.statusText}`);
             return await response.json();
         } catch (err) {
@@ -170,9 +151,7 @@ const Api = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_id, recipe_id }),
             });
-            if (!response.ok) {
-                throw new Error(`Failed to mark tried: ${response.status} ${response.statusText}`);
-            }
+            if (!response.ok) throw new Error(`Failed to mark tried: ${response.status} ${response.statusText}`);
             return await response.json();
         } catch (error) {
             console.error("Error marking tried:", error);
@@ -187,9 +166,7 @@ const Api = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_id, recipe_id }),
             });
-            if (!response.ok) {
-                throw new Error(`Failed to unmark tried: ${response.status} ${response.statusText}`);
-            }
+            if (!response.ok) throw new Error(`Failed to unmark tried: ${response.status} ${response.statusText}`);
             return await response.json();
         } catch (error) {
             console.error("Error unmarking tried:", error);
@@ -204,9 +181,7 @@ const Api = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_id, recipe_id }),
             });
-            if (!response.ok) {
-                throw new Error(`Failed to mark favourite: ${response.status} ${response.statusText}`);
-            }
+            if (!response.ok) throw new Error(`Failed to mark favourite: ${response.status} ${response.statusText}`);
             return await response.json();
         } catch (error) {
             console.error("Error marking favourite:", error);
@@ -221,9 +196,7 @@ const Api = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_id, recipe_id }),
             });
-            if (!response.ok) {
-                throw new Error(`Failed to unmark favourite: ${response.status} ${response.statusText}`);
-            }
+            if (!response.ok) throw new Error(`Failed to unmark favourite: ${response.status} ${response.statusText}`);
             return await response.json();
         } catch (error) {
             console.error("Error unmarking favourite:", error);

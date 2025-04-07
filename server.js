@@ -476,7 +476,25 @@ app.post('/api/getUserRecipes', (req, res) => {
 // recommendRecipes
 app.post('/api/recommendRecipes', (req, res) => {
     let connection2 = mysql.createConnection(config);
-    let { ingredients, cuisines, categories, userId, budgetMode, maxTime, restrictedIngredients = [] } = req.body;
+    let {
+        ingredients,
+        cuisines,
+        categories,
+        userId,
+        budgetMode,
+        maxTime,
+        restrictedIngredients = []
+    } = req.body;
+
+    console.log("Incoming Request:", {
+        ingredients,
+        cuisines,
+        categories,
+        userId,
+        budgetMode,
+        maxTime,
+        restrictedIngredients
+    });
 
     if (!Array.isArray(categories)) {
         return res.status(400).json({ error: 'Categories should be an array' });
@@ -490,7 +508,6 @@ app.post('/api/recommendRecipes', (req, res) => {
     let categories_placeholders = categories.map(() => '?').join(',');
     let restricted_placeholders = restrictedIngredients.map(() => '?').join(',');
 
-    // build WHERE clause from clauses array
     let whereClauses = [];
     if (cuisine_placeholders.length > 0) {
         whereClauses.push(`r.type IN (${cuisine_placeholders})`);
@@ -537,6 +554,9 @@ app.post('/api/recommendRecipes', (req, res) => {
     if (maxTime) data.push(maxTime);
     if (restrictedIngredients.length > 0) data.push(...restrictedIngredients);
 
+    console.log("Executing SQL:", query);
+    console.log("With values:", data);
+
     connection2.query(query, data, (err, recipes) => {
         if (err) return res.status(500).json({ error: 'Database query failed' });
         if (recipes.length === 0) return res.json({ message: 'No suitable recipes found' });
@@ -551,6 +571,7 @@ app.post('/api/recommendRecipes', (req, res) => {
             WHERE ri.recipe_id IN (${recipeIDs.map(() => '?').join(',')})
             AND i.name NOT IN (${ingredients_placeholders});
         `;
+
         connection2.query(missingQuery, [...recipeIDs, ...ingredients], (err2, missingIngredients) => {
             if (err2) return res.status(500).json({ error: 'Database query failed' });
 
@@ -565,6 +586,7 @@ app.post('/api/recommendRecipes', (req, res) => {
                     JOIN ingredients i ON ri.ingredient_id = i.ingredient_id
                     WHERE ri.recipe_id IN (${recipeIDs.map(() => '?').join(',')})
                 `;
+
                 connection2.query(ingredientCostQuery, recipeIDs, (err4, costRows) => {
                     if (err4) return res.status(500).json({ error: 'Database query failed' });
 
@@ -596,8 +618,32 @@ app.post('/api/recommendRecipes', (req, res) => {
                         };
                     });
 
-                    res.json(recipeData);
-                    connection2.end();
+                    const goalsSql = `
+                        SELECT rg.recipe_id, hg.goal_name
+                        FROM recipe_goals rg
+                        JOIN health_goals hg ON rg.goal_id = hg.goal_id
+                        WHERE rg.recipe_id IN (${recipeIDs.map(() => '?').join(',')})
+                    `;
+
+                    connection2.query(goalsSql, recipeIDs, (errGoals, goalRows) => {
+                        if (errGoals) {
+                            recipeData.forEach(r => { r.goal = null; });
+                            connection2.end();
+                            return res.json(recipeData);
+                        }
+
+                        const goalMap = {};
+                        goalRows.forEach(row => {
+                            goalMap[row.recipe_id] = row.goal_name;
+                        });
+
+                        recipeData.forEach(r => {
+                            r.goal = goalMap[r.recipe_id] || null;
+                        });
+
+                        connection2.end();
+                        return res.json(recipeData);
+                    });
                 });
             });
         });
