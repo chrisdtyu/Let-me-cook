@@ -1,6 +1,7 @@
 describe('Profile Page', () => {
   beforeEach(() => {
     cy.visit('http://localhost:3000');
+
     cy.window().then((win) => {
       win.localStorage.setItem('firebase_uid', 'dummy_uid');
     });
@@ -23,7 +24,10 @@ describe('Profile Page', () => {
         user: { weekly_budget: "100" },
         dietaryPreferences: [1],
         dietaryRestrictions: [{ dietary_id: 2 }],
-        alwaysAvailable: [{ ingredient_id: 3 }]
+        alwaysAvailable: [
+          { ingredient_name: "Tomato", expirationDate: "" }
+        ],
+        healthGoals: []
       }
     }).as('getUserProfile');
 
@@ -39,8 +43,13 @@ describe('Profile Page', () => {
 
     cy.intercept('GET', '/api/getIngredients', {
       statusCode: 200,
-      body: [{ ingredient_id: 3, name: "Tomato", type: "Vegetable" }]
+      body: [{ ingredient_id: 3, name: "Tomato", type: "Vegetable", price: null }]
     }).as('getIngredients');
+
+    cy.intercept('GET', '/api/getHealthGoals', {
+      statusCode: 200,
+      body: []
+    }).as('getHealthGoals');
 
     cy.intercept('POST', '/api/getUserRecipes', {
       statusCode: 200,
@@ -54,7 +63,9 @@ describe('Profile Page', () => {
   it('displays the user profile information', () => {
     cy.visit('http://localhost:3000/Profile');
     cy.contains(/user profile/i).should('exist');
-    cy.get('input[readonly]').should('have.length', 3); 
+
+    cy.get('input[readonly]').should('have.length', 3);
+
     cy.contains(/weekly budget/i).should('exist');
   });
 
@@ -65,41 +76,36 @@ describe('Profile Page', () => {
     }).as('saveProfile');
 
     cy.visit('http://localhost:3000/Profile');
-    cy.wait(['@getUser', '@getUserProfile']);
-    cy.get('button').contains(/update profile/i).click();
-    cy.wait('@saveProfile');
+    cy.wait(['@getUser', '@getUserProfile', '@getDietaryPreferences', '@getDietaryRestrictions', '@getIngredients', '@getHealthGoals', '@getUserRecipes']);
 
     cy.window().then((win) => {
       cy.stub(win, 'alert').as('alertStub');
     });
 
     cy.get('button').contains(/update profile/i).click();
+    cy.wait('@saveProfile');
     cy.get('@alertStub').should('have.been.calledWith', 'Profile updated successfully!');
   });
 
   it('displays the tried recipes from profile information', () => {
     cy.visit('http://localhost:3000/Profile');
-    cy.wait(['@getUser', '@getUserProfile', '@getUserRecipes']);
+    cy.wait(['@getUser', '@getUserProfile', '@getDietaryPreferences', '@getDietaryRestrictions', '@getIngredients', '@getHealthGoals', '@getUserRecipes']);
+
     cy.contains('Tried Recipes').should('exist');
     cy.contains('Tomato Soup').should('exist');
   });
 
-  it('displays the favourite recipes and navigates on click', () => {  
-    // Wait for API calls to finish
+  it('displays the favourite recipes and navigates on click', () => {
     cy.visit('http://localhost:3000/Profile');
-    cy.wait(['@getUser', '@getUserProfile', '@getUserRecipes']);
-  
-    // Check that the "Favourite Recipes" section is displayed
+    cy.wait(['@getUser', '@getUserProfile', '@getDietaryPreferences', '@getDietaryRestrictions', '@getIngredients', '@getHealthGoals', '@getUserRecipes']);
+
     cy.contains('Favourite Recipes').should('exist');
     cy.contains('Vegetable Stir-fry').should('exist');
-    
-    // Simulate a click on the "Vegetable Stir-fry" link
-    cy.contains('Vegetable Stir-fry').then(($link) => {
-      expect($link).to.have.attr('href', '/Recipe/2');
-      cy.wrap($link).click();
-    });
-  
-    // Assert that the URL has changed (this simulates the navigation)
+
+    cy.contains('Vegetable Stir-fry').should('have.attr', 'href', '/Recipe/2');
+
+    cy.contains('Vegetable Stir-fry').click();
+
     cy.url().should('include', '/Recipe/2');
   });
 });
