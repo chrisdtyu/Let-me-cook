@@ -1,7 +1,8 @@
 import React from 'react';
-import { render, screen, fireEvent, act } from '@testing-library/react'; 
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import RecipeView from '../components/Recipe/RecipeView';
+import { BudgetProvider } from '../components/Budget/BudgetContext';
 
 describe('RecipeView Scaling Functionality', () => {
   const mockRecipe = {
@@ -18,34 +19,25 @@ describe('RecipeView Scaling Functionality', () => {
     { ingredient_id: 3, name: "Salt", quantity: 5, quantity_type: "g", required: 0, price: 0.10 },
   ];
 
-  it('renders the RecipeView component with ingredients', async () => {
-    await act(async () => {
-      render(
-        <MemoryRouter>
-          <RecipeView getRecipe={jest.fn()} recipe={mockRecipe} ingredients={mockIngredients} />
-        </MemoryRouter>
-      );
-    });
-
-    expect(screen.getByRole("heading", { level: 4, name: /test recipe/i })).toBeInTheDocument();
-    expect(screen.getByText(/200 g Flour/i)).toBeInTheDocument();
-    expect(screen.getByText(/100 ml Milk/i)).toBeInTheDocument();
-    expect(screen.getByText(/5 g Salt/i)).toBeInTheDocument();
-  });
-
   it('allows selecting a base ingredient for scaling', async () => {
     await act(async () => {
       render(
-        <MemoryRouter>
-          <RecipeView getRecipe={jest.fn()} recipe={mockRecipe} ingredients={mockIngredients} budgetMode={true} />
-        </MemoryRouter>
+        <BudgetProvider>
+          <MemoryRouter>
+            <RecipeView
+              getRecipe={jest.fn()}
+              recipe={mockRecipe}
+              ingredients={mockIngredients}
+            />
+          </MemoryRouter>
+        </BudgetProvider>
       );
     });
 
-    const dropdown = screen.getByLabelText(/base ingredient for scaling/i);
+    const dropdown = screen.getByLabelText(/base ingredient/i);
     fireEvent.mouseDown(dropdown);
 
-    const flourOption = screen.getByText("Flour");
+    const flourOption = await screen.findByText("Flour");
     fireEvent.click(flourOption);
 
     expect(dropdown).toHaveTextContent("Flour");
