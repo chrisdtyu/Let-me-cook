@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import LetmecookAppBar from '../AppBar';
 import Api from './Api';
 import Box from '@mui/material/Box';
-import Grid from '@mui/material/Grid';
+import Grid from '@mui/material/Grid'
 import Link from '@mui/material/Link';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
@@ -14,6 +14,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Snackbar from '@mui/material/Snackbar';
 import MuiAlert from '@mui/material/Alert';
 import { useBudget } from '../Budget/BudgetContext';
+import MenuItem from '@mui/material/MenuItem';
 
 const Search = () => {
   const navigate = useNavigate();
@@ -88,6 +89,7 @@ const Search = () => {
 
             Api.getUserSearchProfile(firebaseUid)
               .then(({ dietaryRestrictions }) => {
+                console.log("Search profile data:", data);
                 setRestrictedIngredients(dietaryRestrictions || []);
               });
           }
@@ -264,7 +266,9 @@ const Search = () => {
     }
 
     return sorted;
+
   };
+
 
   return (
     <>
@@ -298,17 +302,16 @@ const Search = () => {
             variant="contained"
             onClick={toggleBudgetMode}
             sx={{
-              backgroundColor: '#8E4D63',
-              color: 'white',
+              backgroundColor: '#F4C542',
+              color: 'white', // optional, in case you want to make the text readable
               '&:hover': {
-                backgroundColor: '#c0a35e',
+                backgroundColor: '#D98C3F', // optional hover effect
               },
             }}
           >
             {budgetMode ? "Disable Budget Mode" : "Enable Budget Mode"}
           </Button>
         </Box>
-
         <Box
           sx={{
             display: 'flex',
@@ -326,7 +329,7 @@ const Search = () => {
               flex: 1,
               minWidth: '300px',
               padding: '1.5rem',
-              backgroundColor: '#D29B59',
+              backgroundColor: '#D98C3F',
               borderRadius: '8px',
               boxShadow: 2,
               display: 'flex',
@@ -348,7 +351,6 @@ const Search = () => {
                 Add
               </Button>
             </Box>
-
             <Autocomplete
               multiple
               options={allIngTypes}
@@ -357,7 +359,6 @@ const Search = () => {
               renderInput={(params) => <TextField {...params} label="Ingredient Type" />}
               sx={{ backgroundColor: 'white', borderRadius: 1 }}
             />
-
             <Autocomplete
               multiple
               options={selectedType.length > 0 ? filteredIngredients : allIngredients}
@@ -378,7 +379,6 @@ const Search = () => {
               )}
               sx={{ backgroundColor: 'white', borderRadius: 1 }}
             />
-
             {restrictedIngredients.length > 0 && (
               <Typography variant="body2" color="white">
                 <strong>Restricted:</strong> {restrictedIngredients.join(', ')}
@@ -392,7 +392,7 @@ const Search = () => {
               flex: 1,
               minWidth: '300px',
               padding: '1.5rem',
-              backgroundColor: '#D29B59',
+              backgroundColor: '#D98C3F',
               borderRadius: '8px',
               boxShadow: 2,
               display: 'flex',
@@ -418,7 +418,6 @@ const Search = () => {
               )}
               sx={{ backgroundColor: 'white', borderRadius: 1 }}
             />
-
             <Autocomplete
               multiple
               options={allCategories}
@@ -436,7 +435,6 @@ const Search = () => {
               )}
               sx={{ backgroundColor: 'white', borderRadius: 1 }}
             />
-
             <TextField
               label="Max Time (minutes)"
               variant="outlined"
@@ -468,14 +466,13 @@ const Search = () => {
             data-cy="sort-select"
             sx={{ width: 300 }}
           >
-            <option value="none">None</option>
-            <option value="missingIngredients">Number of Missing Ingredients</option>
-            <option value="time">Preparation Time</option>
-            <option value="rating">Rating</option>
-            <option value="estimatedCost">Estimated Cost</option>
-            <option value="tried">Tried</option>
+            <MenuItem value="none">None</MenuItem>
+            <MenuItem value="missingIngredients">Number of Missing Ingredients</MenuItem>
+            <MenuItem value="time">Preparation Time</MenuItem>
+            <MenuItem value="rating">Rating</MenuItem>
+            <MenuItem value="estimatedCost">Estimated Cost</MenuItem>
+            <MenuItem value="tried">Tried</MenuItem>
           </TextField>
-
           <TextField
             select
             label="Sort Order"
@@ -529,21 +526,12 @@ const Search = () => {
                     </Typography>
                     <Typography variant="body2"><strong>Type:</strong> {recipe.type}</Typography>
                     <Typography variant="body2"><strong>Category:</strong> {recipe.category}</Typography>
-
-                    <Typography variant="body2">
-                        <strong>Target Goal:</strong>{" "}
-                        {Array.isArray(recipe.goals) && recipe.goals.length
-                            ? recipe.goals.join(", ")
-                            : "N/A"}
-                    </Typography>
-
+                    <Typography variant="body2"><strong>Target Goal:</strong> {recipe.goal || "N/A"}</Typography>
                     <Typography variant="body2"><strong>Time:</strong> {recipe.prep_time} mins</Typography>
                     {budgetMode && recipe.estimated_cost && (
                       <Typography variant="body2"><strong>Estimated Cost:</strong> ${recipe.estimated_cost}</Typography>
                     )}
-                    <Typography variant="body2">
-                      <strong>Average Rating:</strong> {recipe.average_rating ? `⭐ ${recipe.average_rating.toFixed(1)}` : 'N/A'}
-                    </Typography>
+                    <Typography variant="body2"><strong>Average Rating:</strong> {recipe.average_rating ? `⭐ ${recipe.average_rating.toFixed(1)}` : 'N/A'}</Typography>
 
                     {recipe.missingIngredients?.length > 0 ? (
                       <>
@@ -603,6 +591,7 @@ const Search = () => {
       </Box>
     </>
   );
+
 };
 
 export default Search;

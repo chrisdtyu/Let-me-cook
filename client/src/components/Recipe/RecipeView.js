@@ -58,7 +58,6 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
 
   useEffect(() => {
     getRecipe(id);
-    console.log("INGREDIENTS WITH SUBS", ingredients);
   }, [id, getRecipe]);
 
   useEffect(() => {
@@ -230,12 +229,12 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
               <b> Average Rating: </b>{averageRating ? `⭐ ${averageRating.toFixed(1)}` : "N/A"}
             </Typography>
 
-            {/* Ingredients & substitutes */}
+            {/* Ingredients */}
             <Typography variant="h6" fontWeight="bold" sx={{ mt: 2 }}>
               Ingredients <Typography variant="caption">(required **)</Typography>
             </Typography>
 
-            {recipe.ingredients?.map((ing) => {
+            {ingredients.map((ing) => {
               let displayQuantity = ing.quantity;
               if (ing.required === 1 && baseQuantity[ing.ingredient_id] && baseIngredientId) {
                 const baseScale = baseIngredientId === ing.ingredient_id
