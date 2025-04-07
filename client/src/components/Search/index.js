@@ -296,7 +296,17 @@ const Search = () => {
           <Typography variant="h4" fontWeight="bold" color="text.primary">
             Find a Recipe!
           </Typography>
-          <Button variant="contained" color="secondary" onClick={toggleBudgetMode}>
+          <Button
+            variant="contained"
+            onClick={toggleBudgetMode}
+            sx={{
+              backgroundColor: '#8E4D63',
+              color: 'white', // optional, in case you want to make the text readable
+              '&:hover': {
+                backgroundColor: '#c0a35e', // optional hover effect
+              },
+            }}
+          >
             {budgetMode ? "Disable Budget Mode" : "Enable Budget Mode"}
           </Button>
         </Box>
@@ -317,7 +327,7 @@ const Search = () => {
               flex: 1,
               minWidth: '300px',
               padding: '1.5rem',
-              backgroundColor: '#3e0907',
+              backgroundColor: '#D29B59',
               borderRadius: '8px',
               boxShadow: 2,
               display: 'flex',
@@ -379,7 +389,7 @@ const Search = () => {
               flex: 1,
               minWidth: '300px',
               padding: '1.5rem',
-              backgroundColor: '#3e0907',
+              backgroundColor: '#D29B59',
               borderRadius: '8px',
               boxShadow: 2,
               display: 'flex',

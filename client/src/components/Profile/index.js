@@ -25,7 +25,7 @@ const TriedRecipesList = React.memo(function TriedRecipesList({ recipes, onNavig
         recipes.map((r) => (
           <Box key={r.recipe_id} sx={{ marginBottom: 1 }}>
             <Typography
-              sx={{ textDecoration: 'underline', cursor: 'pointer', color: 'blue' }}
+              sx={{ textDecoration: 'underline', cursor: 'pointer', color: '#39244F' }}
               onClick={() => onNavigate(r.recipe_id)}
             >
               {r.name}
@@ -51,7 +51,7 @@ const FavouriteRecipesList = React.memo(function FavouriteRecipesList({ recipes 
           <Box key={r.recipe_id} sx={{ marginBottom: 1 }}>
             <a
               href={'/Recipe/' + r.recipe_id}
-              style={{ textDecoration: 'underline', cursor: 'pointer', color: 'blue' }}
+              style={{ textDecoration: 'underline', cursor: 'pointer', color: '#39244F' }}
             >
               {r.name}
             </a>
