@@ -9,6 +9,8 @@ import Grid from '@mui/material/Grid';
 import Button from '@mui/material/Button';
 import { styled } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
+import Snackbar from '@mui/material/Snackbar';
+import MuiAlert from '@mui/material/Alert';
 
 const MainGridContainer = styled(Grid)(({ theme }) => ({
   margin: theme.spacing(4),
@@ -144,13 +146,16 @@ const ReviewForm = ({ recipeId, reviewSubmitted }) => {
           </Button>
         </Grid>
 
-        {submitSuccess && (
-          <Grid item xs={12}>
-            <Typography id="confirmation-message" variant="h6" color="#66bb6a" paddingTop={2}>
-              Your review has been received!!
-            </Typography>
-          </Grid>
-        )}
+        <Snackbar
+          open={submitSuccess}
+          autoHideDuration={3000}
+          onClose={() => setSubmitSuccess(false)}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        >
+          <MuiAlert onClose={() => setSubmitSuccess(false)} severity="success" sx={{ width: '100%' }}>
+            Your review has been received!
+          </MuiAlert>
+        </Snackbar>
       </Grid>
       <Grid item xs />
     </MainGridContainer>
