@@ -233,6 +233,7 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
             <Typography variant="h6" fontWeight="bold" sx={{ mt: 2 }}>
               Ingredients <Typography variant="caption">(required **)</Typography>
             </Typography>
+
             {ingredients.map((ing) => {
               let displayQuantity = ing.quantity;
               if (ing.required === 1 && baseQuantity[ing.ingredient_id] && baseIngredientId) {
@@ -241,16 +242,49 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
                   : scaleFactor;
                 displayQuantity = baseQuantity[ing.ingredient_id] * baseScale;
               }
+
               const formattedQuantity = ing.quantity_type
                 ? displayQuantity.toFixed(1)
                 : Math.round(displayQuantity);
+              
+              const subList =
+                ing.substitutes && ing.substitutes.length > 0
+                  ? ing.substitutes.map((sub) => sub.name).join(', ')
+                  : '(No known substitutes)';
 
               return (
-                <Box key={ing.ingredient_id} sx={{ display: 'flex', justifyContent: 'space-between', my: 1 }}>
-                  <span>{formattedQuantity} {ing.quantity_type} {ing.name} {ing.required === 1 ? '*' : ''}</span>
-                  <PriceDisplay price={ing.price} ingredientId={ing.ingredient_id} alwaysAvailable={userData?.alwaysAvailable?.map(item => item.ingredient_id)} />
+                <Box
+                  key={ing.ingredient_id}
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    gap: 2,
+                    my: 1,
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  {/* Ingredient name & price */}
+                  <Box sx={{ flex: '1' }}>
+                    <Typography variant="body1">
+                      {formattedQuantity} {ing.quantity_type} {ing.name} {ing.required === 1 ? '*' : ''}
+                    </Typography>
+                    <PriceDisplay
+                      price={ing.price}
+                      ingredientId={ing.ingredient_id}
+                      alwaysAvailable={userData?.alwaysAvailable?.map(item => item.ingredient_id)}
+                    />
+                  </Box>
+              
+                  {/* Substitutes */}
+                  <Box>
+                    <Typography variant="body2">
+                      {subList}
+                    </Typography>
+                  </Box>
                 </Box>
-              );
+              );                  
             })}
 
             {/* Scale */}
