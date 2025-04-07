@@ -11,7 +11,7 @@ const LetmecookAppBar = ({ page }) => {
   const navigate = useNavigate();
 
   return (
-    <AppBar position="static" sx={{ backgroundColor: "#A24F46" }}> {/* Updated color */}
+    <AppBar position="static" sx={{ backgroundColor: "#B85425" }}> {/* Updated color */}
       <Toolbar>
         <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
           <b>{page}</b>
