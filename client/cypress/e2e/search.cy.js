@@ -18,13 +18,13 @@ describe('Recipe Search Page', () => {
         cy.intercept('POST', '/api/getUser', {
             statusCode: 200,
             body: { express: JSON.stringify({ user_id: 'guest' }) },
-          }).as('getUser');
+        }).as('getUser');
 
         // Only visit after all intercepts are in place
         cy.visit('http://localhost:3000/search');
     });
 
-    it('allows user to add an ingredient and search for recipes', () => {
+    it('allows user to add ingredient, cuisine, and category, and search for recipes', () => {
         cy.wait('@getIngredients');
         cy.wait('@getCuisines');
         cy.wait('@getCategories');
@@ -75,6 +75,29 @@ describe('Recipe Search Page', () => {
                         missingIngredients: [],
                         estimated_cost: 3.0,
                         goal: 'High Protein'
+                    },
+                    {
+                        recipe_id: 43,
+                        name: 'Classic Chicken Alfredo',
+                        type: 'Italian',
+                        category: 'Dinner',
+                        prep_time: 35,
+                        instructions: 'Boil pasta and cook chicken in Alfredo sauce...',
+                        image: 'alfredo.jpg',
+                        recipe_ingredients: 'chicken,cream,onion',
+                        ingredient_prices: '2.50,1.20,0.30',
+                        total_ingredients: 3,
+                        missing_ingredients: 1,
+                        average_rating: 4.7,
+                        ingredients: [
+                            { name: 'chicken', price: 2.5 },
+                            { name: 'onion', price: 0.3 }
+                        ],
+                        missingIngredients: [
+                            { name: 'cream', price: 1.2 }
+                        ],
+                        estimated_cost: 4.0,
+                        goal: 'Comfort Food'
                     }
                 ]
             });
@@ -84,6 +107,14 @@ describe('Recipe Search Page', () => {
         cy.contains('🔍 Find Recipes').click();
         cy.wait('@recommendRecipes');
         cy.contains('Quick Italian Chicken').should('be.visible');
+
+        // cy.get('[data-cy="sort-select"]').click();
+        // cy.get('ul[role="listbox"]').contains('Preparation Time').click();
+        cy.get('[data-cy="spinner"]').should('not.exist');
+
+        // Confirm sorting applied - Quick Italian Chicken (25 min) should come before Classic Chicken Alfredo (35 min)
+        cy.get('[data-cy="recipe-card"]').first().should('contain.text', 'Quick Italian Chicken');
+        cy.get('[data-cy="recipe-card"]').eq(1).should('contain.text', 'Classic Chicken Alfredo');
 
         // Either spinner appears or results
         cy.get('body').then(($body) => {

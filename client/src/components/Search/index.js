@@ -461,7 +461,7 @@ const Search = () => {
             label="Sort By"
             value={selectedSortOption}
             onChange={(e) => setSelectedSortOption(e.target.value)}
-            SelectProps={{ native: true }}
+            data-cy="sort-select"
             sx={{ width: 300 }}
           >
             <option value="none">None</option>
@@ -477,6 +477,7 @@ const Search = () => {
             value={selectedSortOrder}
             onChange={(e) => setSelectedSortOrder(e.target.value)}
             SelectProps={{ native: true }}
+            data-cy="sort-order-select"
             sx={{ width: 300 }}
           >
             <option value="ascending">Ascending</option>
@@ -504,6 +505,7 @@ const Search = () => {
             recipes.map(recipe => (
               <Grid item key={recipe.recipe_id} xs={12} sm={6} md={4}>
                 <Box
+                  data-cy="recipe-card"
                   sx={{
                     border: '1px solid #ccc',
                     padding: 2,
