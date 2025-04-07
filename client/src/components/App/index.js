@@ -12,17 +12,20 @@ import MyRecipes from '../Recipe/MyRecipes';
 const theme = createTheme({
   palette: {
     mode: 'light',
-    primary: { main: '#1a0eac' },
+    primary: { main: '#A24F46' },
     background: {
-      default: '#fffbf0',  // Set the background color for pages
+      default: '#fffbf0',
     },
+  },
+  typography: {
+    fontFamily: `Helvetica`,
   },
   components: {
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: '50px', 
-          padding: '12px 32px', 
+          borderRadius: '50px',
+          padding: '12px 32px',
           textTransform: 'none',
         },
       },

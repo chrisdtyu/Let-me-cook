@@ -132,7 +132,6 @@ const Api = {
     },
 
     getIngTypes: async () => {
-        console.log("made it to ingredient types ")
         try {
             const response = await fetch('/api/getIngredientTypes');
             console.log("getIngTypes response:", response);
