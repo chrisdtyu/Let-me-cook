@@ -15,6 +15,8 @@ import Snackbar from '@mui/material/Snackbar';
 import MuiAlert from '@mui/material/Alert';
 import { useBudget } from '../Budget/BudgetContext';
 import MenuItem from '@mui/material/MenuItem';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import Tooltip from '@mui/material/Tooltip';
 
 const Search = () => {
   const navigate = useNavigate();
@@ -289,29 +291,45 @@ const Search = () => {
           sx={{
             width: '100%',
             maxWidth: '1200px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
+            position: 'relative',
             mb: 2,
+            height: '56px', // match button height for alignment
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
           }}
         >
-          <Typography variant="h4" fontWeight="bold" color="text.primary">
+          {/* Centered title */}
+          <Typography
+            variant="h4"
+            fontWeight="bold"
+            color="text.primary"
+            sx={{
+              position: 'absolute',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              textAlign: 'center',
+            }}
+          >
             Find a Recipe!
           </Typography>
+
+          {/* Budget mode button aligned to the right */}
           <Button
             variant="contained"
             onClick={toggleBudgetMode}
             sx={{
               backgroundColor: '#F4C542',
-              color: 'white', // optional, in case you want to make the text readable
+              color: 'white',
               '&:hover': {
-                backgroundColor: '#D98C3F', // optional hover effect
+                backgroundColor: '#D98C3F',
               },
             }}
           >
             {budgetMode ? "Disable Budget Mode" : "Enable Budget Mode"}
           </Button>
         </Box>
+
         <Box
           sx={{
             display: 'flex',
@@ -337,48 +355,65 @@ const Search = () => {
               gap: 2,
             }}
           >
-            <Box sx={{ display: 'flex', gap: 1 }}>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
               <TextField
-                fullWidth
                 label="Enter an ingredient"
                 variant="outlined"
                 inputProps={{ 'data-cy': 'manual-ingredient-input' }}
                 value={manualIngredient}
                 onChange={(e) => setManualIngredient(e.target.value)}
-                sx={{ backgroundColor: 'white', borderRadius: 1 }}
+                sx={{ backgroundColor: 'white', borderRadius: 1, flexGrow: 1, minWidth: 250 }}
               />
-              <Button variant="contained" color="primary" onClick={handleManualAdd} sx={{ whiteSpace: 'nowrap' }}>
+              <Tooltip title="Add a custom ingredient manually">
+                <HelpOutlineIcon sx={{ color: 'white' }} />
+              </Tooltip>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleManualAdd}
+                sx={{ whiteSpace: 'nowrap' }}
+              >
                 Add
               </Button>
             </Box>
-            <Autocomplete
-              multiple
-              options={allIngTypes}
-              value={selectedType}
-              onChange={(event, newValue) => setSelectedType(newValue || [])}
-              renderInput={(params) => <TextField {...params} label="Ingredient Type" />}
-              sx={{ backgroundColor: 'white', borderRadius: 1 }}
-            />
-            <Autocomplete
-              multiple
-              options={selectedType.length > 0 ? filteredIngredients : allIngredients}
-              value={selectedIngredients}
-              onChange={handleIngredientChange}
-              renderTags={(value, getTagProps) =>
-                value.map((option, index) => (
-                  <Chip
-                    key={option}
-                    label={option}
-                    {...getTagProps({ index })}
-                    color="primary"
-                  />
-                ))
-              }
-              renderInput={(params) => (
-                <TextField {...params} label="Select Ingredients" variant="outlined" />
-              )}
-              sx={{ backgroundColor: 'white', borderRadius: 1 }}
-            />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Autocomplete
+                multiple
+                options={allIngTypes}
+                value={selectedType}
+                onChange={(event, newValue) => setSelectedType(newValue || [])}
+                renderInput={(params) => <TextField {...params} label="Ingredient Type" />}
+                sx={{ backgroundColor: 'white', borderRadius: 1, flex: 1 }}
+              />
+              <Tooltip title="Choose ingredient types to filter the available ingredient options.">
+                <HelpOutlineIcon sx={{ color: 'white' }} />
+              </Tooltip>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Autocomplete
+                multiple
+                options={selectedType.length > 0 ? filteredIngredients : allIngredients}
+                value={selectedIngredients}
+                onChange={handleIngredientChange}
+                renderTags={(value, getTagProps) =>
+                  value.map((option, index) => (
+                    <Chip
+                      key={option}
+                      label={option}
+                      {...getTagProps({ index })}
+                      color="primary"
+                    />
+                  ))
+                }
+                renderInput={(params) => (
+                  <TextField {...params} label="Select Ingredients" variant="outlined" />
+                )}
+                sx={{ backgroundColor: 'white', borderRadius: 1, flex: 1 }}
+              />
+              <Tooltip title="Pick the ingredients you currently have. This helps match recipes based on your pantry.">
+                <HelpOutlineIcon sx={{ color: 'white' }} />
+              </Tooltip>
+            </Box>
             {restrictedIngredients.length > 0 && (
               <Typography variant="body2" color="white">
                 <strong>Restricted:</strong> {restrictedIngredients.join(', ')}
