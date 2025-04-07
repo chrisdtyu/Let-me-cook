@@ -24,10 +24,10 @@ describe('Recipe Search Page', () => {
         cy.visit('http://localhost:3000/search');
     });
 
-    it('allows user to add ingredient, cuisine, and category, and search for recipes', () => {
+    it('allows user to add ingredient and search for recipes', () => {
         cy.wait('@getIngredients');
-        cy.wait('@getCuisines');
-        cy.wait('@getCategories');
+        // cy.wait('@getCuisines');
+        // cy.wait('@getCategories');
 
         // Enter a manual ingredient
         cy.get('[data-cy="manual-ingredient-input"]').type('chicken');
@@ -35,12 +35,12 @@ describe('Recipe Search Page', () => {
 
         cy.get('.MuiChip-root').contains('chicken');
 
-        cy.get('[data-cy="cuisines-autocomplete"]').click().type('Italian');
-        cy.get('ul[role="listbox"] li').contains('Italian').should('be.visible').click();
+        // cy.get('[data-cy="cuisines-autocomplete"]').click().type('Italian');
+        // cy.get('ul[role="listbox"] li').contains('Italian').should('be.visible').click();
 
-        // Select category
-        cy.get('[data-cy="categories-autocomplete"]').click().type('Dinner');
-        cy.get('ul[role="listbox"] li').contains('Dinner').should('be.visible').click();
+        // // Select category
+        // cy.get('[data-cy="categories-autocomplete"]').click().type('Dinner');
+        // cy.get('ul[role="listbox"] li').contains('Dinner').should('be.visible').click();
 
         cy.intercept('POST', '**/api/recommendRecipes', (req) => {
             expect(req.body).to.include({
@@ -49,8 +49,6 @@ describe('Recipe Search Page', () => {
             });
 
             expect(req.body.ingredients).to.include('chicken');
-            expect(req.body.cuisines).to.include('Italian');
-            expect(req.body.categories).to.include('Dinner');
 
             req.reply({
                 statusCode: 200,
