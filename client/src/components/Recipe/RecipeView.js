@@ -210,7 +210,15 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
         <Typography variant="h5" sx={{ mt: 2 }}><b>Ingredients:</b></Typography>
         <Typography variant="h10" sx={{ mt: 2 }}>required = *</Typography>
 
-        <Box sx={{ marginTop: '40px' }}>
+        <Box
+          sx={{
+            marginTop: '40px',
+            border: '2px solid #000',
+            borderRadius: '8px',
+            padding: '16px',
+            backgroundColor: '#fdfdfd'
+          }}
+        >
           <Box
             sx={{
               display: 'flex',
@@ -229,7 +237,7 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
               <Typography variant="body1">Substitutes</Typography>
             </Box>
           </Box>
-          {/* Ingredient list */}
+
           {recipe.ingredients?.map((ing) => {
             let displayQuantity = ing.quantity;
             if (ing.required === 1 && baseQuantity[ing.ingredient_id] && baseIngredientId) {
@@ -239,6 +247,7 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
                   : scaleFactor;
               displayQuantity = baseQuantity[ing.ingredient_id] * baseScale;
             }
+
             const formattedQuantity = ing.quantity_type
               ? displayQuantity.toFixed(1)
               : Math.round(displayQuantity);
@@ -260,7 +269,6 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
                   paddingBottom: '0.5rem',
                 }}
               >
-                {/* Left Column: Ingredient */}
                 <Box sx={{ width: '50%' }}>
                   <Typography variant="body1">
                     {formattedQuantity}{' '}
@@ -276,7 +284,6 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
                   />
                 </Box>
 
-                {/* Right Column: Substitutes */}
                 <Box sx={{ width: '50%', textAlign: 'right' }}>
                   <Typography variant="body2" sx={{ color: '#555' }}>
                     {subList}
@@ -286,6 +293,7 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
             );
           })}
         </Box>
+
 
         {/* Ingredient Scaling */}
         <Box sx={{ mt: 2, width: 300 }}>
