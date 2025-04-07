@@ -18,8 +18,6 @@ const MyRecipes = () => {
       alert('You must log in first!');
       return;
     }
-
-    // If your backend expects a numeric user_id, convert it appropriately
     setUserId(firebaseUid);
   }, []);
 
