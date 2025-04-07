@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import LetmecookAppBar from '../AppBar';
 import Api from './Api';
 import Box from '@mui/material/Box';
-import Grid from '@mui/material/Grid'
+import Grid from '@mui/material/Grid';
 import Link from '@mui/material/Link';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
@@ -264,9 +264,7 @@ const Search = () => {
     }
 
     return sorted;
-
   };
-
 
   return (
     <>
@@ -301,15 +299,16 @@ const Search = () => {
             onClick={toggleBudgetMode}
             sx={{
               backgroundColor: '#8E4D63',
-              color: 'white', // optional, in case you want to make the text readable
+              color: 'white',
               '&:hover': {
-                backgroundColor: '#c0a35e', // optional hover effect
+                backgroundColor: '#c0a35e',
               },
             }}
           >
             {budgetMode ? "Disable Budget Mode" : "Enable Budget Mode"}
           </Button>
         </Box>
+
         <Box
           sx={{
             display: 'flex',
@@ -349,6 +348,7 @@ const Search = () => {
                 Add
               </Button>
             </Box>
+
             <Autocomplete
               multiple
               options={allIngTypes}
@@ -357,6 +357,7 @@ const Search = () => {
               renderInput={(params) => <TextField {...params} label="Ingredient Type" />}
               sx={{ backgroundColor: 'white', borderRadius: 1 }}
             />
+
             <Autocomplete
               multiple
               options={selectedType.length > 0 ? filteredIngredients : allIngredients}
@@ -377,6 +378,7 @@ const Search = () => {
               )}
               sx={{ backgroundColor: 'white', borderRadius: 1 }}
             />
+
             {restrictedIngredients.length > 0 && (
               <Typography variant="body2" color="white">
                 <strong>Restricted:</strong> {restrictedIngredients.join(', ')}
@@ -416,6 +418,7 @@ const Search = () => {
               )}
               sx={{ backgroundColor: 'white', borderRadius: 1 }}
             />
+
             <Autocomplete
               multiple
               options={allCategories}
@@ -433,6 +436,7 @@ const Search = () => {
               )}
               sx={{ backgroundColor: 'white', borderRadius: 1 }}
             />
+
             <TextField
               label="Max Time (minutes)"
               variant="outlined"
@@ -471,6 +475,7 @@ const Search = () => {
             <option value="estimatedCost">Estimated Cost</option>
             <option value="tried">Tried</option>
           </TextField>
+
           <TextField
             select
             label="Sort Order"
@@ -524,12 +529,21 @@ const Search = () => {
                     </Typography>
                     <Typography variant="body2"><strong>Type:</strong> {recipe.type}</Typography>
                     <Typography variant="body2"><strong>Category:</strong> {recipe.category}</Typography>
-                    <Typography variant="body2"><strong>Target Goal:</strong> {recipe.goal || "N/A"}</Typography>
+
+                    <Typography variant="body2">
+                        <strong>Target Goal:</strong>{" "}
+                        {Array.isArray(recipe.goals) && recipe.goals.length
+                            ? recipe.goals.join(", ")
+                            : "N/A"}
+                    </Typography>
+
                     <Typography variant="body2"><strong>Time:</strong> {recipe.prep_time} mins</Typography>
                     {budgetMode && recipe.estimated_cost && (
                       <Typography variant="body2"><strong>Estimated Cost:</strong> ${recipe.estimated_cost}</Typography>
                     )}
-                    <Typography variant="body2"><strong>Average Rating:</strong> {recipe.average_rating ? `⭐ ${recipe.average_rating.toFixed(1)}` : 'N/A'}</Typography>
+                    <Typography variant="body2">
+                      <strong>Average Rating:</strong> {recipe.average_rating ? `⭐ ${recipe.average_rating.toFixed(1)}` : 'N/A'}
+                    </Typography>
 
                     {recipe.missingIngredients?.length > 0 ? (
                       <>
@@ -589,7 +603,6 @@ const Search = () => {
       </Box>
     </>
   );
-
 };
 
 export default Search;

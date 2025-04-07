@@ -73,7 +73,7 @@ const Profile = () => {
     email: '',
     dietaryPreferences: [],
     dietaryRestrictions: [],
-    alwaysAvailable: [],  
+    alwaysAvailable: [],
     healthGoals: [],
     weeklyBudget: '',
   });
@@ -165,9 +165,15 @@ const Profile = () => {
             ? ''
             : user.weekly_budget || '';
 
+          // ensure we have at least one blank row if none exist
+          // plus we track whether items are from DB (loadedFromDB=true) or newly added
           const finalAlways = (alwaysAvailable && alwaysAvailable.length > 0)
-            ? alwaysAvailable
-            : [{ ingredient_name: '' }];
+            ? alwaysAvailable.map(item => ({
+                ...item,
+                // If there's an ingredient_name from server, we consider it loaded from DB
+                loadedFromDB: !!item.ingredient_name
+              }))
+            : [{ ingredient_name: '', loadedFromDB: false }];
 
           setProfile((prev) => ({
             ...prev,
@@ -254,6 +260,15 @@ const Profile = () => {
         const result = await response.json();
         console.log('Profile saved:', result);
         alert('Profile updated successfully!');
+
+        setProfile(prev => {
+          const updatedAvail = prev.alwaysAvailable.map(item => ({
+            ...item,
+            loadedFromDB: !!item.ingredient_name
+          }));
+          return { ...prev, alwaysAvailable: updatedAvail };
+        });
+
       } else {
         console.error('Failed to save profile');
         alert('Error saving profile');
@@ -376,7 +391,16 @@ const Profile = () => {
                     const showError = didSubmitErrors[idx];
 
                     return (
-                      <Box key={idx} sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 1 }}>
+                      <Box
+                        key={idx}
+                        sx={{
+                          display: 'flex',
+                          gap: 2,
+                          alignItems: 'center',
+                          mb: 1,
+                          flexWrap: 'wrap'
+                        }}
+                      >
                         <Autocomplete
                           options={ingredientsList}
                           getOptionLabel={(option) => option.name}
@@ -384,11 +408,10 @@ const Profile = () => {
                           onChange={(event, newVal) => {
                             const updated = [...profile.alwaysAvailable];
                             updated[idx].ingredient_name = newVal ? newVal.name : '';
-                            setProfile({ ...profile, alwaysAvailable: updated });
-
                             const updatedErrors = [...didSubmitErrors];
                             updatedErrors[idx] = !newVal;
                             setDidSubmitErrors(updatedErrors);
+                            setProfile({ ...profile, alwaysAvailable: updated });
                           }}
                           renderInput={(params) => (
                             <TextField
@@ -402,19 +425,37 @@ const Profile = () => {
                           sx={{ width: 220 }}
                         />
 
-                        {/* storing expiry date */}
-                        <TextField
-                          label="Expiration Date"
-                          type="date"
-                          value={item.expirationDate || ''}
-                          onChange={(e) => {
-                            const updated = [...profile.alwaysAvailable];
-                            updated[idx].expirationDate = e.target.value;
-                            setProfile({ ...profile, alwaysAvailable: updated });
-                          }}
-                          InputLabelProps={{ shrink: true }}
-                          sx={{ width: 180 }}
-                        />
+                        {/* Expiration Date + "Expiring soon" */}
+                        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                          <TextField
+                            label="Expiration Date"
+                            type="date"
+                            value={item.expirationDate || ''}
+                            onChange={(e) => {
+                              const updated = [...profile.alwaysAvailable];
+                              updated[idx].expirationDate = e.target.value;
+                              updated[idx].loadedFromDB = false;
+                              setProfile({ ...profile, alwaysAvailable: updated });
+                            }}
+                            InputLabelProps={{ shrink: true }}
+                            sx={{ width: 180 }}
+                          />
+
+                          {item.loadedFromDB && item.expirationDate && (() => {
+                            const expiryDate = new Date(item.expirationDate);
+                            const now = new Date();
+                            const diffDays = (expiryDate - now) / (1000 * 3600 * 24);
+                            // show "Expiring soon" if within 7 days
+                            if (diffDays <= 7 && diffDays >= 0) {
+                              return (
+                                <Typography variant="caption" color="error" sx={{ mt: '2px' }}>
+                                  Expiring soon
+                                </Typography>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </Box>
 
                         <Button
                           variant="outlined"
@@ -442,7 +483,7 @@ const Profile = () => {
                         ...profile,
                         alwaysAvailable: [
                           ...profile.alwaysAvailable,
-                          { ingredient_name: '' }
+                          { ingredient_name: '', loadedFromDB: false }
                         ],
                       });
                       setDidSubmitErrors([...didSubmitErrors, false]);
@@ -504,10 +545,7 @@ const Profile = () => {
           {/* right column */}
           <Grid item xs={12} md={4}>
             <Box sx={{ backgroundColor: 'white', p: 3, borderRadius: 2, boxShadow: 3 }}>
-              {/* Memoized Tried Recipes */}
               <TriedRecipesList recipes={triedRecipes} onNavigate={handleNavigate} />
-
-              {/* Memoized Favourite Recipes */}
               <FavouriteRecipesList recipes={favRecipes} />
             </Box>
 
