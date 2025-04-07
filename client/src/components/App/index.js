@@ -7,12 +7,47 @@ import Search from '../Search';
 import Login from '../Login';
 import Profile from '../Profile';
 import Recipe from '../Recipe';
-import MyRecipes from '../Recipe/MyRecipes'; // This page combines upload & delete
+import MyRecipes from '../Recipe/MyRecipes';
 
 const theme = createTheme({
   palette: {
     mode: 'light',
-    primary: { main: '#1976d2' },
+    primary: {
+      main: '#A24F46',
+    },
+    secondary: {
+      main: '#D98C3F',
+    },
+    warning: {
+      main: '#D3B66E',
+    },
+    success: {
+      main: '#8CA653',
+    },
+    info: {
+      main: '#39244F',
+    },
+    background: {
+      default: '#FFF8EE',
+      paper: '#FFF3E5',
+    },
+    text: {
+      primary: '#3B2A2A',
+    },
+  },
+  typography: {
+    fontFamily: 'Helvetica',
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: '50px',
+          padding: '12px 32px',
+          textTransform: 'none',
+        },
+      },
+    },
   },
 });
 

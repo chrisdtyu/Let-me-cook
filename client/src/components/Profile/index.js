@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Grid, TextField, Button, Typography, Box, FormControl
 } from '@mui/material';
@@ -6,15 +6,67 @@ import { Autocomplete } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import LetmecookAppBar from '../AppBar';
 import { useNavigate } from 'react-router-dom';
+import { useBudget } from '../Budget/BudgetContext';
 
 const MainGridContainer = styled(Grid)(({ theme }) => ({
   margin: theme.spacing(4),
 }));
 
+// memoized child component with React.memo
+const TriedRecipesList = React.memo(function TriedRecipesList({ recipes, onNavigate }) {
+  return (
+    <>
+      <Typography variant="h5" gutterBottom>
+        Tried Recipes
+      </Typography>
+      {recipes.length === 0 ? (
+        <Typography>No tried recipes yet.</Typography>
+      ) : (
+        recipes.map((r) => (
+          <Box key={r.recipe_id} sx={{ marginBottom: 1 }}>
+            <Typography
+              sx={{ textDecoration: 'underline', cursor: 'pointer', color: '#39244F' }}
+              onClick={() => onNavigate(r.recipe_id)}
+            >
+              {r.name}
+            </Typography>
+          </Box>
+        ))
+      )}
+    </>
+  );
+});
+
+// memoized child component with React.memo
+const FavouriteRecipesList = React.memo(function FavouriteRecipesList({ recipes }) {
+  return (
+    <>
+      <Typography variant="h5" sx={{ mt: 3 }}>
+        Favourite Recipes
+      </Typography>
+      {recipes.length === 0 ? (
+        <Typography>No favourite recipes yet.</Typography>
+      ) : (
+        recipes.map((r) => (
+          <Box key={r.recipe_id} sx={{ marginBottom: 1 }}>
+            <a
+              href={'/Recipe/' + r.recipe_id}
+              style={{ textDecoration: 'underline', cursor: 'pointer', color: '#39244F' }}
+            >
+              {r.name}
+            </a>
+          </Box>
+        ))
+      )}
+    </>
+  );
+});
+
 const Profile = () => {
   const navigate = useNavigate();
+  const { weeklySpent } = useBudget();
 
-  const [profile, setProfile] = useState({
+  const [profile, setProfile] = React.useState({
     firebase_uid: '',
     firstName: '',
     lastName: '',
@@ -26,15 +78,18 @@ const Profile = () => {
     weeklyBudget: '',
   });
 
-  const [dietaryPreferencesList, setDietaryPreferencesList] = useState([]);
-  const [dietaryRestrictionsList, setDietaryRestrictionsList] = useState([]);
-  const [ingredientsList, setIngredientsList] = useState([]);
-  const [goalsList, setGoalsList] = useState([]);
+  const [dietaryPreferencesList, setDietaryPreferencesList] = React.useState([]);
+  const [dietaryRestrictionsList, setDietaryRestrictionsList] = React.useState([]);
+  const [ingredientsList, setIngredientsList] = React.useState([]);
+  const [goalsList, setGoalsList] = React.useState([]);
 
-  const [triedRecipes, setTriedRecipes] = useState([]);
-  const [favRecipes, setFavRecipes] = useState([]);
+  const [triedRecipes, setTriedRecipes] = React.useState([]);
+  const [favRecipes, setFavRecipes] = React.useState([]);
 
-  useEffect(() => {
+  // For controlling field errors
+  const [didSubmitErrors, setDidSubmitErrors] = React.useState([]);
+
+  React.useEffect(() => {
     const firebaseUid = localStorage.getItem('firebase_uid');
     if (!firebaseUid) {
       alert('You must log in first!');
@@ -42,7 +97,7 @@ const Profile = () => {
       return;
     }
 
-
+    // get user
     fetch('/api/getUser', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -70,6 +125,7 @@ const Profile = () => {
         }));
 
         if (parsed && parsed.user_id) {
+          // get user recipes
           fetch('/api/getUserRecipes', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -85,7 +141,7 @@ const Profile = () => {
       })
       .catch((err) => console.error('Error fetching user:', err));
 
-
+    // get user profile
     fetch('/api/getUserProfile', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -97,19 +153,42 @@ const Profile = () => {
       })
       .then((data) => {
         if (data.user) {
+          const {
+            user,
+            dietaryPreferences,
+            dietaryRestrictions,
+            alwaysAvailable,
+            healthGoals
+          } = data;
+
+          const weeklyBudgetVal = localStorage.getItem('weeklySpent') === '0'
+            ? ''
+            : user.weekly_budget || '';
+
+          // ensure we have at least one blank row if none exist
+          // plus we track whether items are from DB (loadedFromDB=true) or newly added
+          const finalAlways = (alwaysAvailable && alwaysAvailable.length > 0)
+            ? alwaysAvailable.map(item => ({
+                ...item,
+                // If there's an ingredient_name from server, we consider it loaded from DB
+                loadedFromDB: !!item.ingredient_name
+              }))
+            : [{ ingredient_name: '', loadedFromDB: false }];
+
           setProfile((prev) => ({
             ...prev,
-            weeklyBudget: data.user.weekly_budget || '',
-            dietaryPreferences: data.dietaryPreferences || [],
-            dietaryRestrictions: data.dietaryRestrictions || [],
-            alwaysAvailable: data.alwaysAvailable || [],
-            healthGoals: data.healthGoals || [],
+            weeklyBudget: weeklyBudgetVal,
+            dietaryPreferences: dietaryPreferences || [],
+            dietaryRestrictions: dietaryRestrictions || [],
+            alwaysAvailable: finalAlways,
+            healthGoals: healthGoals || [],
           }));
+          setDidSubmitErrors(finalAlways.map(() => false));
         }
       })
       .catch((err) => console.error('Error fetching full user profile:', err));
 
-
+    // fetch lists
     fetch('/api/getDietaryPreferences')
       .then((res) => res.json())
       .then((data) => setDietaryPreferencesList(data))
@@ -132,20 +211,45 @@ const Profile = () => {
 
   }, [navigate]);
 
-  const selectedPreferenceObjects = dietaryPreferencesList.filter((p) =>
-    profile.dietaryPreferences.includes(p.preference_id)
-  );
-  const selectedRestrictionObjects = dietaryRestrictionsList.filter((dr) =>
-    profile.dietaryRestrictions.some((sel) => sel.dietary_id === dr.dietary_id)
-  );
-  const selectedIngredientObjects = ingredientsList.filter((ing) =>
-    profile.alwaysAvailable.some((sel) => sel.ingredient_id === ing.ingredient_id)
-  );
-  const selectedGoalObjects = goalsList.filter((g) =>
-    profile.healthGoals.includes(g.goal_id)
-  );
+  const selectedPreferenceObjects = React.useMemo(() => {
+    return dietaryPreferencesList.filter((p) =>
+      profile.dietaryPreferences.includes(p.preference_id)
+    );
+  }, [dietaryPreferencesList, profile.dietaryPreferences]);
+
+  const selectedRestrictionObjects = React.useMemo(() => {
+    return dietaryRestrictionsList.filter((dr) =>
+      profile.dietaryRestrictions.some((sel) => sel.dietary_id === dr.dietary_id)
+    );
+  }, [dietaryRestrictionsList, profile.dietaryRestrictions]);
+
+  const selectedGoalObjects = React.useMemo(() => {
+    return goalsList.filter((g) =>
+      profile.healthGoals.includes(g.goal_id)
+    );
+  }, [goalsList, profile.healthGoals]);
 
   const handleSubmit = async () => {
+    // track errors
+    const ingredientErrors = profile.alwaysAvailable.map(item => !item.ingredient_name);
+    setDidSubmitErrors(ingredientErrors);
+
+    // check for duplicates
+    const allNames = profile.alwaysAvailable
+      .map(item => item.ingredient_name.trim().toLowerCase())
+      .filter(n => n);
+    const hasDuplicate = allNames.length !== new Set(allNames).size;
+    if (hasDuplicate) {
+      alert('You have duplicate ingredients. Please remove duplicates before updating your profile.');
+      return;
+    }
+
+    // check for missing required fields
+    if (ingredientErrors.some(e => e)) {
+      alert('Please fill out all required ingredient fields before submitting.');
+      return;
+    }
+
     try {
       const response = await fetch('/api/saveProfile', {
         method: 'POST',
@@ -156,6 +260,15 @@ const Profile = () => {
         const result = await response.json();
         console.log('Profile saved:', result);
         alert('Profile updated successfully!');
+
+        setProfile(prev => {
+          const updatedAvail = prev.alwaysAvailable.map(item => ({
+            ...item,
+            loadedFromDB: !!item.ingredient_name
+          }));
+          return { ...prev, alwaysAvailable: updatedAvail };
+        });
+
       } else {
         console.error('Failed to save profile');
         alert('Error saving profile');
@@ -166,6 +279,13 @@ const Profile = () => {
     }
   };
 
+  const handleNavigate = React.useCallback(
+    (recipeId) => {
+      navigate('/Recipe/' + recipeId);
+    },
+    [navigate]
+  );
+
   return (
     <>
       <LetmecookAppBar page="Profile" />
@@ -174,8 +294,8 @@ const Profile = () => {
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'flex-start',
-          height: '100vh',
-          backgroundColor: '#f4f4f4',
+          minHeight: '100vh',
+          backgroundColor: '#fffbf0',
           paddingTop: 4,
         }}
       >
@@ -258,26 +378,119 @@ const Profile = () => {
                   </FormControl>
                 </Grid>
 
-                {/* alwaysAvailable */}
+                {/* Always Available Ingredients */}
                 <Grid item xs={12}>
-                  <FormControl fullWidth>
-                    <Autocomplete
-                      multiple
-                      options={ingredientsList}
-                      getOptionLabel={(option) => option.name}
-                      value={selectedIngredientObjects}
-                      onChange={(event, newValue) => {
-                        const arr = newValue.map(i => ({ ingredient_id: i.ingredient_id }));
-                        setProfile((prev) => ({
-                          ...prev,
-                          alwaysAvailable: arr,
-                        }));
-                      }}
-                      renderInput={(params) => (
-                        <TextField {...params} label="Always Available Ingredients" />
-                      )}
-                    />
-                  </FormControl>
+                  <Typography variant="h6" gutterBottom>
+                    Always Available Ingredients
+                  </Typography>
+
+                  {profile.alwaysAvailable.map((item, idx) => {
+                    const matchedIng = ingredientsList.find(
+                      ing => ing.name === item.ingredient_name
+                    ) || null;
+                    const showError = didSubmitErrors[idx];
+
+                    return (
+                      <Box
+                        key={idx}
+                        sx={{
+                          display: 'flex',
+                          gap: 2,
+                          alignItems: 'center',
+                          mb: 1,
+                          flexWrap: 'wrap'
+                        }}
+                      >
+                        <Autocomplete
+                          options={ingredientsList}
+                          getOptionLabel={(option) => option.name}
+                          value={matchedIng}
+                          onChange={(event, newVal) => {
+                            const updated = [...profile.alwaysAvailable];
+                            updated[idx].ingredient_name = newVal ? newVal.name : '';
+                            const updatedErrors = [...didSubmitErrors];
+                            updatedErrors[idx] = !newVal;
+                            setDidSubmitErrors(updatedErrors);
+                            setProfile({ ...profile, alwaysAvailable: updated });
+                          }}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Ingredient"
+                              required
+                              error={showError}
+                              helperText={showError ? "Please fill out this field" : ""}
+                            />
+                          )}
+                          sx={{ width: 220 }}
+                        />
+
+                        {/* Expiration Date + "Expiring soon" */}
+                        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                          <TextField
+                            label="Expiration Date"
+                            type="date"
+                            value={item.expirationDate || ''}
+                            onChange={(e) => {
+                              const updated = [...profile.alwaysAvailable];
+                              updated[idx].expirationDate = e.target.value;
+                              updated[idx].loadedFromDB = false;
+                              setProfile({ ...profile, alwaysAvailable: updated });
+                            }}
+                            InputLabelProps={{ shrink: true }}
+                            sx={{ width: 180 }}
+                          />
+
+                          {item.loadedFromDB && item.expirationDate && (() => {
+                            const expiryDate = new Date(item.expirationDate);
+                            const now = new Date();
+                            const diffDays = (expiryDate - now) / (1000 * 3600 * 24);
+                            // show "Expiring soon" if within 7 days
+                            if (diffDays <= 7 && diffDays >= 0) {
+                              return (
+                                <Typography variant="caption" color="error" sx={{ mt: '2px' }}>
+                                  Expiring soon
+                                </Typography>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </Box>
+
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          onClick={() => {
+                            const updated = [...profile.alwaysAvailable];
+                            updated.splice(idx, 1);
+                            setProfile({ ...profile, alwaysAvailable: updated });
+
+                            const updatedErrors = [...didSubmitErrors];
+                            updatedErrors.splice(idx, 1);
+                            setDidSubmitErrors(updatedErrors);
+                          }}
+                        >
+                          DELETE
+                        </Button>
+                      </Box>
+                    );
+                  })}
+
+                  <Button
+                    variant="contained"
+                    onClick={() => {
+                      setProfile({
+                        ...profile,
+                        alwaysAvailable: [
+                          ...profile.alwaysAvailable,
+                          { ingredient_name: '', loadedFromDB: false }
+                        ],
+                      });
+                      setDidSubmitErrors([...didSubmitErrors, false]);
+                    }}
+                  >
+                    ADD INGREDIENT
+                  </Button>
                 </Grid>
 
                 {/* healthGoals */}
@@ -332,45 +545,29 @@ const Profile = () => {
           {/* right column */}
           <Grid item xs={12} md={4}>
             <Box sx={{ backgroundColor: 'white', p: 3, borderRadius: 2, boxShadow: 3 }}>
-              <Typography variant="h5" gutterBottom>
-                Tried Recipes
+              <TriedRecipesList recipes={triedRecipes} onNavigate={handleNavigate} />
+              <FavouriteRecipesList recipes={favRecipes} />
+            </Box>
+
+            <Box sx={{ mt: 4, borderRadius: 2, backgroundColor: 'white', p: 3, boxShadow: 3 }}>
+              <Typography variant="h6">Weekly Budget Tracker</Typography>
+              <Typography variant="body1">
+                Total Spent This Week: ${weeklySpent}
               </Typography>
-              {triedRecipes.length === 0 ? (
-                <Typography>No tried recipes yet.</Typography>
-              ) : (
-                triedRecipes.map((r) => (
-                  <Box key={r.recipe_id} sx={{ marginBottom: 1 }}>
-                    <Typography
-                      sx={{ textDecoration: 'underline', cursor: 'pointer', color: 'blue' }}
-                      onClick={() => navigate('/Recipe/' + r.recipe_id)}
-                    >
-                      {r.name}
-                    </Typography>
-                  </Box>
-                ))
+
+              {profile.weeklyBudget && weeklySpent > profile.weeklyBudget && (
+                <Typography variant="body2" color="error" sx={{ mt: 1 }}>
+                  You are over your weekly budget!
+                </Typography>
               )}
 
-              <Typography variant="h5" sx={{ mt: 3 }}>
-                Favourite Recipes
-              </Typography>
-              {favRecipes.length === 0 ? (
-                <Typography>No favourite recipes yet.</Typography>
-              ) : (
-                favRecipes.map((r) => (
-                  <Box key={r.recipe_id} sx={{ marginBottom: 1 }}>
-                    <a
-                      href={'/Recipe/' + r.recipe_id}
-                      style={{ textDecoration: 'underline', cursor: 'pointer', color: 'blue' }}
-                    >
-                      {r.name}
-                    </a>
-                  </Box>
-                ))
-
+              {profile.weeklyBudget && weeklySpent > profile.weeklyBudget * 0.8 && weeklySpent <= profile.weeklyBudget && (
+                <Typography variant="body2" color="warning.main" sx={{ mt: 1 }}>
+                  You're nearing your weekly budget.
+                </Typography>
               )}
             </Box>
           </Grid>
-
         </Grid>
       </Box>
     </>

@@ -2,12 +2,14 @@ import React from "react";
 import ReactDOM from "react-dom";
 import "./index.css";
 import App from "./components/App";
-
+import { BudgetProvider } from "./components/Budget/BudgetContext"; 
 
 import * as serviceWorker from "./serviceWorker";
 
 ReactDOM.render(
-    <App />,
+  <BudgetProvider>
+    <App />
+  </BudgetProvider>,
   document.getElementById("root")
 );
 

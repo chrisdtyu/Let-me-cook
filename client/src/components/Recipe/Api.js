@@ -3,7 +3,8 @@ import fetch from 'node-fetch';
 const Api = {
     callApiGetRecipe: async (recipeId) => {
         try {
-            const response = await fetch(`/api/getRecipe?id=${recipeId}`);
+            const firebaseUid = localStorage.getItem('firebase_uid');
+            const response = await fetch(`/api/getRecipe?id=${recipeId}&uid=${firebaseUid}`);
             const body = await response.json();
             if (response.status !== 200) throw Error(body.message);
             return body;
@@ -12,15 +13,12 @@ const Api = {
         }
     },
 
-    callApiGetRecipeIngredients: async (recipeId, budgetMode) => {
+    callApiGetRecipeIngredients: async (recipeId) => {
         try {
             const response = await fetch(`/api/getRecipeIngredients?id=${recipeId}`);
             const body = await response.json();
             if (response.status !== 200) throw Error(body.message);
-            return body.map(ing => ({
-                ...ing,
-                price: ing.price !== null ? parseFloat(ing.price) : null
-            }));
+            return body;
         } catch (err) {
             console.error("Error fetching ingredients:", err);
             return [];
@@ -69,30 +67,69 @@ const Api = {
         }
     },
 
-callApiUploadRecipe: async (recipeData) => {
-    try {
-        const response = await fetch('/api/uploadRecipe', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(recipeData),
-        });
-        const textBody = await response.text();
-        let body;
+    callApiGetReviews: async (recipeId) => {
         try {
-            body = JSON.parse(textBody);
-        } catch (e) {
-            throw new Error('Failed to parse JSON response: ' + e.message);
+            const response = await fetch(`/api/getReviews?id=${recipeId}`);
+            const body = await response.json();
+            if (response.status !== 200) throw Error(body.message);
+            return body;
+        } catch (err) {
+            console.error("Error fetching reviews:", err);
         }
+    },
 
-        if (response.status !== 200) throw new Error(body.message);
-        return body;
-    } catch (err) {
-        console.error("Error uploading recipe:", err);
+    callApiUploadRecipe: async (recipeData) => {
+        try {
+            const response = await fetch('/api/uploadRecipe', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(recipeData),
+            });
+            const textBody = await response.text();
+            let body;
+            try {
+                body = JSON.parse(textBody);
+            } catch (e) {
+                throw new Error('Failed to parse JSON response: ' + e.message);
+            }
+
+            if (response.status !== 200) throw new Error(body.message);
+            return body;
+        } catch (err) {
+            console.error("Error uploading recipe:", err);
+        }
+    },
+
+    callApiEditRecipe: async (payload) => {
+        try {
+            const response = await fetch('/api/editRecipe', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            const textBody = await response.text();
+            let body;
+            try {
+                body = JSON.parse(textBody);
+            } catch (e) {
+                console.error('Failed to parse JSON response:', textBody);
+                throw new Error('Invalid JSON from server');
+            }
+
+            if (!response.ok) {
+                console.error('Edit failed:', body);
+                throw new Error(body.error || 'Error editing recipe');
+            }
+
+            return body;
+        } catch (error) {
+            console.error('API callApiEditRecipe error:', error);
+            return { error: error.message || 'Unknown error' };
+        }
     }
-},
-
 };
 
 export default Api;

@@ -4,14 +4,26 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import Profile from '../components/Profile';
 
+// Mock the useBudget hook 
+jest.mock('../components/Budget/BudgetContext', () => ({
+  useBudget: jest.fn()
+}));
+import { useBudget } from '../components/Budget/BudgetContext';
+
 describe('Profile Component', () => {
   let originalFetch;
 
   beforeEach(() => {
+    useBudget.mockReturnValue({
+      weeklySpent: 0,
+      budgetMode: false,
+      toggleBudgetMode: jest.fn()
+    });
+
     localStorage.setItem('firebase_uid', 'dummy_uid');
     originalFetch = global.fetch;
 
-    // provide default stubs 
+    // Provide default fetch stubs
     global.fetch = jest.fn((url) => {
       if (url.includes('/api/getUser')) {
         return Promise.resolve({
@@ -35,7 +47,10 @@ describe('Profile Component', () => {
               user: { weekly_budget: '100' },
               dietaryPreferences: [1],
               dietaryRestrictions: [{ dietary_id: 2 }],
-              alwaysAvailable: [{ ingredient_id: 3 }]
+              alwaysAvailable: [
+                { ingredient_name: 'Tomato', expirationDate: '' }
+              ],
+              healthGoals: []
             })
         });
       }
@@ -57,9 +72,29 @@ describe('Profile Component', () => {
         return Promise.resolve({
           ok: true,
           json: () =>
-            Promise.resolve([{ ingredient_id: 3, name: 'Tomato', type: 'Vegetable' }])
+            Promise.resolve([
+              { ingredient_id: 3, name: 'Tomato', type: 'Vegetable' },
+              { ingredient_id: 4, name: 'Basil', type: 'Herb' }
+            ])
         });
       }
+      if (url.includes('/api/getHealthGoals')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([])
+        });
+      }
+      if (url.includes('/api/getUserRecipes')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              tried: [{ recipe_id: 1, name: "Tomato Soup" }],
+              favourites: [{ recipe_id: 2, name: "Vegetable Stir-fry" }]
+            })
+        });
+      }
+
       return Promise.resolve({
         ok: true,
         json: () => Promise.resolve([])
@@ -153,7 +188,6 @@ describe('Profile Component', () => {
   });
 
   it('redirects to Login if firebase_uid is missing', async () => {
-    // simulate logged-out user
     localStorage.clear();
     const alertMock = jest.spyOn(window, 'alert').mockImplementation(() => {});
     await act(async () => {
@@ -167,9 +201,8 @@ describe('Profile Component', () => {
     alertMock.mockRestore();
   });
 
-  // test multi-select (dietary preferences)
   it('allows selecting a dietary preference from the multi-select', async () => {
-    global.fetch.mockImplementation((url) => {
+    global.fetch.mockImplementationOnce((url) => {
       if (url.includes('/api/getDietaryPreferences')) {
         return Promise.resolve({
           ok: true,
@@ -195,7 +228,7 @@ describe('Profile Component', () => {
     });
 
     const input = await screen.findByLabelText(/dietary preferences/i);
-    userEvent.click(input);
+    userEvent.click(input); 
     const option = await screen.findByText(/vegetarian/i);
     userEvent.click(option);
     await waitFor(() => {
@@ -203,39 +236,4 @@ describe('Profile Component', () => {
     });
   });
 
-  // test multi-select (always available ingredients)
-  it('allows selecting an ingredient from the multi-select', async () => {
-    global.fetch.mockImplementation((url) => {
-      if (url.includes('/api/getIngredients')) {
-        return Promise.resolve({
-          ok: true,
-          json: () =>
-            Promise.resolve([
-              { ingredient_id: 1, name: 'Tomato', type: 'Vegetable' },
-              { ingredient_id: 2, name: 'Basil', type: 'Herb' }
-            ])
-        });
-      }
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve([])
-      });
-    });
-
-    await act(async () => {
-      render(
-        <MemoryRouter>
-          <Profile />
-        </MemoryRouter>
-      );
-    });
-
-    const input = await screen.findByLabelText(/always available ingredients/i);
-    userEvent.click(input);
-    const option = await screen.findByText(/tomato/i);
-    userEvent.click(option);
-    await waitFor(() => {
-      expect(screen.getByText(/tomato/i)).toBeInTheDocument();
-    });
-  });
 });

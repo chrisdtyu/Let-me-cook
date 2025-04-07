@@ -89,6 +89,15 @@ CREATE TABLE `reviews` (
   CONSTRAINT `user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
 );
 
+CREATE TABLE `notes` (
+  `recipe_id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `note` varchar(400) DEFAULT NULL,
+  PRIMARY KEY (`recipe_id`, `user_id`),
+  CONSTRAINT FOREIGN KEY (`recipe_id`) REFERENCES `recipes` (`recipe_id`),
+  CONSTRAINT FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
+);
+
 /*insert data script:*/
 INSERT INTO `alhogiu`.`users`
 (`first_name`,`last_name`,`email`,`password`)
@@ -177,3 +186,6 @@ CREATE TABLE user_favourites (
   FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
   FOREIGN KEY (recipe_id) REFERENCES recipes(recipe_id) ON DELETE CASCADE
 );
+
+ALTER TABLE user_ingredients
+ADD COLUMN expiration_date DATE NULL;

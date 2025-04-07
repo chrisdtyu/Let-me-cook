@@ -9,12 +9,14 @@ import Grid from '@mui/material/Grid';
 import Button from '@mui/material/Button';
 import { styled } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
+import Snackbar from '@mui/material/Snackbar';
+import MuiAlert from '@mui/material/Alert';
 
 const MainGridContainer = styled(Grid)(({ theme }) => ({
   margin: theme.spacing(4),
 }));
 
-const Review = ({ recipeId, reviewSubmitted }) => {
+const ReviewForm = ({ recipeId, reviewSubmitted }) => {
   const [enteredTitle, setEnteredTitle] = React.useState('');
   const [enteredReview, setEnteredReview] = React.useState('');
   const [selectedRating, setSelectedRating] = React.useState(0);
@@ -60,6 +62,8 @@ const Review = ({ recipeId, reviewSubmitted }) => {
   }, [navigate]);
 
   const handleSubmit = (event) => {
+    event.preventDefault(); // Prevent the default form submission
+
     console.log("Entered title:", enteredTitle);
     console.log("Entered review:", enteredReview);
     console.log("Selected rating:", selectedRating);
@@ -100,10 +104,10 @@ const Review = ({ recipeId, reviewSubmitted }) => {
       Api.callApiAddReview(reviewData)
         .then((res) => {
           console.log('Review submitted:', res.body);
-          setSubmitSuccess(true);
+          setSubmitSuccess(true); // Handle success state, you may want to display a success message
           setTimeout(() => {
-            reviewSubmitted();
-          }, 1000);
+            reviewSubmitted();  // Trigger re-fetch of the reviews list
+          }, 1000); // Ensure the review is successfully processed before re-fetching
         })
         .catch((error) => {
           console.error('Error submitting review:', error);
@@ -142,17 +146,20 @@ const Review = ({ recipeId, reviewSubmitted }) => {
           </Button>
         </Grid>
 
-        {submitSuccess && (
-          <Grid item xs={12}>
-            <Typography id="confirmation-message" variant="h6" color="#66bb6a" paddingTop={2}>
-              Your review has been received!!
-            </Typography>
-          </Grid>
-        )}
+        <Snackbar
+          open={submitSuccess}
+          autoHideDuration={3000}
+          onClose={() => setSubmitSuccess(false)}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        >
+          <MuiAlert onClose={() => setSubmitSuccess(false)} severity="success" sx={{ width: '100%' }}>
+            Your review has been received!
+          </MuiAlert>
+        </Snackbar>
       </Grid>
       <Grid item xs />
     </MainGridContainer>
   );
 };
 
-export default Review;
+export default ReviewForm;

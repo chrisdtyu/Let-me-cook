@@ -6,6 +6,9 @@ import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import { styled } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
+import Box from '@mui/material/Box';
+import Snackbar from '@mui/material/Snackbar';
+import MuiAlert from '@mui/material/Alert';
 
 const MainGridContainer = styled(Grid)(({ theme }) => ({
   margin: theme.spacing(4),
@@ -93,45 +96,43 @@ const Note = ({ recipeId, noteSubmitted }) => {
   };
 
   return (
-    <MainGridContainer
-      container
-      spacing={1}
-      style={{ maxWidth: '100%', margin: '0 auto', padding: '2rem' }}
-      direction="row"
-      justifyContent="center"
-      alignItems="center"
-    >
-      <Grid item xs />
-      <Grid item style={{ width: 400 }}>
-        <Typography variant="h5" gutterBottom component="div">
-          Leave a Note:
-        </Typography>
+    <Grid item xs={12} md={12} sx={{ mt: 4 }}>
+      <Box sx={{ p: 3, borderRadius: 4, boxShadow: 3, width: '100%', maxWidth: '600px', ml: 2 }}>
         <TextField
           id="note-body"
           value={enteredNote}
           label="Note"
-          style={{ width: 400 }}
+          fullWidth
           multiline
-          rows={4}
+          rows={8}
           onChange={(e) => setEnteredNote(e.target.value)}
           inputProps={{ maxLength: 200 }}
+          sx={{ mb: 2, height: '100%', width: '100%' }}
         />
-        <Grid item xs={12}>
-          <Button id="submit-button" variant="contained" onClick={handleSubmit}>
-            <b>Save Note</b>
-          </Button>
-        </Grid>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-center' }}>
+            <Button
+              id="submit-button"
+              variant="contained"
+              onClick={handleSubmit}
+              sx={{ borderRadius: 10, mt: 2 }}
+            >
+              <b>Save Note</b>
+            </Button>
+          </Box>
+      </Box>
 
-        {submitSuccess && (
-          <Grid item xs={12}>
-            <Typography id="confirmation-message" variant="h6" color="#66bb6a" paddingTop={2}>
-              Your note has been saved!!
-            </Typography>
-          </Grid>
-        )}
-      </Grid>
-      <Grid item xs />
-    </MainGridContainer>
+
+      <Snackbar
+        open={submitSuccess}
+        autoHideDuration={3000}
+        onClose={() => setSubmitSuccess(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <MuiAlert onClose={() => setSubmitSuccess(false)} severity="success" sx={{ width: '100%' }}>
+          Your note has been saved!
+        </MuiAlert>
+      </Snackbar>
+    </Grid>
   );
 };
 

@@ -13,7 +13,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-
 const port = process.env.PORT || 5000;
 
 app.use(cors({
@@ -25,7 +24,7 @@ app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, "client/build")));
 
-// ============ MySQL Connection ============
+// MySQL Connection
 const connection = mysql.createConnection(config);
 connection.connect(err => {
     if (err) {
@@ -34,7 +33,6 @@ connection.connect(err => {
     }
     console.log("Connected to MySQL database");
 });
-
 
 // create user
 app.post('/api/createUser', async (req, res) => {
@@ -59,7 +57,6 @@ app.post('/api/createUser', async (req, res) => {
         res.status(500).send({ express: "Error processing request" });
     }
 });
-
 
 // get user
 app.post('/api/getUser', (req, res) => {
@@ -90,6 +87,64 @@ app.post('/api/getUser', (req, res) => {
     });
 });
 
+app.post('/api/getUserSearchProfile', (req, res) => {
+    const { firebase_uid } = req.body;
+
+    if (!firebase_uid) {
+        return res.status(400).json({ error: "Missing firebase_uid" });
+    }
+
+    const getUserIdSql = `SELECT user_id FROM users WHERE firebase_uid = ?`;
+
+    connection.query(getUserIdSql, [firebase_uid], (err, results) => {
+        if (err) {
+            console.error("Error fetching user ID:", err);
+            return res.status(500).json({ error: "Database error" });
+        }
+
+        if (!results.length) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        const userId = results[0].user_id;
+
+        const alwaysAvailableSql = `
+            SELECT i.name
+            FROM user_ingredients ui
+            JOIN ingredients i ON ui.ingredient_id = i.ingredient_id
+            WHERE ui.user_id = ?
+        `;
+
+        const restrictionsSql = `
+            SELECT i.name
+            FROM user_restrictions ur
+            JOIN ingredients i ON ur.dietary_id = i.ingredient_id
+            WHERE ur.user_id = ?
+        `;
+
+        connection.query(alwaysAvailableSql, [userId], (err1, alwaysRows) => {
+            if (err1) {
+                console.error("Error fetching always available ingredients:", err1);
+                return res.status(500).json({ error: "Database error" });
+            }
+
+            connection.query(restrictionsSql, [userId], (err2, restrictRows) => {
+                if (err2) {
+                    console.error("Error fetching dietary restrictions:", err2);
+                    return res.status(500).json({ error: "Database error" });
+                }
+
+                const alwaysAvailable = alwaysRows.map(row => row.name).filter(Boolean);
+                const dietaryRestrictions = restrictRows.map(row => row.name).filter(Boolean);
+
+                return res.json({
+                    alwaysAvailable,
+                    dietaryRestrictions
+                });
+            });
+        });
+    });
+});
 
 // get user profile
 app.post('/api/getUserProfile', (req, res) => {
@@ -116,8 +171,14 @@ app.post('/api/getUserProfile', (req, res) => {
 
         const prefsSql = `SELECT preference_id FROM user_preferences WHERE user_id = ?`;
         const restrictSql = `SELECT dietary_id FROM user_restrictions WHERE user_id = ?`;
-        const ingSql = `SELECT ingredient_id FROM user_ingredients WHERE user_id = ?`;
-        const goalsSql = `SELECT goal_id FROM user_goals WHERE user_id = ?`; // for healthGoals bridging
+
+        const ingSql = `
+          SELECT i.name, ui.expiration_date
+          FROM user_ingredients ui
+          JOIN ingredients i ON ui.ingredient_id = i.ingredient_id
+          WHERE ui.user_id = ?
+        `;
+        const goalsSql = `SELECT goal_id FROM user_goals WHERE user_id = ?`;
 
         connection.query(prefsSql, [userId], (errPref, prefRows) => {
             if (errPref) {
@@ -142,13 +203,22 @@ app.post('/api/getUserProfile', (req, res) => {
 
                         const dietaryPreferences = prefRows.map(row => row.preference_id);
                         const dietaryRestrictions = restrictRows.map(row => ({ dietary_id: row.dietary_id }));
-                        const alwaysAvailable = ingRows.map(row => ({ ingredient_id: row.ingredient_id }));
+                        const alwaysAvailable = ingRows.map(row => {
+                            let dateStr = '';
+                            if (row.expiration_date) {
+                                const d = new Date(row.expiration_date);
+                                dateStr = d.toISOString().split('T')[0]; 
+                            }
+                        
+                            return {
+                                ingredient_name: row.name,
+                                expirationDate: dateStr
+                            };
+                        });
                         const healthGoals = goalRows.map(row => row.goal_id);
 
                         return res.json({
-                            user: {
-                                ...user
-                            },
+                            user: { ...user },
                             dietaryPreferences,
                             dietaryRestrictions,
                             alwaysAvailable,
@@ -160,7 +230,6 @@ app.post('/api/getUserProfile', (req, res) => {
         });
     });
 });
-
 
 // save profile
 app.post('/api/saveProfile', (req, res) => {
@@ -244,22 +313,54 @@ app.post('/api/saveProfile', (req, res) => {
                 }
             });
 
-            // user_ingredients
-            const deleteIng = `DELETE FROM user_ingredients WHERE user_id = ?`;
-            connection.query(deleteIng, [userId], (errDel3) => {
+            // remove old bridging
+            const deleteIngSql = `DELETE FROM user_ingredients WHERE user_id = ?`;
+            connection.query(deleteIngSql, [userId], (errDel3) => {
                 if (errDel3) {
                     console.error("Error deleting old user_ingredients:", errDel3);
-                } else if (alwaysAvailable && alwaysAvailable.length > 0) {
-                    const vals = alwaysAvailable.map(i => [userId, i.ingredient_id]);
-                    const insertIngSql = `
-                      INSERT INTO user_ingredients (user_id, ingredient_id)
-                      VALUES ?
-                    `;
-                    connection.query(insertIngSql, [vals], (errIng) => {
-                        if (errIng) {
-                            console.error("Error inserting user_ingredients:", errIng);
+                } else {
+                    if (!alwaysAvailable || alwaysAvailable.length === 0) {
+                    } else {
+                        const newRows = []; 
+                        let itemsProcessed = 0;
+
+                        alwaysAvailable.forEach((row) => {
+                            if (!row.ingredient_name) {
+                                itemsProcessed++;
+                                if (itemsProcessed === alwaysAvailable.length) insertBridgingRows();
+                                return;
+                            }
+                            const findIngSql = `SELECT ingredient_id FROM ingredients WHERE name = ? LIMIT 1`;
+                            connection.query(findIngSql, [row.ingredient_name], (errFind, resFind) => {
+                                if (errFind) {
+                                    console.error("Error finding ingredient_id:", errFind);
+                                } else if (resFind && resFind.length > 0) {
+                                    newRows.push([
+                                        userId,
+                                        resFind[0].ingredient_id,
+                                        row.expirationDate || null
+                                    ]);
+                                }
+                                itemsProcessed++;
+                                if (itemsProcessed === alwaysAvailable.length) {
+                                    insertBridgingRows();
+                                }
+                            });
+                        });
+
+                        function insertBridgingRows() {
+                            if (!newRows.length) return;
+                            const sqlInsert = `
+                              INSERT INTO user_ingredients (user_id, ingredient_id, expiration_date)
+                              VALUES ?
+                            `;
+                            connection.query(sqlInsert, [newRows], (errInsert) => {
+                                if (errInsert) {
+                                    console.error("Error inserting user_ingredients:", errInsert);
+                                }
+                            });
                         }
-                    });
+                    }
                 }
             });
 
@@ -287,14 +388,13 @@ app.post('/api/saveProfile', (req, res) => {
     });
 });
 
-
 // mark/unmark as tried
 app.post('/api/markTried', (req, res) => {
     const { user_id, recipe_id } = req.body;
     if (!user_id || !recipe_id) {
         return res.status(400).json({ error: "Missing user_id or recipe_id" });
     }
-    const sql = `INSERT IGNORE INTO user_tried (user_id, recipe_id) VALUES (?, ?)`
+    const sql = `INSERT IGNORE INTO user_tried (user_id, recipe_id) VALUES (?, ?)`;
     connection.query(sql, [user_id, recipe_id], (err, results) => {
         if (err) {
             console.error("Error marking tried:", err);
@@ -319,14 +419,13 @@ app.post('/api/unmarkTried', (req, res) => {
     });
 });
 
-
 // mark/unmark as favourite
 app.post('/api/markFavourite', (req, res) => {
     const { user_id, recipe_id } = req.body;
     if (!user_id || !recipe_id) {
         return res.status(400).json({ error: "Missing user_id or recipe_id" });
     }
-    const sql = `INSERT IGNORE INTO user_favourites (user_id, recipe_id) VALUES (?, ?)`
+    const sql = `INSERT IGNORE INTO user_favourites (user_id, recipe_id) VALUES (?, ?)`;
     connection.query(sql, [user_id, recipe_id], (err, results) => {
         if (err) {
             console.error("Error marking favourite:", err);
@@ -350,7 +449,6 @@ app.post('/api/unmarkFavourite', (req, res) => {
         res.json({ message: "Recipe unmarked as favourite" });
     });
 });
-
 
 // get user tried/favourite recipes
 app.post('/api/getUserRecipes', (req, res) => {
@@ -388,76 +486,96 @@ app.post('/api/getUserRecipes', (req, res) => {
     });
 });
 
-
-// recommendRecipes 
-// /api/recommendRecipes 
+// recommendRecipes with dietary restrcitions
 app.post('/api/recommendRecipes', (req, res) => {
     let connection2 = mysql.createConnection(config);
-    let { ingredients, cuisines, categories, userId, budgetMode, maxTime } = req.body;
+    let {
+        ingredients,
+        cuisines,
+        categories,
+        userId,
+        budgetMode,
+        maxTime,
+        restrictedIngredients = []
+    } = req.body;
 
-    console.log("Incoming Request:", { ingredients, cuisines, categories, userId, budgetMode, maxTime });
+    console.log("Incoming Request:", {
+        ingredients,
+        cuisines,
+        categories,
+        userId,
+        budgetMode,
+        maxTime,
+        restrictedIngredients
+    });
 
     if (!Array.isArray(categories)) {
-        console.error('Categories is not an array:', categories);
         return res.status(400).json({ error: 'Categories should be an array' });
     }
-
     if (!ingredients || ingredients.length === 0) {
-        console.log("No ingredients provided!");
         return res.status(400).json({ error: 'Please provide available ingredients' });
     }
 
     let ingredients_placeholders = ingredients.map(() => '?').join(',');
     let cuisine_placeholders = cuisines.map(() => '?').join(',');
     let categories_placeholders = categories.map(() => '?').join(',');
+    let restricted_placeholders = restrictedIngredients.map(() => '?').join(',');
 
-    let where = '';
-    if (cuisine_placeholders.length > 0 && categories_placeholders.length > 0) {
-        where = `WHERE r.type in (${cuisine_placeholders}) AND r.category in (${categories_placeholders})`;
-    } else if (cuisine_placeholders.length > 0) {
-        where = `WHERE r.type in (${cuisine_placeholders})`;
-    } else if (categories_placeholders.length > 0) {
-        where = `WHERE r.category in (${categories_placeholders})`;
+    let whereClauses = [];
+    if (cuisine_placeholders.length > 0) {
+        whereClauses.push(`r.type IN (${cuisine_placeholders})`);
     }
-
+    if (categories_placeholders.length > 0) {
+        whereClauses.push(`r.category IN (${categories_placeholders})`);
+    }
     if (maxTime) {
-        where += where ? ` AND r.prep_time <= ?` : `WHERE r.prep_time <= ?`;
+        whereClauses.push(`r.prep_time <= ?`);
     }
+    if (budgetMode) {
+        whereClauses.push(`i.price IS NOT NULL`);
+    }
+    if (restricted_placeholders.length > 0) {
+        whereClauses.push(`
+            r.recipe_id NOT IN (
+                SELECT ri.recipe_id
+                FROM recipe_ingredients ri
+                JOIN ingredients i ON ri.ingredient_id = i.ingredient_id
+                WHERE i.name IN (${restricted_placeholders})
+            )
+        `);
+    }
+
+    let where = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
     let query = `
-        SELECT r.recipe_id, r.name, r.type, r.category, r.prep_time, r.instructions, 
-            GROUP_CONCAT(i.name) AS recipe_ingredients, 
+        SELECT r.recipe_id, r.name, r.type, r.category, r.prep_time, r.instructions, r.image,
+            GROUP_CONCAT(i.name) AS recipe_ingredients,
             GROUP_CONCAT(i.price) AS ingredient_prices,
             COUNT(ri.ingredient_id) AS total_ingredients,
-            SUM(CASE WHEN i.name NOT IN (${ingredients_placeholders}) THEN 1 ELSE 0 END) AS missing_ingredients
+            SUM(CASE WHEN i.name NOT IN (${ingredients_placeholders}) THEN 1 ELSE 0 END) AS missing_ingredients,
+            (SELECT AVG(review_score) FROM reviews re WHERE re.recipe_id = r.recipe_id) AS average_rating
         FROM recipes r
         JOIN recipe_ingredients ri ON r.recipe_id = ri.recipe_id
         JOIN ingredients i ON ri.ingredient_id = i.ingredient_id
         ${where}
-        ${budgetMode ? 'AND i.price IS NOT NULL' : ''}
         GROUP BY r.recipe_id
         ORDER BY missing_ingredients ASC, total_ingredients DESC
-        LIMIT 10
+        LIMIT 15
     `;
+
     let data = [...ingredients, ...cuisines, ...categories];
-    if (maxTime) {
-        data.push(maxTime);
-    }
+    if (maxTime) data.push(maxTime);
+    if (restrictedIngredients.length > 0) data.push(...restrictedIngredients);
+
     console.log("Executing SQL:", query);
     console.log("With values:", data);
 
     connection2.query(query, data, (err, recipes) => {
-        if (err) {
-            console.error('Error fetching recipes:', err);
-            return res.status(500).json({ error: 'Database query failed' });
-        }
+        if (err) return res.status(500).json({ error: 'Database query failed' });
+        if (recipes.length === 0) return res.json({ message: 'No suitable recipes found' });
 
-        if (recipes.length === 0) {
-            return res.json({ message: "No suitable recipes found" });
-        }
-
-        let recipeIDs = recipes.map(r => r.recipe_id);
-        let missingQuery = `
+        const recipeIDs = recipes.map(r => r.recipe_id);
+        const missingQuery = `
             SELECT ri.recipe_id, i.name AS missing_ingredient, s.substitute_name, s.cost
             FROM recipe_ingredients ri
             JOIN ingredients i ON ri.ingredient_id = i.ingredient_id
@@ -466,69 +584,212 @@ app.post('/api/recommendRecipes', (req, res) => {
             WHERE ri.recipe_id IN (${recipeIDs.map(() => '?').join(',')})
             AND i.name NOT IN (${ingredients_placeholders});
         `;
+
         connection2.query(missingQuery, [...recipeIDs, ...ingredients], (err2, missingIngredients) => {
-            if (err2) {
-                console.error('Error fetching missing ingredients:', err2);
-                return res.status(500).json({ error: 'Database query failed' });
-            }
+            if (err2) return res.status(500).json({ error: 'Database query failed' });
 
-            let recipeData = recipes.map(recipe => {
-                const ingredients = recipe.recipe_ingredients.split(',');
-                const prices = recipe.ingredient_prices.split(',').map(parseFloat);
-                const ingredientsWithPrices = ingredients.map((name, index) => ({
-                    name,
-                    price: prices[index] || null
-                }));
-                let missing = missingIngredients.filter(m => m.recipe_id === recipe.recipe_id);
-                return {
-                    ...recipe,
-                    ingredients: ingredientsWithPrices,
-                    missingIngredients: missing.map(m => ({
-                        name: m.missing_ingredient,
-                        suggestedSubstitute: budgetMode ? m.substitute_name : null,
-                        estimatedCost: budgetMode ? m.cost : null
-                    }))
-                };
+            const alwaysAvailableQuery = `SELECT ingredient_id FROM user_ingredients WHERE user_id = ?`;
+            connection2.query(alwaysAvailableQuery, [userId], (err3, availableRows) => {
+                if (err3) return res.status(500).json({ error: 'Database query failed' });
+                const availableIds = new Set(availableRows.map(r => r.ingredient_id));
+
+                const ingredientCostQuery = `
+                    SELECT ri.recipe_id, i.ingredient_id, i.price
+                    FROM recipe_ingredients ri
+                    JOIN ingredients i ON ri.ingredient_id = i.ingredient_id
+                    WHERE ri.recipe_id IN (${recipeIDs.map(() => '?').join(',')})
+                `;
+
+                connection2.query(ingredientCostQuery, recipeIDs, (err4, costRows) => {
+                    if (err4) return res.status(500).json({ error: 'Database query failed' });
+
+                    const costMap = {};
+                    costRows.forEach(row => {
+                        if (!availableIds.has(row.ingredient_id) && row.price !== null) {
+                            if (!costMap[row.recipe_id]) costMap[row.recipe_id] = 0;
+                            costMap[row.recipe_id] += parseFloat(row.price);
+                        }
+                    });
+
+                    let recipeData = recipes.map(recipe => {
+                        const allIngredients = recipe.recipe_ingredients.split(',');
+                        const prices = recipe.ingredient_prices.split(',').map(parseFloat);
+                        const ingredientsWithPrices = allIngredients.map((name, index) => ({
+                            name,
+                            price: prices[index] || null
+                        }));
+                        let missing = missingIngredients.filter(m => m.recipe_id === recipe.recipe_id);
+                        return {
+                            ...recipe,
+                            estimated_cost: parseFloat((costMap[recipe.recipe_id] || 0).toFixed(2)),
+                            ingredients: ingredientsWithPrices,
+                            missingIngredients: missing.map(m => ({
+                                name: m.missing_ingredient,
+                                suggestedSubstitute: budgetMode ? m.substitute_name : null,
+                                estimatedCost: budgetMode ? m.cost : null
+                            }))
+                        };
+                    });
+
+                    const goalsSql = `
+                        SELECT rg.recipe_id, hg.goal_name
+                        FROM recipe_goals rg
+                        JOIN health_goals hg ON rg.goal_id = hg.goal_id
+                        WHERE rg.recipe_id IN (${recipeIDs.map(() => '?').join(',')})
+                    `;
+
+                    connection2.query(goalsSql, recipeIDs, (errGoals, goalRows) => {
+                        if (errGoals) {
+                            recipeData.forEach(r => { r.goal = null; });
+                            connection2.end();
+                            return res.json(recipeData);
+                        }
+
+                        const goalMap = {};
+                        goalRows.forEach(row => {
+                            goalMap[row.recipe_id] = row.goal_name;
+                        });
+
+                        recipeData.forEach(r => {
+                            r.goal = goalMap[r.recipe_id] || null;
+                        });
+
+                        connection2.end();
+                        return res.json(recipeData);
+                    });
+                });
             });
-
-            res.json(recipeData);
-            connection2.end();
         });
     });
 });
 
-
-// getRecipe 
+// getRecipe
 app.get('/api/getRecipe', (req, res) => {
     const recipeId = req.query.id;
+    const firebase_uid = req.query.uid;
+  
     if (!recipeId) {
-        return res.status(400).json({ error: "Missing recipe ID" });
+      return res.status(400).json({ error: "Missing recipe ID" });
     }
-
-    let connection3 = mysql.createConnection(config);
-    let sql = `SELECT * FROM recipes WHERE recipe_id = ?`;
-    let data = [recipeId];
-
-    connection3.query(sql, data, (error, results, fields) => {
-        if (error) {
-            console.error("Database Error:", error);
-            return res.status(500).json({ error: "Database query failed" });
-        }
-        if(results && results.length > 0) {
-            res.json(results[0]);
+  
+    const connection3 = mysql.createConnection(config);
+    const sql = `SELECT * FROM recipes WHERE recipe_id = ?`;
+    const data = [recipeId];
+  
+    connection3.query(sql, data, (error, results) => {
+      if (error) {
+        console.error("Database Error:", error);
+        connection3.end();
+        return res.status(500).json({ error: "Database query failed" });
+      }
+  
+      if (!results || results.length === 0) {
+        connection3.end();
+        return res.status(404).json({ error: "Recipe not found" });
+      }
+  
+      const recipe = results[0];
+  
+      const goalsSql = `
+        SELECT hg.goal_name
+        FROM recipe_goals rg
+        JOIN health_goals hg ON rg.goal_id = hg.goal_id
+        WHERE rg.recipe_id = ?
+      `;
+  
+      connection3.query(goalsSql, [recipeId], (errGoals, goalRows) => {
+        if (errGoals) {
+          console.error("Error fetching recipe goals:", errGoals);
+          recipe.goals = [];
         } else {
-            return res.status(404).json({ error: "Data not found" });
+          recipe.goals = goalRows.map(row => row.goal_name);
         }
+
+        const recipeSql = `
+        SELECT 
+          r.recipe_id, r.name, r.category, r.type, r.instructions, r.image, r.video, r.prep_time,
+          i.ingredient_id AS main_ing_id, i.name AS main_ing_name, i.price AS main_ing_price,
+          ri.quantity, ri.quantity_type, ri.required,
+          s.ingredient_id AS sub_ing_id, s.name AS sub_ing_name
+        FROM recipes r
+        JOIN recipe_ingredients ri ON r.recipe_id = ri.recipe_id
+        JOIN ingredients i ON ri.ingredient_id = i.ingredient_id
+        LEFT JOIN ingredient_substitutes sub ON i.ingredient_id = sub.ingredient_id
+        LEFT JOIN ingredients s ON sub.substitute_id = s.ingredient_id
+        WHERE r.recipe_id = ?
+      `;
+
+      connection3.query(recipeSql, [recipeId], (err, rows) => {
+        if (err) {
+          console.error("Error fetching recipe with substitutes:", err);
+          connection3.end();
+          return res.status(500).json({ error: "Database query failed" });
+        }
+
+        if (!rows || rows.length === 0) {
+          connection3.end();
+          return res.status(404).json({ error: "Recipe not found" });
+        }
+
+        const recipeInfo = {
+          recipe_id: rows[0].recipe_id,
+          name: rows[0].name,
+          category: rows[0].category,
+          type: rows[0].type,
+          instructions: rows[0].instructions,
+          image: rows[0].image,
+          video: rows[0].video,
+          prep_time: rows[0].prep_time,
+          goals: recipe.goals || []
+        };
+
+        const ingMap = {};
+
+        rows.forEach(row => {
+          const mainId = row.main_ing_id;
+
+          if (!ingMap[mainId]) {
+            ingMap[mainId] = {
+              ingredient_id: mainId,
+              name: row.main_ing_name,
+              price: row.main_ing_price,
+              quantity: row.quantity,
+              quantity_type: row.quantity_type,
+              required: row.required,
+              substitutes: []
+            };
+          }
+
+          if (row.sub_ing_id) {
+            ingMap[mainId].substitutes.push({
+              ingredient_id: row.sub_ing_id,
+              name: row.sub_ing_name
+            });
+          }
+        });
+
+        const finalRecipe = {
+            ...recipeInfo,
+            ingredients: Object.values(ingMap)
+          };
+          const estimated_cost = Object.values(ingMap).reduce((total, ing) => {
+            return total + (ing.price ? parseFloat(ing.price) : 0);
+          }, 0);
+          
+          finalRecipe.estimated_cost = parseFloat(estimated_cost.toFixed(2));
+          
+          connection3.end();
+          return res.json(finalRecipe);
+      });
     });
-
-    connection3.end();
+  });
 });
-
+  
 // getRecipeIngredients
 app.get('/api/getRecipeIngredients', (req, res) => {
     let connection4 = mysql.createConnection(config);
     let recipeId = req.query.id;
-    let sql = `select i.ingredient_id, i.name, i.type, ri.quantity, ri.quantity_type, ri.required
+    let sql = `select i.ingredient_id, i.name, i.type, i.price, ri.quantity, ri.quantity_type, ri.required
         from recipe_ingredients ri
         inner join ingredients i 
             on ri.ingredient_id = i.ingredient_id
@@ -548,7 +809,6 @@ app.get('/api/getRecipeIngredients', (req, res) => {
     });
     connection4.end();
 });
-
 
 // get dietary preferences/restrictions
 app.get('/api/getDietaryPreferences', (req, res) => {
@@ -582,6 +842,33 @@ app.get('/api/getIngredients', (req, res) => {
     });
 });
 
+// get Food Type
+app.get('/api/getIngredientTypes', (req, res) => {
+    console.log("you are in get ingredient type API now")
+    const sql = "SELECT DISTINCT type FROM ingredients ORDER BY type";
+    connection.query(sql, (error, results) => {
+        if (error) {
+            return res.status(500).json({ error: "Database error" });
+        }
+        let response = results.map(row => row.type);
+        res.json(response);
+    });
+});
+
+app.get('/api/getFilteredIngredients', (req, res) => {
+    console.log("you are in FILTEREDING API now");
+    const selectedTypes = req.query.types;
+    const typesArray = selectedTypes ? selectedTypes.split(',') : [];
+    const sql = "SELECT ingredient_id, name, type, price FROM ingredients WHERE type IN (?);";
+    connection.query(sql, [typesArray], (error, results) => {
+        if (error) {
+            console.error("Database error", error);
+            return res.status(500).json({ error: "Database error" });
+        }
+        res.json(results);
+    });
+});
+
 app.get('/api/getCuisines', (req, res) => {
     const sql = "SELECT DISTINCT type FROM recipes ORDER BY type";
     connection.query(sql, (error, results) => {
@@ -604,6 +891,32 @@ app.get('/api/getCategories', (req, res) => {
     });
 });
 
+// get Food Type
+app.get('/api/getIngredientTypes', (req, res) => {
+    console.log("you are in get ingredient type API now")
+    const sql = "SELECT DISTINCT type FROM ingredients ORDER BY type";
+    connection.query(sql, (error, results) => {
+        if (error) {
+            return res.status(500).json({ error: "Database error" });
+        }
+        let response = results.map(row => row.type);
+        res.json(response);
+    });
+});
+
+app.get('/api/getFilteredIngredients', (req, res) => {
+    console.log("you are in FILTEREDING API now");
+    const selectedTypes = req.query.types;
+    const typesArray = selectedTypes ? selectedTypes.split(',') : [];
+    const sql = "SELECT ingredient_id, name, type, price FROM ingredients WHERE type IN (?);";
+    connection.query(sql, [typesArray], (error, results) => {
+        if (error) {
+            console.error("Database error", error);
+            return res.status(500).json({ error: "Database error" });
+        }
+        res.json(results);
+    });
+});
 
 // get health goals
 app.get('/api/getHealthGoals', (req, res) => {
@@ -616,7 +929,6 @@ app.get('/api/getHealthGoals', (req, res) => {
         res.json(results);
     });
 });
-
 
 // review APIs
 app.get('/api/getReviews', (req, res) => {
@@ -631,7 +943,8 @@ app.get('/api/getReviews', (req, res) => {
                (SELECT AVG(review_score) FROM reviews WHERE recipe_id = ?) AS average_rating
         FROM reviews r
         INNER JOIN users u ON r.user_id = u.user_id 
-        WHERE r.recipe_id = ?`;
+        WHERE r.recipe_id = ?
+    `;
 
     let data = [recipeId, recipeId];
 
@@ -645,7 +958,6 @@ app.get('/api/getReviews', (req, res) => {
 
     connection5.end();
 });
-
 
 app.post('/api/addReview', (req, res) => {
     let connection6 = mysql.createConnection(config);
@@ -673,7 +985,8 @@ app.post('/api/addReview', (req, res) => {
 app.post('/api/addNote', (req, res) => {
     let connection6 = mysql.createConnection(config);
     let noteData = req.body;
-    let sql = `INSERT INTO notes (user_id, recipe_id, note) VALUES (?, ?, ?);`;
+    let sql = `INSERT INTO notes (user_id, recipe_id, note) VALUES (?, ?, ?)
+    ON DUPLICATE KEY UPDATE note = VALUES(note);`;
 
     let data = [noteData.user_id, noteData.recipe_id, noteData.note];
 
@@ -762,55 +1075,109 @@ app.post('/api/uploadRecipe', (req, res) => {
 });
 
 app.put('/api/editRecipe', (req, res) => {
-    const { user_id, recipe_id, name, category, type, instructions, image, prep_time, allergens, ingredients } = req.body;
-    if (!user_id || !recipe_id || !name || !instructions || !prep_time || !ingredients || ingredients.length === 0) {
+    const {
+        user_id,
+        recipe_id,
+        name,
+        category,
+        type,
+        instructions,
+        image,
+        video,
+        prep_time,
+        ingredients
+    } = req.body;
+
+    // Validate required fields
+    if (!user_id || !recipe_id || !name || !instructions || !prep_time || !Array.isArray(ingredients) || ingredients.length === 0) {
         return res.status(400).json({ error: "Missing required fields" });
     }
-    let connectionEdit = mysql.createConnection(config);
-    // Verify that the recipe belongs to the user
-    let verifySql = "SELECT * FROM recipes WHERE recipe_id = ? AND user_id = ?";
+
+    const connectionEdit = mysql.createConnection(config);
+
+    // Verify that the recipe exists and belongs to the user
+    const verifySql = "SELECT * FROM recipes WHERE recipe_id = ? AND user_id = ?";
     connectionEdit.query(verifySql, [recipe_id, user_id], (err, results) => {
         if (err) {
             connectionEdit.end();
-            return res.status(500).json({ error: "Database error" });
+            return res.status(500).json({ error: "Database error during verification" });
         }
-        if (!results || results.length === 0) {
+
+        if (results.length === 0) {
             connectionEdit.end();
-            return res.status(403).json({ error: "Unauthorized" });
+            return res.status(403).json({ error: "Unauthorized or recipe not found" });
         }
-        const allergensVal = allergens ? JSON.stringify(allergens) : null;
-        let updateSql = `
-          UPDATE recipes 
-          SET name = ?, category = ?, type = ?, instructions = ?, image = ?, prep_time = ?, allergens = ?
-          WHERE recipe_id = ?
+
+        // Build the update query dynamically based on provided fields
+        let updateFields = [];
+        let updateValues = [];
+
+        if (name) {
+            updateFields.push("name = ?");
+            updateValues.push(name);
+        }
+        if (category) {
+            updateFields.push("category = ?");
+            updateValues.push(category);
+        }
+        if (type) {
+            updateFields.push("type = ?");
+            updateValues.push(type);
+        }
+        if (instructions) {
+            updateFields.push("instructions = ?");
+            updateValues.push(instructions);
+        }
+        if (image) {
+            updateFields.push("image = ?");
+            updateValues.push(image);
+        }
+        if (video) {
+            updateFields.push("video = ?");
+            updateValues.push(video);
+        }
+        if (prep_time) {
+            updateFields.push("prep_time = ?");
+            updateValues.push(prep_time);
+        }
+
+        updateValues.push(recipe_id);
+
+        const updateSql = `
+            UPDATE recipes 
+            SET ${updateFields.join(', ')}
+            WHERE recipe_id = ?
         `;
-        let updateData = [name, category || null, type || null, instructions, image || null, prep_time, allergensVal, recipe_id];
-        connectionEdit.query(updateSql, updateData, (err2) => {
+
+        connectionEdit.query(updateSql, updateValues, (err2) => {
             if (err2) {
                 connectionEdit.end();
                 return res.status(500).json({ error: "Database error updating recipe" });
             }
-            // Delete old recipe ingredients
-            let deleteIngSql = "DELETE FROM recipe_ingredients WHERE recipe_id = ?";
+
+            // Delete existing ingredients for the recipe
+            const deleteIngSql = "DELETE FROM recipe_ingredients WHERE recipe_id = ?";
             connectionEdit.query(deleteIngSql, [recipe_id], (err3) => {
                 if (err3) {
                     connectionEdit.end();
                     return res.status(500).json({ error: "Database error deleting old ingredients" });
                 }
-                // Insert new recipe ingredients
-                let values = ingredients.map(ing => [
+
+                // Insert new ingredients
+                const insertIngSql = `
+                    INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, quantity_type, required)
+                    VALUES ?
+                `;
+
+                const ingredientValues = ingredients.map(ing => [
                     recipe_id,
                     ing.ingredient_id,
                     ing.quantity,
                     ing.quantity_type || null,
-                    ing.required,
-                    ing.estimated_cost || null
+                    ing.required
                 ]);
-                let insertIngSql = `
-                  INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, quantity_type, required, estimated_cost)
-                  VALUES ?
-                `;
-                connectionEdit.query(insertIngSql, [values], (err4) => {
+
+                connectionEdit.query(insertIngSql, [ingredientValues], (err4) => {
                     connectionEdit.end();
                     if (err4) {
                         return res.status(500).json({ error: "Database error inserting new ingredients" });
@@ -821,46 +1188,7 @@ app.put('/api/editRecipe', (req, res) => {
         });
     });
 });
-
-//Api to Delete Recipes
-app.delete('/api/deleteRecipe', (req, res) => {
-    const { user_id, recipe_id } = req.body;
-    if (!user_id || !recipe_id) {
-        return res.status(400).json({ error: "Missing user_id or recipe_id" });
-    }
-    let connectionDelete = mysql.createConnection(config);
-    // Verify that the recipe belongs to the user
-    let verifySql = "SELECT * FROM recipes WHERE recipe_id = ? AND user_id = ?";
-    connectionDelete.query(verifySql, [recipe_id, user_id], (err, results) => {
-        if (err) {
-            connectionDelete.end();
-            return res.status(500).json({ error: "Database error" });
-        }
-        if (!results || results.length === 0) {
-            connectionDelete.end();
-            return res.status(403).json({ error: "Unauthorized" });
-        }
-        // Delete associated recipe ingredients first
-        let deleteIngSql = "DELETE FROM recipe_ingredients WHERE recipe_id = ?";
-        connectionDelete.query(deleteIngSql, [recipe_id], (err2) => {
-            if (err2) {
-                connectionDelete.end();
-                return res.status(500).json({ error: "Database error deleting recipe ingredients" });
-            }
-            // Delete the recipe itself
-            let deleteRecipeSql = "DELETE FROM recipes WHERE recipe_id = ?";
-            connectionDelete.query(deleteRecipeSql, [recipe_id], (err3) => {
-                connectionDelete.end();
-                if (err3) {
-                    return res.status(500).json({ error: "Database error deleting recipe" });
-                }
-                res.json({ message: "Recipe deleted successfully" });
-            });
-        });
-    });
-});
-
-
+  
 
 // Get all recipes uploaded by the user
 app.post('/api/getMyRecipes', (req, res) => {
@@ -880,7 +1208,6 @@ app.post('/api/getMyRecipes', (req, res) => {
     });
 });
 
-
-
-
 app.listen(port, () => console.log(`Listening on port ${port}`));
+
+// server.js is completed

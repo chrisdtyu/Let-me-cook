@@ -9,11 +9,21 @@ import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
+import Button from '@mui/material/Button';
 import Api from './Api';
 import LetmecookAppBar from '../AppBar';
-import ReviewList from '../ReviewList';
-import Review from '../Review';
+import ReviewList from '../ReviewList/ReviewList';
+import Review from '../ReviewForm';
 import Note from '../Notes/Notes';
+import PriceDisplay from '../Budget/PriceDisplay';
+import { useBudget } from '../Budget/BudgetContext';
+import Snackbar from '@mui/material/Snackbar';
+import MuiAlert from '@mui/material/Alert';
+import Collapse from '@mui/material/Collapse';
+import IconButton from '@mui/material/IconButton';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+
 
 const MainGridContainer = styled(Grid)(({ theme }) => ({
   margin: theme.spacing(4),
@@ -38,13 +48,36 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
   const [sliderMax, setSliderMax] = useState(5);
   const [userId, setUserId] = useState(null);
   const [userData, setUserData] = useState(null);
-
-  // Note submission state
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const { budgetMode, weeklySpent, addedRecipes, addMealCost, toggleBudgetMode } = useBudget();
   const [noteSubmittedFlag, setNoteSubmittedFlag] = useState(false);
+  const [reviews, setReviews] = useState([]);
+  const [averageRating, setAverageRating] = React.useState(null);
+  const [showAllSteps, setShowAllSteps] = useState(false);
+  const [showAllReviews, setShowAllReviews] = useState(false);
 
   useEffect(() => {
     getRecipe(id);
+    console.log("INGREDIENTS WITH SUBS", ingredients);
   }, [id, getRecipe]);
+
+  useEffect(() => {
+    if (id) {
+      getReviews(id);
+    }
+  }, [id]);
+
+  const getReviews = React.useCallback(async (recipe_id) => {
+    try {
+      const response = await Api.callApiGetReviews(recipe_id);
+      const reviews = response.reviews || [];
+      setReviews(reviews);
+      setAverageRating(response.average_rating);
+    } catch (error) {
+      console.error("Error fetching review:", error);
+    }
+  }, []);
+
 
   useEffect(() => {
     if (ingredients.length > 0) {
@@ -78,8 +111,14 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
 
   const fetchUserData = async (userId) => {
     try {
-      const response = await Api.get(`/user/${userId}`);
-      setUserData(response.data);
+      const firebaseUid = localStorage.getItem('firebase_uid');
+      const response = await fetch('/api/getUserProfile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ firebase_uid: firebaseUid }),
+      });
+      const data = await response.json();
+      setUserData(data.user);
     } catch (error) {
       console.error("Error fetching user data:", error);
     }
@@ -94,6 +133,22 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
     setBaseIngredientId(event.target.value);
     setScaleFactor(1);
   };
+
+  const handleReviewSubmitted = (newReview) => {
+    // First, update the reviews state
+    setReviews((prevReviews) => [...prevReviews, newReview]);
+  
+    // Return a Promise that resolves once the state has been updated
+    return new Promise((resolve, reject) => {
+      // Use setTimeout to wait for the state to be updated before calling getReviews
+      setTimeout(() => {
+        getReviews(id)  // Call getReviews after state update
+          .then(() => resolve())  // Resolve once getReviews is completed
+          .catch((error) => reject(error));  // Reject if there's an error
+      }, 0); // Small delay to allow React to complete the state update
+    });
+  };
+
   const handleNoteSubmitted = () => {
     setNoteSubmittedFlag(true);
     console.log('Note was successfully submitted');
@@ -102,137 +157,232 @@ const RecipeView = ({ getRecipe, recipe, ingredients }) => {
     }, 2000);
   };
 
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false);
+  };
+
   return (
     <>
       <LetmecookAppBar page={`Recipe: ${recipe ? recipe.name : ''}`} />
-      <MainGridContainer container direction="column" alignItems="center">
-        {/* Recipe Name */}
-        <Typography variant="h4" sx={{ textAlign: 'center' }}>
-          <b>{recipe.name}</b>
-        </Typography>
-        <Grid container spacing={2} alignItems="flex-start" justifyContent="center">
-          <Grid item xs={12} sm={4} sx={{ display: 'flex', justifyContent: 'center' }}>
-            <Box sx={{ textAlign: 'center' }}>
+      <MainGridContainer container direction="column">
+      <Grid container spacing={4}>
+
+        {/* LEFT COLUMN */}
+        <Grid item xs={12} md={5}>
+          {/* Image */}
+          {recipe.image && (
+            <Box sx={{ borderRadius: 4, overflow: 'hidden', boxShadow: 3, mb: 2 }}>
+              <img
+                src={recipe.image}
+                alt="Recipe"
+                style={{ width: '100%', height: 'auto', display: 'block' }}
+              />
             </Box>
-          </Grid>
-          <Grid item xs={12} sm={4} sx={{ display: 'flex', justifyContent: 'center' }}>
-            <ImageContainer>
-              {recipe.image && (
-                <img
-                  src={recipe.image}
-                  alt="Recipe"
-                  style={{ width: '100%', maxWidth: '400px', borderRadius: 8 }}
-                />
-              )}
-            </ImageContainer>
-          </Grid>
-          <Grid item xs={12} sm={4} sx={{ display: 'flex', justifyContent: 'center' }}>
-            <Note recipeId={id} noteSubmitted={handleNoteSubmitted} />
-          </Grid>
+          )}
+
+          {/* Budget Mode */}
+          <Button variant="contained" color="secondary" onClick={toggleBudgetMode} sx={{ borderRadius: 10, mr: 2 }}>
+            {budgetMode ? 'Disable Budget Mode' : 'Enable Budget Mode'}
+          </Button>
+
+          {budgetMode && (
+            <>
+              <Button
+                variant="contained"
+                color="primary"
+                sx={{ borderRadius: 10, mt: { xs: 2, sm: 0 } }}
+                onClick={() => {
+                  if (recipe.estimated_cost) {
+                    addMealCost(recipe.recipe_id, recipe.estimated_cost);
+                    setSnackbarOpen(true);
+                  }
+                }}
+              >
+                Add to This Week’s Meals
+              </Button>
+              <Typography variant="subtitle1" sx={{ mt: 2 }}>
+                <b>Estimated Cost:</b>{' '}
+                <span style={{ color: recipe.estimated_cost === 0 ? 'green' : 'black' }}>
+                  ${recipe.estimated_cost?.toFixed(2) || '0.00'}
+                </span>
+              </Typography>
+            </>
+          )}
+
+          {/* Video */}
+          {recipe.video && (
+            <Box sx={{ mb: 4, mt: 9 }}>
+              <Typography variant="h6"><b>Video:</b></Typography>
+              <iframe width="500" height="350" src={recipe.video} title="Recipe Video" allowFullScreen></iframe>
+            </Box>
+          )}
         </Grid>
-        <Typography variant="h6">
-          Category: {recipe.category} | Type: {recipe.type}
-        </Typography>
-        <Typography variant="h6">Time: {recipe.prep_time} mins</Typography>
-        <Typography variant="h5" sx={{ mt: 2 }}>
-          <b>Ingredients:</b>
-        </Typography>
-        <Typography variant="h10" sx={{ mt: 2 }}>
-          required = *
-        </Typography>
 
-        <ul style={{ marginTop: '40px' }}>
-          {ingredients.map((ing) => {
-            let displayQuantity = ing.quantity;
-            let isScaled = false;
-            if (ing.required === 1 && baseQuantity[ing.ingredient_id] && baseIngredientId) {
-              const baseScale = baseIngredientId === ing.ingredient_id ? sliderValue / baseQuantity[baseIngredientId] : scaleFactor;
-              displayQuantity = baseQuantity[ing.ingredient_id] * baseScale;
-              isScaled = true;
-            }
+        {/* RIGHT COLUMN */}
+        <Grid item xs={12} md={6}>
+          <Box sx={{ p: 3, borderRadius: 4, boxShadow: 3 }}>
+            {/* Details */}
+            <Typography variant="subtitle1" sx={{ mb: 2 }}>
+              <b>Category:</b> {recipe.category} |
+              <b> Type:</b> {recipe.type} |
+              <b> Target Goal:</b> {recipe.goals || 'N/A'} |
+              <b> Time:</b> {recipe.prep_time} mins | 
+              <b> Average Rating: </b>{averageRating ? `⭐ ${averageRating.toFixed(1)}` : "N/A"}
+            </Typography>
 
-            let formattedQuantity;
-            if (ing.quantity_type === null || ing.quantity_type === '') {
-              formattedQuantity = isScaled ? Math.round(displayQuantity) : Math.round(displayQuantity);
-            } else {
-              formattedQuantity = isScaled ? displayQuantity.toFixed(1) : Math.round(displayQuantity);
-            }
+            {/* Ingredients & substitutes */}
+            <Typography variant="h6" fontWeight="bold" sx={{ mt: 2 }}>
+              Ingredients <Typography variant="caption">(required **)</Typography>
+            </Typography>
 
-            return (
-              <li key={ing.ingredient_id}>
-                {formattedQuantity} {ing.quantity_type ? ing.quantity_type + ' ' : ''}{ing.name} {ing.required === 1 ? '*' : ''}
-              </li>
-            );
-          })}
-        </ul>
-
-        {/* Ingredient Scaling */}
-        <Box sx={{ mt: 2, width: 300 }}>
-          <Typography variant="h6">
-            <b>Scale Ingredients:</b>
-          </Typography>
-          <Slider
-            value={sliderValue}
-            onChange={handleScaleChange}
-            step={1}
-            marks
-            min={sliderMin}
-            max={sliderMax}
-            valueLabelDisplay="auto"
-          />
-        </Box>
-
-        <FormControl sx={{ mt: 2, mb: 2, width: 400 }}>
-          <InputLabel id="base-ingredient-label">Base Ingredient for Scaling</InputLabel>
-          <Select
-            labelId="base-ingredient-label"
-            value={baseIngredientId || ''}
-            onChange={handleBaseIngredientChange}
-            renderValue={(selected) => {
-              if (!selected) {
-                return <em>Select an ingredient</em>;
+            {recipe.ingredients?.map((ing) => {
+              let displayQuantity = ing.quantity;
+              if (ing.required === 1 && baseQuantity[ing.ingredient_id] && baseIngredientId) {
+                const baseScale = baseIngredientId === ing.ingredient_id
+                  ? sliderValue / baseQuantity[baseIngredientId]
+                  : scaleFactor;
+                displayQuantity = baseQuantity[ing.ingredient_id] * baseScale;
               }
-              const selectedIngredient = ingredients.find((ing) => ing.ingredient_id === selected);
-              return selectedIngredient ? selectedIngredient.name : 'Select an ingredient';
-            }}
+
+              const formattedQuantity = ing.quantity_type
+                ? displayQuantity.toFixed(1)
+                : Math.round(displayQuantity);
+              
+              const subList =
+                ing.substitutes && ing.substitutes.length > 0
+                  ? ing.substitutes.map((sub) => sub.name).join(', ')
+                  : '(No known substitutes)';
+
+              return (
+                <Box
+                  key={ing.ingredient_id}
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    gap: 2,
+                    my: 1,
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  {/* Ingredient name & price */}
+                  <Box sx={{ flex: '1' }}>
+                    <Typography variant="body1">
+                      {formattedQuantity} {ing.quantity_type} {ing.name} {ing.required === 1 ? '*' : ''}
+                    </Typography>
+                    <PriceDisplay
+                      price={ing.price}
+                      ingredientId={ing.ingredient_id}
+                      alwaysAvailable={userData?.alwaysAvailable?.map(item => item.ingredient_id)}
+                    />
+                  </Box>
+              
+                  {/* Substitutes */}
+                  <Box>
+                    <Typography variant="body2">
+                      {subList}
+                    </Typography>
+                  </Box>
+                </Box>
+              );                  
+            })}
+
+            {/* Scale */}
+            <Box sx={{ mt: 3, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+              <Typography variant="h6" sx={{ whiteSpace: 'nowrap' }}><b>Scale:</b></Typography>
+                <Box sx={{width: 250}}><Slider
+                    value={sliderValue}
+                    onChange={handleScaleChange}
+                    step={1}
+                    marks
+                    min={sliderMin}
+                    max={sliderMax}
+                    valueLabelDisplay="auto"
+                  />
+                </Box>
+              <FormControl sx={{ minWidth: 200 }}>
+                <InputLabel id="base-ingredient-label">Base Ingredient</InputLabel>
+                <Select
+                  labelId="base-ingredient-label"
+                  value={baseIngredientId || ''}
+                  onChange={handleBaseIngredientChange}
+                >
+                  {ingredients
+                    .filter((ing) => ing.required === 1)
+                    .map((ing) => (
+                      <MenuItem key={ing.ingredient_id} value={ing.ingredient_id}>
+                        {ing.name}
+                      </MenuItem>
+                    ))}
+                </Select>
+              </FormControl>
+            </Box>
+          </Box>
+
+          {/* Instructions */}
+          <Box
+            sx={{ p: 3, borderRadius: 4, boxShadow: 3, mt: 4 }}
           >
-            {ingredients
-              .filter((ing) => ing.required === 1)
-              .map((ing) => (
-                <MenuItem key={ing.ingredient_id} value={ing.ingredient_id}>
-                  {ing.name}
-                </MenuItem>
-              ))}
-          </Select>
-        </FormControl>
-        <Typography variant="h5" sx={{ mt: 2 }}>
-          <b>Instructions:</b>
-        </Typography>
-        <ul>
-          {recipe.instructions
-            ? recipe.instructions.split('.').map((step, index) => <li key={index}>{step.trim()}</li>)
-            : ''}
-        </ul>
-        {recipe.video && (
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="h6">
-              <b>Video:</b>
+            <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
+              Instructions
             </Typography>
-            <iframe width="560" height="315" src={recipe.video} title="Recipe Video" allowFullScreen></iframe>
+
+            <ol style={{ paddingLeft: '20px' }}>
+              {recipe.instructions
+                ?.split('.')
+                .filter((step) => step.trim() !== '')
+                .slice(0, 2)
+                .map((step, index) => (
+                  <li key={index} style={{ marginBottom: '8px' }}>
+                    {step.trim()}.
+                  </li>
+                ))}
+
+            {/* Remaining Instructions */}
+            <Collapse in={showAllSteps} timeout="auto" unmountOnExit>
+              <>
+                {recipe.instructions
+                  ?.split('.')
+                  .filter((step) => step.trim() !== '')
+                  .slice(2)
+                  .map((step, index) => (
+                    <li key={index + 2} style={{ marginBottom: '8px' }}>
+                      {step.trim()}.
+                    </li>
+                  ))}
+                </>
+            </Collapse>
+            </ol>
+
+            {/* Toggle Button */}
+            {recipe.instructions?.split('.').length > 2 && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                <IconButton onClick={() => setShowAllSteps(!showAllSteps)}>
+                  {showAllSteps ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                </IconButton>
+              </Box>
+            )}
           </Box>
-        )}
-        {userData && (
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="h6">
-              <b>User Information:</b>
-            </Typography>
-            <Typography variant="body1">Name: {userData.name}</Typography>
-            <Typography variant="body1">Email: {userData.email}</Typography>
-          </Box>
-        )}
-        {userId && <Review recipeId={id} reviewSubmitted={() => { }} userId={userId} />}
-        <ReviewList recipeId={id} />
+
+          {/* Reviews and notes */}
+          <Note recipeId={id} noteSubmitted={handleNoteSubmitted} />
+        </Grid>
+
+        <ReviewList recipeId={id} reviews={reviews} averageRating={averageRating} getReviews={getReviews} />
+      </Grid>
       </MainGridContainer>
+
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <MuiAlert onClose={handleSnackbarClose} severity="success" sx={{ width: '100%' }}>
+          Meal added to your weekly budget tracker!
+        </MuiAlert>
+      </Snackbar>
     </>
   );
 };

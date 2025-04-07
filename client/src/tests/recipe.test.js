@@ -1,30 +1,55 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import RecipeView from '../components/Recipe/RecipeView';
-import { MemoryRouter } from 'react-router-dom';  // Import MemoryRouter
-import '@testing-library/jest-dom'
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import '@testing-library/jest-dom';
 import React from 'react';
+import { BudgetContext } from '../components/Budget/BudgetContext';
 
-describe('RecipeLoading', () => {
-    it('loads recipe chosen on first load', () => {
-        const getRecipe = jest.fn().mockName('getRecipe');
-        const recipe= {};
+jest.mock('../components/Budget/BudgetContext', () => ({
+    useBudget: () => ({
+        budgetMode: false,
+        weeklySpent: 0,
+        addedRecipes: [],
+        addMealCost: jest.fn(),
+        toggleBudgetMode: jest.fn(),
+    }),
+}));
+
+describe('RecipeView component', () => {
+    it('calls getRecipe on first load with recipe ID from route params', () => {
+        const getRecipe = jest.fn();
+        const recipe = {};
         const ingredients = [];
         render(
-            <MemoryRouter>
-                <RecipeView getRecipe={getRecipe} recipe={recipe} ingredients={ingredients} />
+            <MemoryRouter initialEntries={['/recipes/123']}>
+                <Routes>
+                    <Route path="/recipes/:id" element={
+                        <RecipeView getRecipe={getRecipe} recipe={recipe} ingredients={ingredients} />
+                    } />
+                </Routes>
             </MemoryRouter>
         );
-        expect(getRecipe).toHaveBeenCalled();
+
+        expect(getRecipe).toHaveBeenCalledWith('123');
     });
-    it('uses recipe name', () => {
-        const getRecipe = jest.fn().mockName('getRecipe');
-        const recipe= {name: "test recipe"};
+
+    it('renders recipe name when provided', async () => {
+        const getRecipe = jest.fn();
+        const recipe = { name: 'test recipe' };
         const ingredients = [];
+
         render(
-            <MemoryRouter>
-                <RecipeView getRecipe={getRecipe} recipe={recipe} ingredients={ingredients} />
+            <MemoryRouter initialEntries={['/recipes/123']}>
+                <Routes>
+                    <Route path="/recipes/:id" element={
+                        <RecipeView getRecipe={getRecipe} recipe={recipe} ingredients={ingredients} />
+                    } />
+                </Routes>
             </MemoryRouter>
         );
-        expect(screen.getByText('test recipe')).toBeInTheDocument();
+
+        await waitFor(() => {
+            expect(screen.getByText(/test recipe/i)).toBeInTheDocument();
+        });
     });
 });
