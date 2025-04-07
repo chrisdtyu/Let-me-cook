@@ -769,12 +769,17 @@ app.get('/api/getRecipe', (req, res) => {
         });
 
         const finalRecipe = {
-          ...recipeInfo,
-          ingredients: Object.values(ingMap)
-        };
-
-        connection3.end();
-        return res.json(finalRecipe);
+            ...recipeInfo,
+            ingredients: Object.values(ingMap)
+          };
+          const estimated_cost = Object.values(ingMap).reduce((total, ing) => {
+            return total + (ing.price ? parseFloat(ing.price) : 0);
+          }, 0);
+          
+          finalRecipe.estimated_cost = parseFloat(estimated_cost.toFixed(2));
+          
+          connection3.end();
+          return res.json(finalRecipe);
       });
     });
   });
