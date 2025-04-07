@@ -11,24 +11,24 @@ const LetmecookAppBar = ({ page }) => {
   const navigate = useNavigate();
 
   return (
-    <AppBar position="static" sx={{ backgroundColor: "#B85425" }}> {/* Updated color */}
+    <AppBar position="static" sx={{ backgroundColor: "#8C3F39" }}> {/* Updated color */}
       <Toolbar>
         <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
           <b>{page}</b>
         </Typography>
-        <Button color="inherit" onClick={() => navigate('/')} id="nav-home" sx={{ '&:hover': { backgroundColor: '#551845' }, backgroundColor: page === 'Home' && '#002766', display: 'flex', alignItems: 'center' }}>
+        <Button color="inherit" onClick={() => navigate('/')} id="nav-home" sx={{ '&:hover': { backgroundColor: '#732F2A ' }, backgroundColor: page === 'Home' && '#A24F46', display: 'flex', alignItems: 'center' }}>
           <HomeIcon sx={{ mr: 1 }} /> Home
         </Button>
-        <Button color="inherit" onClick={() => navigate('/search')} id="nav-search" sx={{ '&:hover': { backgroundColor: '#551845' }, backgroundColor: page === 'Search' && '#002766', display: 'flex', alignItems: 'center' }}>
+        <Button color="inherit" onClick={() => navigate('/search')} id="nav-search" sx={{ '&:hover': { backgroundColor: '#732F2A ' }, backgroundColor: page === 'Search' && '#A24F46', display: 'flex', alignItems: 'center' }}>
           <SearchIcon sx={{ mr: 1 }} /> Search
         </Button>
-        <Button color="inherit" onClick={() => navigate('/profile')} id="nav-profile" sx={{ '&:hover': { backgroundColor: '#551845' }, backgroundColor: page === 'Profile' && '#002766', display: 'flex', alignItems: 'center' }}>
+        <Button color="inherit" onClick={() => navigate('/profile')} id="nav-profile" sx={{ '&:hover': { backgroundColor: '#732F2A ' }, backgroundColor: page === 'Profile' && '#A24F46', display: 'flex', alignItems: 'center' }}>
           <AccountCircle sx={{ mr: 1 }} /> Profile
         </Button>
-        <Button color="inherit" onClick={() => navigate('/my-recipes')} id="nav-my-recipes" sx={{ '&:hover': { backgroundColor: '#551845' }, backgroundColor: page === 'My Recipes' && '#002766', display: 'flex', alignItems: 'center' }}>
+        <Button color="inherit" onClick={() => navigate('/my-recipes')} id="nav-my-recipes" sx={{ '&:hover': { backgroundColor: '#732F2A ' }, backgroundColor: page === 'My Recipes' && '#A24F46', display: 'flex', alignItems: 'center' }}>
           <RestaurantMenu sx={{ mr: 1 }} /> My Recipes
         </Button>
-        <Button color="inherit" onClick={() => navigate('/login')} id="nav-login" sx={{ '&:hover': { backgroundColor: '#551845' }, backgroundColor: page === 'Login' && '#002766', display: 'flex', alignItems: 'center' }}>
+        <Button color="inherit" onClick={() => navigate('/login')} id="nav-login" sx={{ '&:hover': { backgroundColor: '#732F2A ' }, backgroundColor: page === 'Login' && '#A24F46', display: 'flex', alignItems: 'center' }}>
           <LoginIcon sx={{ mr: 1 }} /> Login
         </Button>
       </Toolbar>
