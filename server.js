@@ -113,8 +113,9 @@ app.post('/api/getUserProfile', (req, res) => {
         const prefsSql = `SELECT preference_id FROM user_preferences WHERE user_id = ?`;
         const restrictSql = `SELECT dietary_id FROM user_restrictions WHERE user_id = ?`;
 
+        // FETCH expiration_date as well
         const ingSql = `
-          SELECT i.name
+          SELECT i.name, ui.expiration_date
           FROM user_ingredients ui
           JOIN ingredients i ON ui.ingredient_id = i.ingredient_id
           WHERE ui.user_id = ?
@@ -144,8 +145,13 @@ app.post('/api/getUserProfile', (req, res) => {
 
                         const dietaryPreferences = prefRows.map(row => row.preference_id);
                         const dietaryRestrictions = restrictRows.map(row => ({ dietary_id: row.dietary_id }));
+
+                        // Include expirationDate in alwaysAvailable
                         const alwaysAvailable = ingRows.map(row => ({
-                            ingredient_name: row.name  
+                            ingredient_name: row.name,
+                            expirationDate: row.expiration_date
+                                ? row.expiration_date.toISOString().split('T')[0]
+                                : ''
                         }));
                         const healthGoals = goalRows.map(row => row.goal_id);
 
@@ -251,8 +257,9 @@ app.post('/api/saveProfile', (req, res) => {
                     console.error("Error deleting old user_ingredients:", errDel3);
                 } else {
                     if (!alwaysAvailable || alwaysAvailable.length === 0) {
+                        // no alwaysAvailable to add
                     } else {
-                        const newRows = []; 
+                        const newRows = [];
                         let itemsProcessed = 0;
 
                         alwaysAvailable.forEach((row) => {
@@ -267,7 +274,12 @@ app.post('/api/saveProfile', (req, res) => {
                                 if (errFind) {
                                     console.error("Error finding ingredient_id:", errFind);
                                 } else if (resFind && resFind.length > 0) {
-                                    newRows.push([userId, resFind[0].ingredient_id]);
+                                    // Insert expiration_date too
+                                    newRows.push([
+                                        userId,
+                                        resFind[0].ingredient_id,
+                                        row.expirationDate || null
+                                    ]);
                                 }
                                 itemsProcessed++;
                                 if (itemsProcessed === alwaysAvailable.length) {
@@ -278,8 +290,9 @@ app.post('/api/saveProfile', (req, res) => {
 
                         function insertBridgingRows() {
                             if (!newRows.length) return;
+                            // Include expiration_date in the columns
                             const sqlInsert = `
-                              INSERT INTO user_ingredients (user_id, ingredient_id)
+                              INSERT INTO user_ingredients (user_id, ingredient_id, expiration_date)
                               VALUES ?
                             `;
                             connection.query(sqlInsert, [newRows], (errInsert) => {
@@ -449,12 +462,12 @@ app.post('/api/recommendRecipes', (req, res) => {
     }
 
     let query = `
-        SELECT r.recipe_id, r.name, r.type, r.category, r.prep_time, r.instructions, r.image, 
-            GROUP_CONCAT(i.name) AS recipe_ingredients, 
-            GROUP_CONCAT(i.price) AS ingredient_prices,
-            COUNT(ri.ingredient_id) AS total_ingredients,
-            SUM(CASE WHEN i.name NOT IN (${ingredients_placeholders}) THEN 1 ELSE 0 END) AS missing_ingredients,
-            (SELECT AVG(review_score) FROM reviews re WHERE re.recipe_id = r.recipe_id) AS average_rating
+        SELECT r.recipe_id, r.name, r.type, r.category, r.prep_time, r.instructions, r.image,
+               GROUP_CONCAT(i.name) AS recipe_ingredients,
+               GROUP_CONCAT(i.price) AS ingredient_prices,
+               COUNT(ri.ingredient_id) AS total_ingredients,
+               SUM(CASE WHEN i.name NOT IN (${ingredients_placeholders}) THEN 1 ELSE 0 END) AS missing_ingredients,
+               (SELECT AVG(review_score) FROM reviews re WHERE re.recipe_id = r.recipe_id) AS average_rating
         FROM recipes r
         JOIN recipe_ingredients ri ON r.recipe_id = ri.recipe_id
         JOIN ingredients i ON ri.ingredient_id = i.ingredient_id
@@ -489,7 +502,7 @@ app.post('/api/recommendRecipes', (req, res) => {
             LEFT JOIN substitutes s ON i.ingredient_id = s.ingredient_id
             ${budgetMode ? 'AND s.cost IS NOT NULL' : ''}
             WHERE ri.recipe_id IN (${recipeIDs.map(() => '?').join(',')})
-            AND i.name NOT IN (${ingredients_placeholders});
+              AND i.name NOT IN (${ingredients_placeholders});
         `;
         connection2.query(missingQuery, [...recipeIDs, ...ingredients], (err2, missingIngredients) => {
             if (err2) {
@@ -498,28 +511,24 @@ app.post('/api/recommendRecipes', (req, res) => {
             }
 
             const alwaysAvailableQuery = `SELECT ingredient_id FROM user_ingredients WHERE user_id = ?`;
-
             connection2.query(alwaysAvailableQuery, [userId], (err3, availableRows) => {
                 if (err3) {
                     console.error('Error fetching always available:', err3);
                     return res.status(500).json({ error: 'Database query failed' });
                 }
-
                 const availableIds = new Set(availableRows.map(row => row.ingredient_id));
-                
+
                 const ingredientCostQuery = `
                     SELECT ri.recipe_id, i.ingredient_id, i.price
                     FROM recipe_ingredients ri
                     JOIN ingredients i ON ri.ingredient_id = i.ingredient_id
                     WHERE ri.recipe_id IN (${recipeIDs.map(() => '?').join(',')})
                 `;
-
                 connection2.query(ingredientCostQuery, recipeIDs, (err4, costRows) => {
                     if (err4) {
                         console.error('Error fetching ingredient prices:', err4);
                         return res.status(500).json({ error: 'Database query failed' });
                     }
-                    
                     const costMap = {};
                     costRows.forEach(row => {
                         if (!availableIds.has(row.ingredient_id) && row.price !== null) {
@@ -528,30 +537,55 @@ app.post('/api/recommendRecipes', (req, res) => {
                         }
                     });
 
-            let recipeData = recipes.map(recipe => {
-                const allIngredients = recipe.recipe_ingredients.split(',');
-                const prices = recipe.ingredient_prices.split(',').map(parseFloat);
-                const ingredientsWithPrices = allIngredients.map((name, index) => ({
-                    name,
-                    price: prices[index] || null
-                }));
-                let missing = missingIngredients.filter(m => m.recipe_id === recipe.recipe_id);
-                return {
-                    ...recipe,
-                    estimated_cost: parseFloat((costMap[recipe.recipe_id] || 0).toFixed(2)),
-                    ingredients: ingredientsWithPrices,
-                    missingIngredients: missing.map(m => ({
-                        name: m.missing_ingredient,
-                        suggestedSubstitute: budgetMode ? m.substitute_name : null,
-                        estimatedCost: budgetMode ? m.cost : null
-                    }))
-                };
-            });
+                    const goalsSql = `
+                        SELECT rg.recipe_id, hg.goal_name
+                        FROM recipe_goals rg
+                        JOIN health_goals hg ON rg.goal_id = hg.goal_id
+                        WHERE rg.recipe_id IN (${recipeIDs.map(() => '?').join(',')})
+                    `;
+                    connection2.query(goalsSql, recipeIDs, (errGoals, goalRows) => {
+                        if (errGoals) {
+                            console.error("Error fetching recipe goals in recommendRecipes:", errGoals);
+                        }
 
-            res.json(recipeData);
-            connection2.end();
+                        const goalMap = {};
+                        if (goalRows && goalRows.length > 0) {
+                            goalRows.forEach(row => {
+                                if (!goalMap[row.recipe_id]) {
+                                    goalMap[row.recipe_id] = [];
+                                }
+                                goalMap[row.recipe_id].push(row.goal_name);
+                            });
+                        }
+
+                        let recipeData = recipes.map(recipe => {
+                            const allIngredients = recipe.recipe_ingredients.split(',');
+                            const prices = recipe.ingredient_prices.split(',').map(parseFloat);
+                            const ingredientsWithPrices = allIngredients.map((name, index) => ({
+                                name,
+                                price: prices[index] || null
+                            }));
+                            let missing = missingIngredients.filter(m => m.recipe_id === recipe.recipe_id);
+                            const recId = recipe.recipe_id;
+
+                            return {
+                                ...recipe,
+                                goals: goalMap[recId] || [], // <-- attach an array
+                                estimated_cost: parseFloat((costMap[recId] || 0).toFixed(2)),
+                                ingredients: ingredientsWithPrices,
+                                missingIngredients: missing.map(m => ({
+                                    name: m.missing_ingredient,
+                                    suggestedSubstitute: budgetMode ? m.substitute_name : null,
+                                    estimatedCost: budgetMode ? m.cost : null
+                                }))
+                            };
+                        });
+
+                        connection2.end();
+                        return res.json(recipeData);
+                    });
+                });
             });
-        });
         });
     });
 });
@@ -630,7 +664,7 @@ app.get('/api/getRecipe', (req, res) => {
             image: rows[0].image,
             video: rows[0].video,
             prep_time: rows[0].prep_time,
-            goals: recipe.goals || []   // from earlier
+            goals: recipe.goals || []
           };
   
           const ingMap = {};
@@ -970,14 +1004,12 @@ app.put('/api/editRecipe', (req, res) => {
         ingredients
     } = req.body;
 
-    // Validate required fields
     if (!user_id || !recipe_id || !name || !instructions || !prep_time || !Array.isArray(ingredients) || ingredients.length === 0) {
         return res.status(400).json({ error: "Missing required fields" });
     }
 
     const connectionEdit = mysql.createConnection(config);
 
-    // Verify that the recipe exists and belongs to the user
     const verifySql = "SELECT * FROM recipes WHERE recipe_id = ? AND user_id = ?";
     connectionEdit.query(verifySql, [recipe_id, user_id], (err, results) => {
         if (err) {
@@ -990,7 +1022,6 @@ app.put('/api/editRecipe', (req, res) => {
             return res.status(403).json({ error: "Unauthorized or recipe not found" });
         }
 
-        // Build the update query dynamically based on provided fields
         let updateFields = [];
         let updateValues = [];
 
@@ -1070,7 +1101,6 @@ app.put('/api/editRecipe', (req, res) => {
         });
     });
 });
-  
 
 // Get all recipes uploaded by the user
 app.post('/api/getMyRecipes', (req, res) => {
