@@ -1,14 +1,10 @@
-/**
- * profile.test.js
- */
-
 import React from 'react';
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import Profile from '../components/Profile';
 
-// 1) Mock the useBudget hook so it never fails
+// Mock the useBudget hook 
 jest.mock('../components/Budget/BudgetContext', () => ({
   useBudget: jest.fn()
 }));
@@ -99,7 +95,6 @@ describe('Profile Component', () => {
         });
       }
 
-      // Fallback
       return Promise.resolve({
         ok: true,
         json: () => Promise.resolve([])
@@ -207,7 +202,6 @@ describe('Profile Component', () => {
   });
 
   it('allows selecting a dietary preference from the multi-select', async () => {
-    // Adjust the mock to return multiple dietary preferences
     global.fetch.mockImplementationOnce((url) => {
       if (url.includes('/api/getDietaryPreferences')) {
         return Promise.resolve({
@@ -234,7 +228,7 @@ describe('Profile Component', () => {
     });
 
     const input = await screen.findByLabelText(/dietary preferences/i);
-    userEvent.click(input); // open the Autocomplete
+    userEvent.click(input); 
     const option = await screen.findByText(/vegetarian/i);
     userEvent.click(option);
     await waitFor(() => {
