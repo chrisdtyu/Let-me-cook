@@ -33,20 +33,24 @@ const ReviewList = ({ recipeId, reviews, averageRating, getReviews }) => {
         .then(() => resolve())  // Resolves once the reviews are updated
         .catch((error) => reject(error));  // Reject if error occurs
     })
-    .then(() => {
-      // Handle further actions after reviews have been updated
-      console.log("Reviews have been successfully updated.");
-    })
-    .catch((error) => {
-      console.error("Failed to fetch reviews:", error);
-    });
+      .then(() => {
+        // Handle further actions after reviews have been updated
+        console.log("Reviews have been successfully updated.");
+      })
+      .catch((error) => {
+        console.error("Failed to fetch reviews:", error);
+      });
   };
 
   return (
     <MainGridContainer
       container
       spacing={2}
-      style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem' }}
+      sx={{
+        width: '100%',
+        paddingX: { xs: 2, sm: 4, md: 6 },
+        paddingY: 4,
+      }}
       direction="column"
       alignItems="center"
     >
@@ -85,7 +89,7 @@ const ReviewList = ({ recipeId, reviews, averageRating, getReviews }) => {
       </Dialog>
 
       {/* Display Reviews */}
-      {showReviews && ( 
+      {showReviews && (
         <Grid container spacing={2} justifyContent="flex-start">
           {reviews?.map((item, index) => (
             <Grid item xs={12} sm={8} md={4} key={index}>
@@ -109,7 +113,14 @@ const Item = ({ item }) => {
         height: '100%',
       }}
     >
-      <Box sx={{ textAlign: "center", width: "100%" }}>
+      <Box sx={{
+        width: "100%",
+        maxWidth: 600, // optional limit
+        wordWrap: "break-word",
+        overflowWrap: "break-word",
+        whiteSpace: "normal", // make sure it wraps normally
+        mx: "auto", // center horizontally if needed
+      }}>
         <Typography variant="h6" paddingTop={2}>
           <b>Review Title:</b> {item.review_title}
         </Typography>
@@ -118,7 +129,15 @@ const Item = ({ item }) => {
         <b>Rating:</b> {"⭐".repeat(item.review_score)}
       </Typography>
       <Typography variant="body2"><b>Review Comments:</b></Typography>
-      <Typography variant="body2" sx={{ whiteSpace: "pre-line", ml: 2 }}>
+      <Typography
+        variant="body2"
+        sx={{
+          whiteSpace: "pre-line",
+          ml: 2,
+          wordWrap: "break-word",
+          overflowWrap: "break-word",
+        }}
+      >
         {item.review_content}
       </Typography>
       <Typography variant="caption">
