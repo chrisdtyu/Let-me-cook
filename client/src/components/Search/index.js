@@ -521,7 +521,11 @@ const Search = () => {
             <option value="descending">Descending</option>
           </TextField>
         </Box>
-
+        {error && (
+          <Typography color="error" sx={{ mb: 1 }}>
+            {error}
+          </Typography>
+        )}
         {/* Search Button */}
         <Button
           variant="contained"

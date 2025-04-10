@@ -114,7 +114,20 @@ const Login = () => {
       setErrorMessage('');
     } catch (error) {
       console.error('Error signing up:', error.message);
-      setErrorMessage(error.message);
+      switch (error.code) {
+        case 'auth/email-already-in-use':
+          setErrorMessage('This email is already in use.');
+          break;
+        case 'auth/invalid-email':
+          setErrorMessage('Please enter a valid email address.');
+          break;
+        case 'auth/weak-password':
+          setErrorMessage('Password is too weak. Use at least 12 characters and a special symbol.');
+          break;
+        default:
+          setErrorMessage('An unexpected error occurred. Please try again.');
+          break;
+      }
     }
   };
 
