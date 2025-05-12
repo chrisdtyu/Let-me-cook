@@ -28,7 +28,7 @@ To set up the project locally, follow these steps:
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/MSci-245-react/team-project-team-11-1.git
+   git clone https://github.com/chrisdtyu/Let-me-cook.git
    cd team-project-team-11-1
    ```
 
