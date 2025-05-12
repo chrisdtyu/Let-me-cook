@@ -74,3 +74,5 @@ For login testing, you can either **sign up for a new account** or use the follo
 
 After logging in, you will be redirected to the **profile page**, where you can customize your user profile and save it to the database.
 
+## Authors
+Shresta Gourishetty, Ana Hogiu, Muhammad Hussain, Christopher Yu
