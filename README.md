@@ -47,6 +47,13 @@ To set up the project locally, follow these steps:
    ```
    Open [http://localhost:3000](http://localhost:3000) to view the app in your browser.
 
+### ⚠️ Note
+
+>  Some features require a MySQL database that was hosted on a university server. That database is no longer active.
+> **To view the full functionality, [watch the demo video here](https://www.youtube.com/watch?v=DkWWEJSygE4).**
+
+
+
 ## Usage
 
 1. **Register/Login**: Create an account or log in to access personalized features.
